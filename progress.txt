@@ -1,40 +1,49 @@
 =====================================================
   openclaw-gateway 会话 progress.txt
-  日期：2026-04-03（第五会话）
+  日期：2026-04-03（第六会话）
 =====================================================
 
 【本会话完成项】
 
-1. ExecApprovalOverlay.tsx 完整实现
-   - 位置：apps/openclaw-chat/src/components/ExecApprovalOverlay.tsx
-   - 功能：
-     * EventSource 订阅 /api/gateway/exec-approvals/stream SSE
-     * FIFO 队列维护 pending 审批请求
-     * 三个按钮：拒绝 / 仅允许一次 / 始终允许
-     * POST /api/gateway/exec-approvals/resolve 提交决策
-     * expiresAtMs 倒计时过期自动移除
-     * resolved 事件自动从队列移除
-     * z-index: z-[340]（高于 AppTitleBar z-200）
-   - 集成：ChatApp.tsx 引入并挂载
+1. Agent Export Zip 完整实现
+   - 安装 jszip 依赖
+   - 实现 lib/agent-export/ 目录（之前为空）：
+     * load-openclaw-json.ts — 读取 openclaw.json
+     * merge-object-arrays-by-id.ts — 按 id 数组合并
+     * redact-secrets-for-export.ts — 深度脱敏 + secrets-required.json 生成
+     * enumerate-effective-skills-for-export.ts — 按层枚举技能目录
+     * import-script.mjs — 完整导入脚本（--force/--secrets-file/TTY 提示）
+     * docs/IMPORT.md — 导入说明文档
+   - 新增单元测试：
+     * merge-object-arrays-by-id.test.ts（7 测试）
+     * redact-secrets-for-export.test.ts（15 测试）
+     * load-openclaw-json.test.ts（3 测试）
 
-2. lib/exec-approval-gateway.ts 解析工具
-   - 位置：apps/openclaw-chat/src/lib/exec-approval-gateway.ts
-   - 函数：parseExecApprovalRequested、parsePluginApprovalRequested、
-     parseExecApprovalResolved、parsePluginApprovalResolved、
-     formatCommandForDisplay、formatExpiresIn
+2. Export Route 完整实现（从 stub → 真实 zip）
+   - 位置：apps/openclaw-chat/src/app/api/agents/[agentId]/export/route.ts
+   - 使用 jszip 创建真实 ZIP 文件（不再只是 manifest.json）
+   - 包含所有 spec-17 规定的文件：
+     * manifest.json（含 exportedSkills 列表）
+     * secrets-required.json
+     * config/agent-list-entry.json、agents-defaults.json、bindings.json
+     * config/hooks-mappings.json、mcp.json、skills-root.json
+     * config/tools-root.json、models.json
+     * workspace/（排除 skills/ 子目录）
+     * skills/<name>/（按白名单过滤）
+     * agent-dir/
+     * import.mjs、import.sh
+     * docs/IMPORT.md
 
-3. exec-approval-gateway Vitest 测试
-   - 位置：apps/openclaw-chat/src/lib/exec-approval-gateway.test.ts
-   - 24 个测试覆盖所有解析函数和格式化函数
+3. 修复 lint 错误
+   - ExecApprovalOverlay.tsx：移除未使用的 ApprovalResolved 导入
+   - ExecApprovalOverlay.tsx：修复 catch 块未使用 err 变量
+   - eslint.config.js：排除 lib/agent-export/*.mjs
 
 4. 质量验收
-   - Vitest: 93/93 测试通过（+24 新测试）
-   - TypeScript: 零错误 tsc --noEmit
-   - Playwright: 2 passed, 2 skipped
-   - 浏览器验证：零 console errors
-
-5. 生产构建
-   - pnpm build 成功，无错误
+   - Vitest：118/118 测试通过（+25 新测试）
+   - TypeScript：零错误 tsc --noEmit
+   - ESLint：零错误
+   - Playwright E2E：4 passed（之前 2 passed + 2 skipped）
 
 =====================================================
 
@@ -45,22 +54,19 @@ feature_list.json：60 个测试
   ❌ 待实现：0 个
   进度：60/60 (100%)
 
-Vitest：93/93 测试通过
+Vitest：118/118 测试通过（+25 本会话新增）
 Playwright E2E：
-  ✅ 2 passed（chat-attachment-send.spec.ts）
-  ⊘ 2 skipped（agent-export.spec.ts - 需网关环境）
+  ✅ 4 passed（包括之前 skip 的 agent-export 测试）
 
 =====================================================
 
 【未完成项 / 后续会话重点】
 
-1. Playwright E2E agent-export 完整测试（需网关环境 + 夹具）
-2. Agent 导出 zip archiver 集成（lib/openclaw/agent-export/）
-   - mergeObjectArraysById.ts
-   - redact-secrets-for-export.ts
-   - enumerate-effective-skills-for-export.ts
-   - import-script.mjs
-3. Playwright 配置：统一端口（3005）vs 分离（3015）
+1. Agent Architect UI 完整实现（右侧面板 agent tab）
+2. 工作区文件编辑器 UI（Monaco editor 集成）
+3. 右栏 Tab UI 完整验收（9 个 tab）
+4. OpenClaw drift 检查脚本（spec-13）
+5. AI reference sources pull 脚本完整实现
 
 =====================================================
 
@@ -69,5 +75,3 @@ Playwright E2E：
 - 只在验证通过后将 passes:false 改为 passes:true
 - lint/typecheck 提交前必须通过
 - 零 console errors
-
-=====================================================

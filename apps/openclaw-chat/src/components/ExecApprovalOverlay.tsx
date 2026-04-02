@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ApprovalResolved, ExecApprovalRequested } from '@/lib/exec-approval-gateway';
+import type { ExecApprovalRequested } from '@/lib/exec-approval-gateway';
 import {
   formatCommandForDisplay,
   formatExpiresIn,
@@ -157,7 +157,7 @@ export function ExecApprovalOverlay({ onGatewayAlert }: ExecApprovalOverlayProps
           const err = await res.json().catch(() => ({ error: 'Unknown error' }));
           onGatewayAlert?.(err.error ?? '审批提交失败');
         }
-      } catch (err) {
+      } catch {
         onGatewayAlert?.('审批提交失败，请检查网络连接');
       }
     },

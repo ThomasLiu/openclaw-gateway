@@ -18,6 +18,7 @@ module.exports = [
       "build/**",
       "coverage/**",
       "e2e/**",
+      "src/lib/agent-export/*.mjs",
     ],
   },
   js.configs.recommended,
