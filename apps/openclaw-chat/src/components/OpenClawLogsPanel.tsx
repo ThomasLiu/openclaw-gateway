@@ -3,6 +3,7 @@
 import { RIGHT_PANEL_TABS, type RightPanelTabId } from './right-panel/types';
 import { RightPanelTabBar } from './RightPanelTabBar';
 import { LogsTabContent } from './right-panel/LogsTabContent';
+import { AgentRequestLogsTabContent } from './right-panel/AgentRequestLogsTabContent';
 import { SkillsTabContent } from './right-panel/SkillsTabContent';
 import { ModelManagementTabContent } from './right-panel/ModelManagementTabContent';
 import { ScheduledTasksTabContent } from './right-panel/ScheduledTasksTabContent';
@@ -32,9 +33,7 @@ export function OpenClawLogsPanel({ agentId, sessionKey, activeTab, onTabChange 
         {tabId === 'modelManagement' && <ModelManagementTabContent agentId={agentId} />}
         {tabId === 'scheduledTasks' && <ScheduledTasksTabContent agentId={agentId} />}
         {tabId === 'mcpServices' && <McpServicesTabContent />}
-        {tabId === 'agentRequest' && (
-          <div className="p-3 text-sm text-zinc-500">Agent 请求日志功能开发中</div>
-        )}
+        {tabId === 'agentRequest' && <AgentRequestLogsTabContent agentId={agentId} />}
         {tabId === 'subagent' && <SubagentTabContent agentId={agentId} sessionKey={sessionKey} />}
         {tabId === 'workspace' && <WorkspaceExplorerTabContent agentId={agentId} />}
         {tabId === 'agent' && <AgentTabContent agentId={agentId} />}

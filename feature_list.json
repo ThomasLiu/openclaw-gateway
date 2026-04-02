@@ -788,5 +788,49 @@
       "步骤 7：运行 vitest --run src/lib/exec-approval-gateway.test.ts，全部通过"
     ],
     "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "定时任务 CRUD UI（ScheduledTasksTabContent）：新建/编辑/删除模态框 + 刷新 + 删除确认",
+    "steps": [
+      "步骤 1：读取 apps/openclaw-chat/src/components/right-panel/ScheduledTasksTabContent.tsx",
+      "步骤 2：验证新建按钮打开 ScheduledTaskJsonModal",
+      "步骤 3：验证模态框有名称、Cron 表达式、启用切换字段",
+      "步骤 4：验证空表单提交显示验证错误（名称/Cron 必填）",
+      "步骤 5：验证 Cron 预设按钮正确填充表达式",
+      "步骤 6：验证编辑/删除按钮在悬停时显示",
+      "步骤 7：验证删除确认对话框",
+      "步骤 8：验证刷新按钮功能",
+      "步骤 9：运行 Playwright E2E e2e/scheduled-tasks.spec.ts，全部通过"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Agent 请求日志标签页（AgentRequestLogsTabContent）：SSE 流 + 诊断摘要 + 过滤",
+    "steps": [
+      "步骤 1：读取 apps/openclaw-chat/src/components/right-panel/AgentRequestLogsTabContent.tsx",
+      "步骤 2：验证 GET /api/openclaw/agent-request-diagnostics 返回 {totalRequests, totalErrors, avgDurationMs, recentEntries}",
+      "步骤 3：验证 GET /api/openclaw/agent-request-logs 返回 text/event-stream",
+      "步骤 4：验证 Agent 请求日志标签页加载并显示日志流",
+      "步骤 5：验证诊断摘要（请求数/错误数/平均时长）",
+      "步骤 6：验证过滤按钮（全部/会话/错误）",
+      "步骤 7：验证清空按钮功能",
+      "步骤 8：验证零 console errors"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "定时任务 Hook + Cron API：use-scheduled-cron-tasks.ts + cron route 改善错误序列化",
+    "steps": [
+      "步骤 1：读取 apps/openclaw-chat/src/lib/openclaw/use-scheduled-cron-tasks.ts",
+      "步骤 2：验证 hook 提供 tasks/loading/error/creating/refreshing 状态",
+      "步骤 3：验证 createTask/updateTask/removeTask 函数正确调用 API",
+      "步骤 4：验证 cron route POST 错误时返回可读消息（非 [object Object]）",
+      "步骤 5：验证 GET /api/openclaw/cron 正常返回 {crons: []} 格式",
+      "步骤 6：运行 Vitest 全部通过（118 tests）"
+    ],
+    "passes": true
   }
 ]
