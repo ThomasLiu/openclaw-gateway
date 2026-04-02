@@ -1,0 +1,48 @@
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+.next/
+dist/
+build/
+out/
+
+# SQLite database
+*.sqlite
+*.sqlite3
+data/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Test
+coverage/
+test-results/
+playwright-report/
+.playwright/
+
+# ai-reference-sources (never commit upstream code)
+ai-reference-sources/
+
+# Temp files
+*.tmp
+*.temp
+*.bak
+
+# Environment (secrets)
+.env
+.env.local
+.env.*.local
