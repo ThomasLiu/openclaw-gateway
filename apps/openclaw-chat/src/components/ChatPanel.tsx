@@ -74,7 +74,7 @@ export default function ChatPanel({
   }, [messages, streaming]);
 
   const handleSend = useCallback(async () => {
-    if (!input.trim() || streaming) return;
+    if (!input.trim() || streaming || !gatewayConnected) return;
     const text = input.trim();
     setInput('');
     composerDraftStorage.clear(agentId, sessionKey);
@@ -168,7 +168,7 @@ export default function ChatPanel({
     } finally {
       setStreaming(false);
     }
-  }, [input, streaming, agentId, sessionKey, onSessionKeyChange]);
+  }, [input, streaming, agentId, sessionKey, onSessionKeyChange, gatewayConnected]);
 
   const handleAbort = useCallback(async () => {
     if (!streaming) return;
@@ -275,9 +275,8 @@ export default function ChatPanel({
             placeholder={
               gatewayConnected ? '输入消息… (Shift+Enter 换行)' : '网关未连接，请先启动 OpenClaw'
             }
-            disabled={!gatewayConnected}
             rows={1}
-            className="flex-1 resize-none bg-zinc-800 text-zinc-100 rounded px-3 py-2.5 text-sm placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-600 disabled:opacity-50"
+            className="flex-1 resize-none bg-zinc-800 text-zinc-100 rounded px-3 py-2.5 text-sm placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-600"
             style={{ height: textareaHeight, minHeight: 44, maxHeight: 200 }}
           />
 

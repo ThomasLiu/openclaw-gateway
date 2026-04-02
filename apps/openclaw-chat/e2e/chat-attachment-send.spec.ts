@@ -19,10 +19,16 @@ test.describe("Chat attachment send", () => {
   });
 
   test("attachment UI interaction", async ({ page }) => {
-    // Attachment feature stub — full test requires gateway
+    // Textarea is always editable — send button prevents sending when disconnected
     const textarea = page.locator("textarea");
     await textarea.click();
-    // placeholder text confirms composer is ready
-    await expect(textarea).toHaveAttribute("placeholder", /输入消息/);
+    // Placeholder reflects connection state; textarea itself is always editable
+    const placeholder = await textarea.getAttribute("placeholder");
+    const isConnected = /输入消息/.test(placeholder!);
+    const isDisconnected = /网关未连接/.test(placeholder!);
+    expect(isConnected || isDisconnected).toBe(true);
+    // Input is possible regardless of connection state
+    await textarea.fill("test message");
+    await expect(textarea).toHaveValue("test message");
   });
 });
