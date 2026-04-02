@@ -13,7 +13,7 @@
       "步骤 8：验证 scripts.pull:ai-reference-sources 运行 pull-ai-reference-sources.mjs",
       "步骤 9：验证 scripts.openclaw:drift 运行 scripts/openclaw-drift.mjs"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -24,7 +24,7 @@
       "步骤 3：确认根 package.json 不含 src/ 代码（仅有 scripts + dependencies）",
       "步骤 4：pnpm install 后 apps/openclaw-chat/node_modules 正确链接"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -40,7 +40,7 @@
       "步骤 8：验证 vitest、@vitest/ui 在 devDependencies",
       "步骤 9：验证 eslint、typescript、@types/node 在 devDependencies"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -52,7 +52,7 @@
       "步骤 4：验证 allowedDevOrigins 含 127.0.0.1 与 localhost",
       "步骤 5：验证 next build 不报 better-sqlite3 打包错误"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "quality",
@@ -63,7 +63,7 @@
       "步骤 3：若有待处理文件，补充缺失的类型声明或 eslint-disable",
       "步骤 4：确认无 ESLint 错误（忽略 warnings 为 0 策略）"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "quality",
@@ -74,7 +74,7 @@
       "步骤 3：若有不符格式的文件，运行 pnpm exec prettier --write 修复",
       "步骤 4：确认 check 通过"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "quality",
@@ -85,7 +85,7 @@
       "步骤 3：确认无配置错误（无 missing module 等）",
       "步骤 4：确认 test:ui 等脚本在 package.json 中可用"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -97,7 +97,7 @@
       "步骤 4：验证 start 脚本含 next start -p 3005",
       "步骤 5：验证 typecheck 脚本含 tsc --noEmit"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -232,7 +232,7 @@
       "步骤 5：验证调用 client.abortChat({ sessionKey, runId })",
       "步骤 6：验证响应 { ok: true } 或 500 error"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -245,7 +245,7 @@
       "步骤 5：验证批量 enrich 批大小 64 keys",
       "步骤 6：验证响应 { ok: true, key } 或 { sessions }"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -473,7 +473,7 @@
       "步骤 4：验证 extractAssistantMetaFromGatewayMessage",
       "步骤 5：验证 extractAssistantTextFromGatewayMessage（正文提取优先）"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -522,7 +522,7 @@
       "步骤 6：验证 PUT file 写入前 realpath 校验",
       "步骤 7：验证 safeWorkspaceRelativePath 禁止 .. / . 逃逸"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -537,7 +537,7 @@
       "步骤 7：读取 enumerate-effective-skills-for-export.ts",
       "步骤 8：验证按层顺序枚举 skill dirs 与白名单过滤"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -550,7 +550,7 @@
       "步骤 5：验证三个按钮 POST /api/gateway/exec-approvals/resolve",
       "步骤 6：验证按 expiresAtMs 过期移除与 resolved 事件移除"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -564,7 +564,7 @@
       "步骤 6：验证 skills/<name>/ 复制到目标 workspace skills/<name>/",
       "步骤 7：验证导入前备份原配置"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -574,7 +574,7 @@
       "步骤 2：验证调用 ensureOpenClawAgentArchitect()",
       "步骤 3：验证 OPENCLAW_AGENT_ARCHITECT_ID 常量一致性"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -584,7 +584,7 @@
       "步骤 2：验证导出 OPENCLAW_AGENT_ARCHITECT_ID 常量",
       "步骤 3：验证 AgentSidebar.tsx 使用相同常量"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -595,7 +595,7 @@
       "步骤 3：验证 git clone 或 git pull 逻辑",
       "步骤 4：验证 pnpm pull:ai-reference-sources 可独立运行"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -607,7 +607,7 @@
       "步骤 4：验证关联到 integrates 列表",
       "步骤 5：验证 pnpm openclaw:drift 可运行"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -618,7 +618,7 @@
       "步骤 3：验证 watch 数组每项含 path 与 integrates",
       "步骤 4：验证新增强依赖时追加 watch 项"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

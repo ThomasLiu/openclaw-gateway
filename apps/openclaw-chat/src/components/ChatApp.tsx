@@ -1,24 +1,22 @@
-"use client";
+'use client';
 
-import dynamic from "next/dynamic";
-import { useState } from "react";
-import { AgentSidebar } from "@/components/AgentSidebar";
-import { SessionSidebar } from "@/components/SessionSidebar";
-import { AppTitleBar } from "@/components/AppTitleBar";
-import { GatewayAlertDialog } from "@/components/GatewayAlertDialog";
-import type { GatewaySessionRow } from "@/components/chat-types";
+import dynamic from 'next/dynamic';
+import { useState } from 'react';
+import { AgentSidebar } from '@/components/AgentSidebar';
+import { SessionSidebar } from '@/components/SessionSidebar';
+import { AppTitleBar } from '@/components/AppTitleBar';
+import { GatewayAlertDialog } from '@/components/GatewayAlertDialog';
+import type { GatewaySessionRow } from '@/components/chat-types';
 
-const ChatPanel = dynamic(() => import("@/components/ChatPanel"), {
+const ChatPanel = dynamic(() => import('@/components/ChatPanel'), {
   ssr: false,
   loading: () => (
-    <div className="flex-1 flex items-center justify-center text-zinc-500">
-      加载聊天面板…
-    </div>
+    <div className="flex-1 flex items-center justify-center text-zinc-500">加载聊天面板…</div>
   ),
 });
 
 const OpenClawLogsPanel = dynamic(
-  () => import("@/components/OpenClawLogsPanel").then((m) => ({ default: m.OpenClawLogsPanel })),
+  () => import('@/components/OpenClawLogsPanel').then((m) => ({ default: m.OpenClawLogsPanel })),
   { ssr: false }
 );
 
@@ -29,11 +27,14 @@ interface ChatAppProps {
   sessionKey?: string;
 }
 
-export function ChatApp({ agentId: initialAgentId = "main", sessionKey: initialSessionKey }: ChatAppProps) {
+export function ChatApp({
+  agentId: initialAgentId = 'main',
+  sessionKey: initialSessionKey,
+}: ChatAppProps) {
   const [agentId, setAgentId] = useState<string>(initialAgentId);
   const [sessionKey, setSessionKey] = useState<string | undefined>(initialSessionKey);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
-  const [rightPanelTab, setRightPanelTab] = useState<string>("logs");
+  const [rightPanelTab, setRightPanelTab] = useState<string>('logs');
   const [gatewaySessions] = useState<GatewaySessionRow[]>([]);
   const [gatewayConnected] = useState(false);
   const [gatewayAlert, setGatewayAlert] = useState<string | null>(null);
@@ -93,10 +94,7 @@ export function ChatApp({ agentId: initialAgentId = "main", sessionKey: initialS
       </div>
 
       {gatewayAlert && (
-        <GatewayAlertDialog
-          message={gatewayAlert}
-          onClose={() => setGatewayAlert(null)}
-        />
+        <GatewayAlertDialog message={gatewayAlert} onClose={() => setGatewayAlert(null)} />
       )}
     </div>
   );

@@ -8,17 +8,17 @@
  * IMPORTANT: This file must only be imported from server-side code.
  * The 'server-only' guard prevents accidental client-side usage.
  */
-import "server-only";
+import 'server-only';
 
-import Database from "better-sqlite3";
-import * as fs from "fs";
-import * as path from "path";
+import Database from 'better-sqlite3';
+import * as fs from 'fs';
+import * as path from 'path';
 
 declare global {
   var __openclaw_db__: Database.Database | undefined;
 }
 
-const DB_PATH = process.env.DATABASE_PATH ?? path.join(process.cwd(), "data", "chat.sqlite");
+const DB_PATH = process.env.DATABASE_PATH ?? path.join(process.cwd(), 'data', 'chat.sqlite');
 
 function ensureDataDir(): void {
   const dir = path.dirname(DB_PATH);
@@ -69,7 +69,7 @@ export interface InsertMessageParams {
 export function insertMessage(params: InsertMessageParams): number {
   const db = getDb();
   const stmt = db.prepare(
-    "INSERT INTO messages (agent_id, role, content) VALUES (@agent_id, @role, @content)"
+    'INSERT INTO messages (agent_id, role, content) VALUES (@agent_id, @role, @content)'
   );
   const result = stmt.run(params);
   return Number(result.lastInsertRowid);
@@ -77,9 +77,7 @@ export function insertMessage(params: InsertMessageParams): number {
 
 export function listMessages(agentId: string, limit: number = 200): DbMessage[] {
   const db = getDb();
-  const stmt = db.prepare(
-    "SELECT * FROM messages WHERE agent_id = ? ORDER BY id DESC LIMIT ?"
-  );
+  const stmt = db.prepare('SELECT * FROM messages WHERE agent_id = ? ORDER BY id DESC LIMIT ?');
   const rows = stmt.all(agentId, limit) as DbMessage[];
   return rows;
 }

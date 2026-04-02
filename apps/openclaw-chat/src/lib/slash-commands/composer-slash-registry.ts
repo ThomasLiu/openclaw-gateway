@@ -16,46 +16,48 @@ export interface SlashCommandEntry {
 
 const BUILTIN_COMMANDS: SlashCommandEntry[] = [
   {
-    name: "/think",
-    description: "开启/关闭思维日志展示",
-    insertText: "/think",
-    argOptions: [{ name: "level", description: "思维详细程度", choices: ["brief", "verbose"] }],
+    name: '/think',
+    description: '开启/关闭思维日志展示',
+    insertText: '/think',
+    argOptions: [{ name: 'level', description: '思维详细程度', choices: ['brief', 'verbose'] }],
     builtinSingleArgSlashLineWide: true,
   },
   {
-    name: "/focus",
-    description: "切换到指定会话",
-    insertText: "/focus",
+    name: '/focus',
+    description: '切换到指定会话',
+    insertText: '/focus',
     builtinSingleArgSlashLineWide: true,
   },
   {
-    name: "/kill",
-    description: "中止当前运行中的会话",
-    insertText: "/kill",
+    name: '/kill',
+    description: '中止当前运行中的会话',
+    insertText: '/kill',
     builtinSingleArgSlashLineWide: true,
   },
   {
-    name: "/steer",
-    description: "调整当前会话的模型或行为",
-    insertText: "/steer",
+    name: '/steer',
+    description: '调整当前会话的模型或行为',
+    insertText: '/steer',
     builtinSingleArgSlashLineWide: true,
   },
   {
-    name: "/model",
-    description: "切换模型",
-    insertText: "/model",
+    name: '/model',
+    description: '切换模型',
+    insertText: '/model',
     builtinSingleArgSlashLineWide: true,
   },
   {
-    name: "/skill",
-    description: "激活技能",
-    insertText: "/skill ",
+    name: '/skill',
+    description: '激活技能',
+    insertText: '/skill ',
   },
   {
-    name: "/tools",
-    description: "显示/隐藏工具调用详情",
-    insertText: "/tools",
-    argOptions: [{ name: "mode", description: "工具展示模式", choices: ["compact", "verbose", "none"] }],
+    name: '/tools',
+    description: '显示/隐藏工具调用详情',
+    insertText: '/tools',
+    argOptions: [
+      { name: 'mode', description: '工具展示模式', choices: ['compact', 'verbose', 'none'] },
+    ],
   },
 ];
 
@@ -64,9 +66,9 @@ export function getBuiltinCommands(): SlashCommandEntry[] {
 }
 
 export interface ComposerMenuState {
-  type: "slash" | "skill" | null;
+  type: 'slash' | 'skill' | null;
   query: string;
-  insertKind: "line" | "token";
+  insertKind: 'line' | 'token';
   items: SlashCommandEntry[];
 }
 
@@ -78,10 +80,7 @@ export interface ComposerMenuState {
  *
  * Returns null if no active menu.
  */
-export function parseSlashTrigger(
-  text: string,
-  caret: number
-): ComposerMenuState | null {
+export function parseSlashTrigger(text: string, caret: number): ComposerMenuState | null {
   const before = text.slice(0, caret);
 
   // Slash command: match last /word before caret
@@ -91,9 +90,9 @@ export function parseSlashTrigger(
     const filtered = filterCommands(query);
     if (filtered.length === 0 && query.length > 0) return null;
     return {
-      type: "slash",
+      type: 'slash',
       query,
-      insertKind: query.includes(" ") ? "token" : "line",
+      insertKind: query.includes(' ') ? 'token' : 'line',
       items: filtered,
     };
   }
@@ -103,9 +102,9 @@ export function parseSlashTrigger(
   if (atMatch) {
     const query = atMatch[1].slice(1); // remove @
     return {
-      type: "skill",
+      type: 'skill',
       query,
-      insertKind: "token",
+      insertKind: 'token',
       items: [], // populated dynamically from skills.status API
     };
   }
@@ -119,7 +118,7 @@ function filterCommands(query: string): SlashCommandEntry[] {
   return BUILTIN_COMMANDS.filter((c) => c.name.toLowerCase().includes(lc));
 }
 
-export type SlashInsertKind = "line" | "token";
+export type SlashInsertKind = 'line' | 'token';
 
 export function computeComposerMenuState(
   text: string,

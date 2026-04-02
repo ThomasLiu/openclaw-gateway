@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
-import { getOpenClawClient } from "@/lib/openclaw/pool";
-import { ensureOpenClawAgentArchitect } from "@/lib/openclaw-agent-architect/ensure-architect";
+import { NextResponse } from 'next/server';
+import { getOpenClawClient } from '@/lib/openclaw/pool';
+import { ensureOpenClawAgentArchitect } from '@/lib/openclaw-agent-architect/ensure-architect';
 
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 
 export async function POST() {
   try {
@@ -10,6 +10,9 @@ export async function POST() {
     const result = await ensureOpenClawAgentArchitect(client);
     return NextResponse.json(result);
   } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : "Unknown error" }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Unknown error' },
+      { status: 500 }
+    );
   }
 }

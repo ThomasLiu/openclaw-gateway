@@ -1,6 +1,6 @@
 // ─── Core message types ─────────────────────────────────────────────────────
 
-export type MessageRole = "user" | "assistant" | "system" | "tool";
+export type MessageRole = 'user' | 'assistant' | 'system' | 'tool';
 
 export interface UiMessage {
   id: string;
@@ -16,7 +16,7 @@ export interface UiMessage {
 }
 
 export interface UiAttachment {
-  type: "image";
+  type: 'image';
   mimeType: string;
   /** base64 content */
   content: string;
@@ -31,7 +31,7 @@ export interface ToolCard {
   name: string;
   input: unknown;
   output?: string;
-  status: "pending" | "success" | "error";
+  status: 'pending' | 'success' | 'error';
 }
 
 // ─── Assistant meta ─────────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
-import type { UiMessage, MessageRole } from "./chat-types";
-import { ChatMarkdown } from "./ChatMarkdown";
+import type { UiMessage, MessageRole } from './chat-types';
+import { ChatMarkdown } from './ChatMarkdown';
 
 export interface ChatMessageGroupProps {
   id?: string;
@@ -27,7 +27,7 @@ export function groupMessages(messages: UiMessage[]): ChatMessageGroupProps[] {
  * Renders a group of same-role messages.
  */
 export function ChatMessageGroup({ role, messages }: ChatMessageGroupProps) {
-  if (role === "user") {
+  if (role === 'user') {
     return (
       <div className="flex flex-col gap-1">
         {messages.map((msg) => (
@@ -56,9 +56,7 @@ export function ChatMessageGroup({ role, messages }: ChatMessageGroupProps) {
               ))}
             </div>
           )}
-          {msg.meta?.model && (
-            <div className="mt-1 text-xs text-zinc-500">{msg.meta.model}</div>
-          )}
+          {msg.meta?.model && <div className="mt-1 text-xs text-zinc-500">{msg.meta.model}</div>}
         </div>
       ))}
     </div>

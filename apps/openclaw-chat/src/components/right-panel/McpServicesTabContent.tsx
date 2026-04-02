@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 interface McpServer {
   name: string;
@@ -14,7 +14,7 @@ export function McpServicesTabContent() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/openclaw/config")
+    fetch('/api/openclaw/config')
       .then((r) => r.json())
       .then((data) => setServers(data.mcp?.servers ?? []))
       .catch(() => setServers([]))
@@ -37,7 +37,7 @@ export function McpServicesTabContent() {
               <div key={srv.name} className="px-3 py-2">
                 <div className="text-sm text-zinc-200 font-mono">{srv.name}</div>
                 <div className="text-xs text-zinc-500 mt-0.5 font-mono">
-                  {srv.command} {srv.args.join(" ")}
+                  {srv.command} {srv.args.join(' ')}
                 </div>
               </div>
             ))}

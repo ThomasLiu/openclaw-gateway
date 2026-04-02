@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getOpenClawClient } from "@/lib/openclaw/pool";
+import { NextRequest, NextResponse } from 'next/server';
+import { getOpenClawClient } from '@/lib/openclaw/pool';
 
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 
-const THREAD_KEY = "default";
+const THREAD_KEY = 'default';
 
 function normalizeSessionKey(agentId: string, sk?: string): string {
   const base = sk?.trim() || THREAD_KEY;
-  if (base.startsWith("agent:")) return base;
+  if (base.startsWith('agent:')) return base;
   return `agent:${agentId}:chat:${base}`;
 }
 
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     const runId: string | undefined = body.runId?.trim();
 
     if (!agentId) {
-      return NextResponse.json({ error: "agentId required" }, { status: 400 });
+      return NextResponse.json({ error: 'agentId required' }, { status: 400 });
     }
 
     const skParam = sessionKeyParam || THREAD_KEY;
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
+    const msg = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

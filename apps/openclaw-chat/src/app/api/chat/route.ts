@@ -1,16 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getOpenClawClient } from "@/lib/openclaw/pool";
-import { insertMessage, listMessages } from "@/lib/db";
-import type { UiMessage } from "@/components/chat-types";
-import { extractAssistantTextFromGatewayMessage } from "@/lib/openclaw/client";
+import { NextRequest, NextResponse } from 'next/server';
+import { getOpenClawClient } from '@/lib/openclaw/pool';
+import { insertMessage, listMessages } from '@/lib/db';
+import type { UiMessage } from '@/components/chat-types';
+import { extractAssistantTextFromGatewayMessage } from '@/lib/openclaw/client';
 
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 
-const THREAD_KEY = "default";
+const THREAD_KEY = 'default';
 
 function normalizeSessionKey(agentId: string, sk?: string): string {
   const base = sk?.trim() || THREAD_KEY;
-  if (base.startsWith("agent:")) return base;
+  if (base.startsWith('agent:')) return base;
   return `agent:${agentId}:chat:${base}`;
 }
 
@@ -19,11 +19,9 @@ function gatewayHistoryToUiMessages(history: unknown[]): UiMessage[] {
     const msg = item as Record<string, unknown>;
     return {
       id: String(msg.id ?? `msg-${i}`),
-      role: (msg.role as UiMessage["role"]) ?? "assistant",
+      role: (msg.role as UiMessage['role']) ?? 'assistant',
       content:
-        typeof msg.content === "string"
-          ? msg.content
-          : extractAssistantTextFromGatewayMessage(msg),
+        typeof msg.content === 'string' ? msg.content : extractAssistantTextFromGatewayMessage(msg),
       createdAt: String(msg.createdAt ?? new Date().toISOString()),
     };
   });
@@ -32,12 +30,12 @@ function gatewayHistoryToUiMessages(history: unknown[]): UiMessage[] {
 // GET /api/chat — load messages
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
-  const agentId = searchParams.get("agentId")?.trim();
-  const sessionKey = searchParams.get("sessionKey")?.trim();
-  let limit = Math.min(1000, Math.max(1, Number(searchParams.get("limit") ?? "200")));
+  const agentId = searchParams.get('agentId')?.trim();
+  const sessionKey = searchParams.get('sessionKey')?.trim();
+  let limit = Math.min(1000, Math.max(1, Number(searchParams.get('limit') ?? '200')));
 
   if (!agentId) {
-    return NextResponse.json({ error: "agentId required" }, { status: 400 });
+    return NextResponse.json({ error: 'agentId required' }, { status: 400 });
   }
 
   try {
@@ -46,7 +44,7 @@ export async function GET(req: NextRequest) {
       const history = await client.fetchChatHistory({ sessionKey, limit });
       return NextResponse.json({
         messages: gatewayHistoryToUiMessages(history),
-        source: "gateway",
+        source: 'gateway',
         sessionKey,
       });
     }
@@ -57,13 +55,13 @@ export async function GET(req: NextRequest) {
       .reverse()
       .map((row) => ({
         id: String(row.id),
-        role: row.role as UiMessage["role"],
+        role: row.role as UiMessage['role'],
         content: row.content,
         createdAt: row.created_at,
       }));
-    return NextResponse.json({ messages, source: "sqlite" });
+    return NextResponse.json({ messages, source: 'sqlite' });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
+    const msg = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
@@ -78,13 +76,13 @@ export async function POST(req: NextRequest) {
     const attachments: unknown[] = Array.isArray(body.attachments) ? body.attachments : [];
 
     if (!agentId) {
-      return NextResponse.json({ error: "agentId required" }, { status: 400 });
+      return NextResponse.json({ error: 'agentId required' }, { status: 400 });
     }
 
     const hasAttachments = attachments.length > 0;
     if (!text && !hasAttachments) {
       return NextResponse.json(
-        { error: "agentId and (text or image attachments) required" },
+        { error: 'agentId and (text or image attachments) required' },
         { status: 400 }
       );
     }
@@ -93,7 +91,7 @@ export async function POST(req: NextRequest) {
 
     // Store user message in SQLite if no gateway session
     if (persistSqlite && text) {
-      insertMessage({ agent_id: agentId, role: "user", content: text });
+      insertMessage({ agent_id: agentId, role: 'user', content: text });
     }
 
     const skParam = sessionKeyParam || THREAD_KEY;
@@ -114,9 +112,7 @@ export async function POST(req: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         const send = (obj: unknown) => {
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify(obj)}\n\n`)
-          );
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
         };
 
         // Subscribe to chat events
@@ -127,34 +123,38 @@ export async function POST(req: NextRequest) {
           }
         };
 
-        const onFinal = async (payload: { sessionKey: string; runId?: string; message?: unknown }) => {
+        const onFinal = async (payload: {
+          sessionKey: string;
+          runId?: string;
+          message?: unknown;
+        }) => {
           // Persist assistant message to SQLite if local
           if (persistSqlite) {
             const content = extractAssistantTextFromGatewayMessage(payload.message);
             if (content) {
-              insertMessage({ agent_id: agentId, role: "assistant", content });
+              insertMessage({ agent_id: agentId, role: 'assistant', content });
             }
           }
           send({ final: true, sessionKey: payload.sessionKey, runId: payload.runId });
         };
 
         const onError = (payload: { error?: string }) => {
-          send({ error: payload.error ?? "Stream error" });
+          send({ error: payload.error ?? 'Stream error' });
         };
 
-        client.on("chat.delta", onDelta);
-        client.on("chat.final", onFinal);
-        client.on("chat.error", onError);
+        client.on('chat.delta', onDelta);
+        client.on('chat.final', onFinal);
+        client.on('chat.error', onError);
 
         try {
           // Signal that stream has started
           send({ started: true, runId });
         } finally {
           // Cleanup when client disconnects
-          req.signal.addEventListener("abort", async () => {
-            client.off("chat.delta", onDelta);
-            client.off("chat.final", onFinal);
-            client.off("chat.error", onError);
+          req.signal.addEventListener('abort', async () => {
+            client.off('chat.delta', onDelta);
+            client.off('chat.final', onFinal);
+            client.off('chat.error', onError);
             try {
               await client.abortChat({ sessionKey: finalSessionKey, runId });
             } catch {
@@ -167,13 +167,13 @@ export async function POST(req: NextRequest) {
 
     return new NextResponse(stream, {
       headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
       },
     });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
+    const msg = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

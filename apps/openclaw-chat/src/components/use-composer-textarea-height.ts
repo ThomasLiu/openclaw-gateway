@@ -1,5 +1,5 @@
-import type { RefObject } from "react";
-import { useEffect, useRef, useState } from "react";
+import type { RefObject } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export function useComposerTextareaHeight(
   ref: RefObject<HTMLTextAreaElement | null>,
@@ -56,11 +56,7 @@ function prepareComposerHeight(
   };
 }
 
-export function clampComposerTotalHeightPx(
-  height: number,
-  min: number,
-  max: number
-): number {
+export function clampComposerTotalHeightPx(height: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, height));
 }
 

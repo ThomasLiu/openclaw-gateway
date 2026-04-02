@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface ChatMarkdownProps {
   content: string;
@@ -17,7 +17,10 @@ export function ChatMarkdown({ content }: ChatMarkdownProps) {
             const isInline = !className;
             if (isInline) {
               return (
-                <code className="bg-zinc-800 text-zinc-300 rounded px-1 py-0.5 text-xs font-mono" {...props}>
+                <code
+                  className="bg-zinc-800 text-zinc-300 rounded px-1 py-0.5 text-xs font-mono"
+                  {...props}
+                >
                   {children}
                 </code>
               );
@@ -48,7 +51,9 @@ export function ChatMarkdown({ content }: ChatMarkdownProps) {
             );
           },
           th({ children }) {
-            return <th className="border border-zinc-700 px-2 py-1 bg-zinc-800 text-left">{children}</th>;
+            return (
+              <th className="border border-zinc-700 px-2 py-1 bg-zinc-800 text-left">{children}</th>
+            );
           },
           td({ children }) {
             return <td className="border border-zinc-700 px-2 py-1">{children}</td>;

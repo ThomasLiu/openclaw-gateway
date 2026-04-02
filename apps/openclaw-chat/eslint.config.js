@@ -1,12 +1,15 @@
-import js from "@eslint/js";
-import tsPlugin from "@typescript-eslint/eslint-plugin";
-import tsParser from "@typescript-eslint/parser";
-import reactPlugin from "eslint-plugin-react";
-import reactHooksPlugin from "eslint-plugin-react-hooks";
-import globals from "globals";
-import prettier from "eslint-config-prettier";
+/* eslint-disable @typescript-eslint/no-var-requires */
+"use strict";
 
-export default [
+const js = require("@eslint/js");
+const tsPlugin = require("@typescript-eslint/eslint-plugin");
+const tsParser = require("@typescript-eslint/parser");
+const reactPlugin = require("eslint-plugin-react");
+const reactHooksPlugin = require("eslint-plugin-react-hooks");
+const globals = require("globals");
+const prettier = require("eslint-config-prettier");
+
+module.exports = [
   {
     ignores: [
       "node_modules/**",
@@ -47,6 +50,11 @@ export default [
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
       "@typescript-eslint/no-explicit-any": "warn",
       "no-console": ["warn", { allow: ["warn", "error"] }],
+    },
+    settings: {
+      react: {
+        version: "19.0",
+      },
     },
   },
   {

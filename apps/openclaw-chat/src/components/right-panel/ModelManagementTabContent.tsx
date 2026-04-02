@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 interface ModelManagementTabContentProps {
   agentId: string;
@@ -17,7 +17,7 @@ export function ModelManagementTabContent({ agentId: _agentId }: ModelManagement
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/openclaw/models")
+    fetch('/api/openclaw/models')
       .then((r) => r.json())
       .then((data) => setModels(data.models ?? []))
       .catch(() => setModels([]))
@@ -41,9 +41,7 @@ export function ModelManagementTabContent({ agentId: _agentId }: ModelManagement
                 <div className="text-sm text-zinc-200 font-mono">
                   {model.provider}/{model.name ?? model.id}
                 </div>
-                {model.name && (
-                  <div className="text-xs text-zinc-500">{model.id}</div>
-                )}
+                {model.name && <div className="text-xs text-zinc-500">{model.id}</div>}
               </div>
             ))}
           </div>

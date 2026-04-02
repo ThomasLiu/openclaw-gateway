@@ -9,10 +9,7 @@ interface CacheEntry {
 const cache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 30_000; // 30 seconds
 
-export function makeSessionHistoryCacheKey(
-  agentId: string,
-  sessionKey: string
-): string {
+export function makeSessionHistoryCacheKey(agentId: string, sessionKey: string): string {
   return `${agentId}:${sessionKey}`;
 }
 

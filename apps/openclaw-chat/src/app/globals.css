@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
   --color-background: #09090b;
@@ -28,9 +28,15 @@ body {
 }
 
 @keyframes oc-wave {
-  0% { background-position: 0% 100%; }
-  50% { background-position: 0% 0%; }
-  100% { background-position: 0% 100%; }
+  0% {
+    background-position: 0% 100%;
+  }
+  50% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 0% 100%;
+  }
 }
 
 /* Scrollbar styling */

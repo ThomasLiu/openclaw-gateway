@@ -1,8 +1,8 @@
 /**
  * ensureOpenClawAgentArchitect — ensures the Architect agent exists in the gateway config.
  */
-import type { OpenClawClient } from "@/lib/openclaw/client";
-import { OPENCLAW_AGENT_ARCHITECT_ID } from "./constants";
+import type { OpenClawClient } from '@/lib/openclaw/client';
+import { OPENCLAW_AGENT_ARCHITECT_ID } from './constants';
 
 export interface EnsureArchitectResult {
   alreadyExists: boolean;
@@ -31,7 +31,7 @@ export async function ensureOpenClawAgentArchitect(
         list: [...agents, { id: OPENCLAW_AGENT_ARCHITECT_ID }],
       },
     },
-    baseHash: String(config.hash ?? ""),
+    baseHash: String(config.hash ?? ''),
   });
 
   return { alreadyExists: false };

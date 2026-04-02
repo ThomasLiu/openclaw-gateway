@@ -4,14 +4,14 @@
  * Uses globalThis to persist the singleton across Next.js HMR requests
  * within the same Node.js process.
  */
-import type { OpenClawClient } from "./client";
-import { getGatewayConfig } from "./config";
+import type { OpenClawClient } from './client';
+import { getGatewayConfig } from './config';
 
 declare global {
   var __openclaw_client__: OpenClawClient | undefined;
 }
 
-const POOL_TIMEOUT_MS = Number(process.env.OPENCLAW_POOL_CONNECT_TIMEOUT_MS ?? "28000");
+const POOL_TIMEOUT_MS = Number(process.env.OPENCLAW_POOL_CONNECT_TIMEOUT_MS ?? '28000');
 
 /**
  * Returns a singleton OpenClawClient, connecting if necessary.
@@ -23,11 +23,11 @@ export async function getOpenClawClient(): Promise<OpenClawClient> {
   }
 
   const config = getGatewayConfig();
-  const client = new (await import("./client")).OpenClawClient(config);
+  const client = new (await import('./client')).OpenClawClient(config);
 
   globalThis.__openclaw_client__ = client;
 
-  client.on("disconnected", () => {
+  client.on('disconnected', () => {
     globalThis.__openclaw_client__ = undefined;
   });
 
@@ -52,7 +52,7 @@ export async function getOpenClawClient(): Promise<OpenClawClient> {
         globalThis.__openclaw_client__ = undefined;
         reject(
           new Error(
-            "OpenClawClient version mismatch — restart the server process to pick up the updated client."
+            'OpenClawClient version mismatch — restart the server process to pick up the updated client.'
           )
         );
       })
@@ -70,13 +70,13 @@ export async function getOpenClawClient(): Promise<OpenClawClient> {
  */
 export function shouldReplaceOpenClawClientSingleton(client: OpenClawClient): boolean {
   const requiredMethods = [
-    "configGet",
-    "modelsList",
-    "execApprovalResolve",
-    "pluginApprovalResolve",
+    'configGet',
+    'modelsList',
+    'execApprovalResolve',
+    'pluginApprovalResolve',
   ];
   for (const method of requiredMethods) {
-    if (typeof (client as unknown as Record<string, unknown>)[method] !== "function") {
+    if (typeof (client as unknown as Record<string, unknown>)[method] !== 'function') {
       return true;
     }
   }

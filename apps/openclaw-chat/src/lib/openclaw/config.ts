@@ -6,10 +6,10 @@
  *  2. ~/.openclaw/openclaw.json    → infer from gateway.port
  *  3. throw
  */
-import * as fs from "fs";
-import * as path from "path";
-import * as os from "os";
-import type { GatewayAuthConfig } from "@/components/chat-types";
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import type { GatewayAuthConfig } from '@/components/chat-types';
 
 export interface OpenClawJsonConfig {
   gateway?: {
@@ -25,14 +25,14 @@ export interface OpenClawJsonConfig {
 }
 
 function normalizeHttpBase(url: string): string {
-  return url.replace(/^ws:\/\//, "http://").replace(/^wss:\/\//, "https://");
+  return url.replace(/^ws:\/\//, 'http://').replace(/^wss:\/\//, 'https://');
 }
 
 function readOpenClawJson(): OpenClawJsonConfig | null {
   const home = os.homedir();
-  const configPath = path.join(home, ".openclaw", "openclaw.json");
+  const configPath = path.join(home, '.openclaw', 'openclaw.json');
   try {
-    const raw = fs.readFileSync(configPath, "utf-8");
+    const raw = fs.readFileSync(configPath, 'utf-8');
     return JSON.parse(raw) as OpenClawJsonConfig;
   } catch {
     return null;
@@ -72,8 +72,8 @@ export function getGatewayConfig(): GatewayAuthConfig {
   const json = readOpenClawJson();
   if (!json) {
     throw new Error(
-      "OPENCLAW_GATEWAY_URL is not set and ~/.openclaw/openclaw.json not found. " +
-        "Set OPENCLAW_GATEWAY_URL or install OpenClaw."
+      'OPENCLAW_GATEWAY_URL is not set and ~/.openclaw/openclaw.json not found. ' +
+        'Set OPENCLAW_GATEWAY_URL or install OpenClaw.'
     );
   }
 
@@ -93,7 +93,7 @@ export function listAgentsFromOpenClawJson(): Array<{ id: string; label: string 
   const json = readOpenClawJson();
   const agents = json?.agents?.list;
   if (!agents || agents.length === 0) {
-    return [{ id: "main", label: "main" }];
+    return [{ id: 'main', label: 'main' }];
   }
   return agents.map((a) => ({ id: a.id, label: a.label ?? a.id }));
 }

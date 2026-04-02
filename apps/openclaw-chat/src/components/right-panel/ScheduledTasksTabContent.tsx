@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 interface ScheduledTasksTabContentProps {
   agentId: string;
@@ -18,7 +18,7 @@ export function ScheduledTasksTabContent({ agentId: _agentId }: ScheduledTasksTa
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/openclaw/cron")
+    fetch('/api/openclaw/cron')
       .then((r) => r.json())
       .then((data) => setTasks(data.crons ?? []))
       .catch(() => setTasks([]))
@@ -39,9 +39,7 @@ export function ScheduledTasksTabContent({ agentId: _agentId }: ScheduledTasksTa
           <div className="divide-y divide-zinc-800">
             {tasks.map((task) => (
               <div key={task.id} className="px-3 py-2">
-                <div className="text-sm text-zinc-200 font-medium">
-                  {task.label ?? task.id}
-                </div>
+                <div className="text-sm text-zinc-200 font-medium">{task.label ?? task.id}</div>
                 <div className="text-xs text-zinc-500 mt-0.5">{task.schedule}</div>
               </div>
             ))}

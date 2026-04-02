@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import type { ChangeEvent, KeyboardEvent } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { UiMessage } from "./chat-types";
-import { ChatMessageGroup, groupMessages } from "./chat-message-group";
-import { ComposerTriggerMenu } from "./ComposerTriggerMenu";
-import { useComposerTextareaHeight } from "./use-composer-textarea-height";
-import { composerDraftStorage } from "@/lib/composer-draft-storage";
+import type { ChangeEvent, KeyboardEvent } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { UiMessage } from './chat-types';
+import { ChatMessageGroup, groupMessages } from './chat-message-group';
+import { ComposerTriggerMenu } from './ComposerTriggerMenu';
+import { useComposerTextareaHeight } from './use-composer-textarea-height';
+import { composerDraftStorage } from '@/lib/composer-draft-storage';
 
 interface ChatPanelProps {
   agentId: string;
@@ -17,7 +17,7 @@ interface ChatPanelProps {
 
 interface ComposerMenuState {
   visible: boolean;
-  type: "slash" | "skill" | null;
+  type: 'slash' | 'skill' | null;
   query: string;
   caret: number;
   items: Array<{ label: string; description: string; insertText: string }>;
@@ -30,18 +30,18 @@ export default function ChatPanel({
   gatewayConnected,
 }: ChatPanelProps) {
   const [messages, setMessages] = useState<UiMessage[]>([]);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [menuState, setMenuState] = useState<ComposerMenuState>({
     visible: false,
     type: null,
-    query: "",
+    query: '',
     caret: 0,
     items: [],
   });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const streamingTextRef = useRef("");
+  const streamingTextRef = useRef('');
   const textareaHeight = useComposerTextareaHeight(textareaRef, input);
 
   // Load messages on session change
@@ -53,7 +53,9 @@ export default function ChatPanel({
         .then((data) => setMessages(data.messages ?? []))
         .catch(console.error);
     } else {
-      fetch(`/api/chat?agentId=${encodeURIComponent(agentId)}&sessionKey=${encodeURIComponent(sessionKey)}&limit=200`)
+      fetch(
+        `/api/chat?agentId=${encodeURIComponent(agentId)}&sessionKey=${encodeURIComponent(sessionKey)}&limit=200`
+      )
         .then((r) => r.json())
         .then((data) => setMessages(data.messages ?? []))
         .catch(console.error);
@@ -70,59 +72,59 @@ export default function ChatPanel({
   const handleSend = useCallback(async () => {
     if (!input.trim() || streaming) return;
     const text = input.trim();
-    setInput("");
+    setInput('');
     composerDraftStorage.clear(agentId, sessionKey);
 
     // Optimistic user message
     const userMsg: UiMessage = {
       id: `user-${Date.now()}`,
-      role: "user",
+      role: 'user',
       content: text,
       createdAt: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, userMsg]);
     setStreaming(true);
-    streamingTextRef.current = "";
+    streamingTextRef.current = '';
 
     try {
       const body: Record<string, unknown> = { agentId, text };
       if (sessionKey) body.sessionKey = sessionKey;
 
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(120_000),
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Unknown error" }));
+        const err = await res.json().catch(() => ({ error: 'Unknown error' }));
         throw new Error(err.error ?? `HTTP ${res.status}`);
       }
 
       const reader = res.body?.getReader();
-      if (!reader) throw new Error("No response body");
+      if (!reader) throw new Error('No response body');
 
       const decoder = new TextDecoder();
-      let buffer = "";
+      let buffer = '';
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n\n");
-        buffer = lines.pop() ?? "";
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() ?? '';
 
         for (const raw of lines) {
           const line = raw.trim();
-          if (!line.startsWith("data: ")) continue;
+          if (!line.startsWith('data: ')) continue;
           try {
             const data = JSON.parse(line.slice(6));
             if (data.deltaText) {
               streamingTextRef.current += data.deltaText;
               setMessages((prev) => {
                 const last = prev[prev.length - 1];
-                if (last?.role === "assistant" && last.id.startsWith("streaming-")) {
+                if (last?.role === 'assistant' && last.id.startsWith('streaming-')) {
                   return [
                     ...prev.slice(0, -1),
                     { ...last, content: last.content + data.deltaText },
@@ -132,7 +134,7 @@ export default function ChatPanel({
                   ...prev,
                   {
                     id: `streaming-${Date.now()}`,
-                    role: "assistant" as const,
+                    role: 'assistant' as const,
                     content: data.deltaText,
                     createdAt: new Date().toISOString(),
                   },
@@ -143,7 +145,7 @@ export default function ChatPanel({
               onSessionKeyChange(data.sessionKey);
             }
             if (data.error) {
-              console.error("Stream error:", data.error);
+              console.error('Stream error:', data.error);
             }
           } catch {
             // skip malformed JSON
@@ -151,10 +153,10 @@ export default function ChatPanel({
         }
       }
     } catch (err) {
-      console.error("Send error:", err);
+      console.error('Send error:', err);
       const errMsg: UiMessage = {
         id: `error-${Date.now()}`,
-        role: "assistant",
+        role: 'assistant',
         content: `发送失败：${err instanceof Error ? err.message : String(err)}`,
         createdAt: new Date().toISOString(),
       };
@@ -167,9 +169,9 @@ export default function ChatPanel({
   const handleAbort = useCallback(async () => {
     if (!streaming) return;
     try {
-      await fetch("/api/chat/abort", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      await fetch('/api/chat/abort', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ agentId, sessionKey }),
       });
     } finally {
@@ -178,7 +180,7 @@ export default function ChatPanel({
   }, [streaming, agentId, sessionKey]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
@@ -226,7 +228,9 @@ export default function ChatPanel({
             value={input}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
-            placeholder={gatewayConnected ? "输入消息… (Shift+Enter 换行)" : "网关未连接，请先启动 OpenClaw"}
+            placeholder={
+              gatewayConnected ? '输入消息… (Shift+Enter 换行)' : '网关未连接，请先启动 OpenClaw'
+            }
             disabled={!gatewayConnected}
             rows={1}
             className="flex-1 resize-none bg-zinc-800 text-zinc-100 rounded px-3 py-2.5 text-sm placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-600 disabled:opacity-50"

@@ -34,7 +34,7 @@ export function mergeUnreadWithSnapshot(
 
 export function maxUiMessageId(messages: Array<{ id: string }>): number {
   return messages.reduce((max, m) => {
-    const n = parseInt(m.id.replace(/\D/g, "")) || 0;
+    const n = parseInt(m.id.replace(/\D/g, '')) || 0;
     return n > max ? n : max;
   }, 0);
 }

@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import type { RightPanelTabId } from "./right-panel/types";
+import type { RightPanelTabId } from './right-panel/types';
 
 interface TabDef {
   id: RightPanelTabId;
@@ -20,8 +20,8 @@ export function RightPanelTabBar({ tabs, activeTab }: RightPanelTabBarProps) {
           key={tab.id}
           className={`flex-shrink-0 px-3 py-2 text-xs whitespace-nowrap border-b-2 transition-colors ${
             tab.id === activeTab
-              ? "border-green-500 text-white"
-              : "border-transparent text-zinc-400 hover:text-zinc-200"
+              ? 'border-green-500 text-white'
+              : 'border-transparent text-zinc-400 hover:text-zinc-200'
           }`}
         >
           {tab.label}

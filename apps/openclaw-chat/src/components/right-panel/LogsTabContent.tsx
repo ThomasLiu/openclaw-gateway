@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from 'react';
 
 interface LogsTabContentProps {
   agentId: string;
@@ -13,13 +13,13 @@ export function LogsTabContent({ agentId: _agentId }: LogsTabContentProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const es = new EventSource("/api/openclaw/logs");
+    const es = new EventSource('/api/openclaw/logs');
 
     es.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data);
         setLines((prev) => {
-          const next = [...prev, typeof data === "string" ? data : JSON.stringify(data)];
+          const next = [...prev, typeof data === 'string' ? data : JSON.stringify(data)];
           return next.slice(-500); // keep last 500 lines
         });
         setLoading(false);
@@ -30,7 +30,7 @@ export function LogsTabContent({ agentId: _agentId }: LogsTabContentProps) {
     };
 
     es.onerror = () => {
-      setError("日志流连接失败");
+      setError('日志流连接失败');
       setLoading(false);
       es.close();
     };
