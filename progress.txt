@@ -75,15 +75,37 @@
 
 =====================================================
 
+【第八会话完成项 - 2026-04-03 续】
+
+1. 定时任务 CRUD UI 完整实现
+   - lib/openclaw/use-scheduled-cron-tasks.ts：hook（拉取/创建/更新/删除）
+   - ScheduledTaskJsonModal.tsx：新建/编辑模态框（名称/Cron/启用切换/预设快捷键/表单验证）
+   - ScheduledTasksTabContent.tsx：完整 CRUD UI（新建/编辑/删除/确认对话框/刷新按钮）
+   - cron route 改善错误序列化（不再显示 [object Object]）
+
+2. Agent 请求日志标签页
+   - AgentRequestLogsTabContent.tsx：SSE 日志流 + 诊断摘要 + 过滤（全部/会话/错误）
+   - GET /api/openclaw/agent-request-diagnostics：诊断数据 API
+   - GET /api/openclaw/agent-request-logs：SSE 日志流 API
+
+3. Playwright E2E 测试
+   - 新增 e2e/scheduled-tasks.spec.ts（6 个测试）
+   - 测试定时任务 UI/模态框/验证/诊断 API/日志流
+
+4. feature_list.json 更新
+   - 新增 3 个测试条目（65 总计）
+
+=====================================================
+
 【当前完成状态】
 
-feature_list.json：62 个测试
-  ✅ 通过：62 个
+feature_list.json：65 个测试
+  ✅ 通过：65 个
   ❌ 待实现：0 个
-  进度：62/62 (100%)
+  进度：65/65 (100%)
 
 Vitest：118/118 测试通过
-Playwright E2E：8/8 通过
+Playwright E2E：14/14 通过
 
 TypeScript：零错误 tsc --noEmit
 ESLint：零错误
@@ -94,11 +116,13 @@ ESLint：零错误
 
 1. Agent Architect UI 完整实现（右侧面板 agent tab）
 2. 右栏 Tab UI 完整验收（9 个 tab）
-   - ScheduledTasksTabContent：增删改定时任务
-   - AgentRequestTabContent：JSONL 日志查看器
+   - ✅ ScheduledTasksTabContent：增删改定时任务 [2026-04-03]
+   - ✅ AgentRequestTabContent：JSONL 日志查看器 [2026-04-03]
    - SubagentTabContent：子会话策略编辑向导
 3. OpenClaw drift 检查脚本（spec-13）
 4. AI reference sources pull 脚本完整实现
+5. SkillInstallScopeModal：Skill 安装向导
+6. ModelManagementTabContent：完整模型管理
 
 =====================================================
 
