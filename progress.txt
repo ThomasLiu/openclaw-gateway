@@ -47,26 +47,58 @@
 
 =====================================================
 
+【第七会话完成项 - 2026-04-03 续】
+
+1. 工作区文件浏览器 Monaco Editor 集成
+   - WorkspaceExplorerTabContent.tsx 完全重写
+   - 从 /api/agent/workspace/[agentId]/tree 加载真实目录树
+   - Monaco Editor（readOnly）预览模式
+   - Monaco DiffEditor 编辑模式（左侧原始、右侧当前编辑）
+   - 保存按钮 PUT /api/agent/workspace/[agentId]/file
+   - 取消按钮放弃编辑并返回只读模式
+   - SVG 图标替代 emoji（无障碍）
+   - 工具栏显示文件名、操作按钮
+
+2. MCP 服务管理 UI 完整实现
+   - McpServicesTabContent.tsx：支持 mcp.servers 数组和对象格式
+   - McpDeleteConfirmDialog.tsx：z-500 遮罩确认删除
+   - Hover 显示删除按钮（opacity-0 group-hover:opacity-100）
+   - 删除后自动刷新列表
+
+3. Playwright E2E 测试
+   - 新增 workspace-explorer.spec.ts（4 个测试）
+   - 测试树加载、API 路径验证、安全拒绝
+
+4. feature_list.json 更新
+   - 新增 2 个测试（Monaco 编辑器 + MCP 删除确认）
+   - 当前：62/62 通过
+
+=====================================================
+
 【当前完成状态】
 
-feature_list.json：60 个测试
-  ✅ 通过：60 个
+feature_list.json：62 个测试
+  ✅ 通过：62 个
   ❌ 待实现：0 个
-  进度：60/60 (100%)
+  进度：62/62 (100%)
 
-Vitest：118/118 测试通过（+25 本会话新增）
-Playwright E2E：
-  ✅ 4 passed（包括之前 skip 的 agent-export 测试）
+Vitest：118/118 测试通过
+Playwright E2E：8/8 通过
+
+TypeScript：零错误 tsc --noEmit
+ESLint：零错误
 
 =====================================================
 
 【未完成项 / 后续会话重点】
 
 1. Agent Architect UI 完整实现（右侧面板 agent tab）
-2. 工作区文件编辑器 UI（Monaco editor 集成）
-3. 右栏 Tab UI 完整验收（9 个 tab）
-4. OpenClaw drift 检查脚本（spec-13）
-5. AI reference sources pull 脚本完整实现
+2. 右栏 Tab UI 完整验收（9 个 tab）
+   - ScheduledTasksTabContent：增删改定时任务
+   - AgentRequestTabContent：JSONL 日志查看器
+   - SubagentTabContent：子会话策略编辑向导
+3. OpenClaw drift 检查脚本（spec-13）
+4. AI reference sources pull 脚本完整实现
 
 =====================================================
 
