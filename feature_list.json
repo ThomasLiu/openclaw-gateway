@@ -417,6 +417,21 @@
   },
   {
     "category": "functional",
+    "description": "McpServicesTabContent.tsx 实现 MCP 服务管理 UI：服务列表显示、hover 显示删除按钮、McpDeleteConfirmDialog 确认删除、POST /api/openclaw/mcp-servers/remove",
+    "steps": [
+      "步骤 1：读取 apps/openclaw-chat/src/components/right-panel/McpServicesTabContent.tsx",
+      "步骤 2：验证从 /api/openclaw/config 读取 mcp.servers（支持数组和对象两种格式）",
+      "步骤 3：验证每个服务显示 name、command、args，支持 hover 显示删除按钮",
+      "步骤 4：读取 apps/openclaw-chat/src/components/right-panel/McpDeleteConfirmDialog.tsx",
+      "步骤 5：验证 McpDeleteConfirmDialog 弹出遮罩（z-500）、显示服务名称、取消/删除按钮",
+      "步骤 6：验证点击删除按钮 POST /api/openclaw/mcp-servers/remove { name }",
+      "步骤 7：验证删除成功后刷新服务列表",
+      "步骤 8：验证删除失败显示错误提示"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
     "description": "lib/session-unread.ts 实现 computeSessionUnreadByKey、aggregateUnreadByAgentId、mergeUnreadWithSnapshot",
     "steps": [
       "步骤 1：读取 apps/openclaw-chat/src/lib/session-unread.ts",
@@ -521,6 +536,24 @@
       "步骤 5：验证 GET file 返回 { workspaceDir, agentId, path, content }",
       "步骤 6：验证 PUT file 写入前 realpath 校验",
       "步骤 7：验证 safeWorkspaceRelativePath 禁止 .. / . 逃逸"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "WorkspaceExplorerTabContent.tsx 实现工作区文件浏览器 UI：树加载（GET /api/agent/workspace/[agentId]/tree）、Monaco Editor 查看、Monaco DiffEditor 编辑、PUT 保存",
+    "steps": [
+      "步骤 1：读取 apps/openclaw-chat/src/components/right-panel/WorkspaceExplorerTabContent.tsx",
+      "步骤 2：验证 fetch(/api/agent/workspace/${agentId}/tree?maxDepth=3) 加载目录树",
+      "步骤 3：验证点击目录展开/折叠子树，文件点击加载内容",
+      "步骤 4：验证未选择文件时显示占位提示（选择文件查看内容）",
+      "步骤 5：验证选中文件时 MonacoEditor 渲染（readOnly:true）",
+      "步骤 6：验证点击「编辑」进入编辑模式，渲染 MonacoDiffEditor（左侧原始、右侧可编辑）",
+      "步骤 7：验证「保存」按钮 PUT /api/agent/workspace/${agentId}/file { path, content }",
+      "步骤 8：验证保存后进入只读模式，originalContent 更新为最新内容",
+      "步骤 9：验证「取消」按钮放弃编辑并返回只读模式",
+      "步骤 10：验证工具栏显示当前文件路径和操作按钮",
+      "步骤 11：验证文件树使用 SVG 图标（文件夹/文件），无 emoji"
     ],
     "passes": true
   },
