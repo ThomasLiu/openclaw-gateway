@@ -373,7 +373,7 @@
       "步骤 5：验证动态首参（/focus、/kill、/steer、/model）从 API 合并",
       "步骤 6：验证多参数命令 insertKind: token；单参数 insertKind: line"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

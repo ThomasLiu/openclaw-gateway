@@ -1,12 +1,13 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AgentSidebar } from '@/components/AgentSidebar';
 import { SessionSidebar } from '@/components/SessionSidebar';
 import { AppTitleBar } from '@/components/AppTitleBar';
 import { GatewayAlertDialog } from '@/components/GatewayAlertDialog';
 import type { GatewaySessionRow } from '@/components/chat-types';
+import type { ComposerSlashDynamicContext } from '@/lib/slash-commands/composer-slash-registry';
 
 const ChatPanel = dynamic(() => import('@/components/ChatPanel'), {
   ssr: false,
@@ -35,9 +36,33 @@ export function ChatApp({
   const [sessionKey, setSessionKey] = useState<string | undefined>(initialSessionKey);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState<string>('logs');
-  const [gatewaySessions] = useState<GatewaySessionRow[]>([]);
+  const [gatewaySessions, setGatewaySessions] = useState<GatewaySessionRow[]>([]);
+  const [gatewayModels, setGatewayModels] = useState<string[]>([]);
   const [gatewayConnected] = useState(false);
   const [gatewayAlert, setGatewayAlert] = useState<string | null>(null);
+
+  // Build dynamic context for slash command enrichment
+  const slashDynamicContext: ComposerSlashDynamicContext = {
+    sessions: gatewaySessions,
+    models: gatewayModels,
+  };
+
+  // Fetch sessions and models for slash command dynamic args
+  useEffect(() => {
+    fetch('/api/gateway/sessions?limit=100')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.sessions) setGatewaySessions(data.sessions);
+      })
+      .catch(() => {/* gateway may be offline */});
+
+    fetch('/api/openclaw/models')
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data.models)) setGatewayModels(data.models);
+      })
+      .catch(() => {/* gateway may be offline */});
+  }, []);
 
   const handleSelectSession = (sk: string) => {
     setSessionKey(sk);
@@ -80,6 +105,7 @@ export function ChatApp({
             sessionKey={sessionKey}
             onSessionKeyChange={setSessionKey}
             gatewayConnected={gatewayConnected}
+            slashDynamicContext={slashDynamicContext}
           />
         </main>
 

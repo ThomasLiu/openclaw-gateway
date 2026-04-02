@@ -6,11 +6,12 @@ interface MenuItem {
   label: string;
   description: string;
   insertText: string;
+  insertKind?: 'line' | 'token';
 }
 
 interface ComposerTriggerMenuProps {
   items: MenuItem[];
-  onSelect: (insertText: string) => void;
+  onSelect: (insertText: string, insertKind?: 'line' | 'token') => void;
   onClose: () => void;
 }
 
@@ -36,7 +37,8 @@ export function ComposerTriggerMenu({ items, onSelect, onClose }: ComposerTrigge
         setSelectedIndex((i) => (i - 1 + items.length) % items.length);
       } else if (e.key === 'Tab' || e.key === 'Enter') {
         e.preventDefault();
-        onSelect(items[selectedIndexRef.current]?.insertText ?? '');
+        const item = items[selectedIndexRef.current];
+        onSelect(item?.insertText ?? '', item?.insertKind);
       }
     };
     window.addEventListener('keydown', handler);
@@ -64,7 +66,7 @@ export function ComposerTriggerMenu({ items, onSelect, onClose }: ComposerTrigge
         {items.map((item, i) => (
           <button
             key={item.label}
-            onClick={() => onSelect(item.insertText)}
+            onClick={() => onSelect(item.insertText, item.insertKind)}
             className={`w-full text-left px-3 py-2 text-sm truncate hover:bg-zinc-700 transition-colors ${
               i === selectedIndex ? 'bg-zinc-700 text-white' : 'text-zinc-300'
             }`}

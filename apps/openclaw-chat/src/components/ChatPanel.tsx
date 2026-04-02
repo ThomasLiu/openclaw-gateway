@@ -7,12 +7,15 @@ import { ChatMessageGroup, groupMessages } from './chat-message-group';
 import { ComposerTriggerMenu } from './ComposerTriggerMenu';
 import { useComposerTextareaHeight } from './use-composer-textarea-height';
 import { composerDraftStorage } from '@/lib/composer-draft-storage';
+import { computeComposerMenuState } from '@/lib/slash-commands/composer-slash-registry';
+import type { ComposerSlashDynamicContext } from '@/lib/slash-commands/composer-slash-registry';
 
 interface ChatPanelProps {
   agentId: string;
   sessionKey?: string;
   onSessionKeyChange: (key: string) => void;
   gatewayConnected: boolean;
+  slashDynamicContext?: ComposerSlashDynamicContext;
 }
 
 interface ComposerMenuState {
@@ -20,7 +23,7 @@ interface ComposerMenuState {
   type: 'slash' | 'skill' | null;
   query: string;
   caret: number;
-  items: Array<{ label: string; description: string; insertText: string }>;
+  items: Array<{ label: string; description: string; insertText: string; insertKind: 'line' | 'token' }>;
 }
 
 export default function ChatPanel({
@@ -28,6 +31,7 @@ export default function ChatPanel({
   sessionKey,
   onSessionKeyChange,
   gatewayConnected,
+  slashDynamicContext,
 }: ChatPanelProps) {
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [input, setInput] = useState('');
@@ -188,8 +192,30 @@ export default function ChatPanel({
 
   const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
+    const caret = e.target.selectionStart ?? val.length;
     setInput(val);
     composerDraftStorage.set(agentId, sessionKey, val);
+
+    // Compute slash command / @ skill menu state
+    const menu = computeComposerMenuState(val, caret, slashDynamicContext);
+    if (menu) {
+      setMenuState((_s) => ({
+        visible: true,
+        type: menu.type,
+        query: menu.query,
+        caret,
+        items: menu.items.map((item) => ({
+          label: item.name,
+          description: item.description,
+          insertText: item.insertText,
+          // insertKind is computed per-item by computeComposerMenuState
+          // pass it through the items so onSelect can read it
+          insertKind: (item as { insertKind?: 'line' | 'token' }).insertKind ?? 'token',
+        })),
+      }));
+    } else {
+      setMenuState((s) => ({ ...s, visible: false }));
+    }
   };
 
   const groups = groupMessages(messages);
@@ -213,8 +239,26 @@ export default function ChatPanel({
         {menuState.visible && menuState.items.length > 0 && (
           <ComposerTriggerMenu
             items={menuState.items}
-            onSelect={(insertText) => {
-              setInput((prev) => prev + insertText);
+            onSelect={(insertText, insertKind) => {
+              if (insertKind === 'line') {
+                // Replace from line start to caret (full-line replace for /focus, etc.)
+                setInput((prev) => {
+                  const before = prev.slice(0, menuState.caret);
+                  // Find line start
+                  const lastNewline = before.lastIndexOf('\n');
+                  const lineStart = lastNewline >= 0 ? lastNewline + 1 : 0;
+                  return prev.slice(0, lineStart) + insertText;
+                });
+              } else {
+                // Token replace: append insertText after caret
+                setInput((prev) => {
+                  const before = prev.slice(0, menuState.caret);
+                  const after = prev.slice(menuState.caret);
+                  // Skip any partial word being typed
+                  const afterClean = after.replace(/^\S*/, '');
+                  return before + insertText + afterClean;
+                });
+              }
               setMenuState((s) => ({ ...s, visible: false }));
               textareaRef.current?.focus();
             }}

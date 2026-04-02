@@ -15,7 +15,7 @@ pwd
 ls -la
 
 # 3. 阅读项目规格说明，了解你要构建的内容
-cat app_spec.md
+cat ./docs/spec/app_spec.md
 
 # 4. 阅读功能列表，查看所有工作项
 cat feature_list.json | head -50
