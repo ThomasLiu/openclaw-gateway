@@ -9,6 +9,12 @@ dist/
 build/
 out/
 
+# TypeScript build info
+*.tsbuildinfo
+
+# Next.js
+next-env.d.ts
+
 # SQLite database
 *.sqlite
 *.sqlite3
