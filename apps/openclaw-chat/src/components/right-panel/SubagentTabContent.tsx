@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { SubagentPolicyEditModal, type SubagentPolicy, type SubagentPolicyKind } from './SubagentPolicyEditModal';
 
 interface SubagentTabContentProps {
   agentId: string;
@@ -20,44 +21,96 @@ interface SubagentSession {
   createdAt: string;
 }
 
+interface OpenClawConfig {
+  hash?: string;
+  agents?: {
+    defaults?: {
+      subagents?: SubagentPolicy;
+    };
+    list?: Array<{ id: string; subagents?: SubagentPolicy }>;
+  };
+  tools?: {
+    subagents?: SubagentPolicy;
+  };
+}
+
 export function SubagentTabContent({ agentId, sessionKey, onSelectSession }: SubagentTabContentProps) {
   const [sessions, setSessions] = useState<SubagentSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [config, setConfig] = useState<OpenClawConfig | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
-    if (!sessionKey) {
-      // No session selected — nothing to load
-      return;
-    }
-
-    let cancelled = false;
-
-    fetch(`/api/gateway/sessions?agentId=${encodeURIComponent(agentId)}&spawnedBy=${encodeURIComponent(sessionKey)}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (cancelled) return;
-        const raw = Array.isArray(data) ? data : data.sessions ?? [];
-        setSessions(raw as SubagentSession[]);
-        setError(null);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setError(err instanceof Error ? err.message : '加载失败');
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
+    // Fetch sessions and config in parallel
+    Promise.all([
+      sessionKey
+        ? fetch(`/api/gateway/sessions?agentId=${encodeURIComponent(agentId)}&spawnedBy=${encodeURIComponent(sessionKey)}`)
+            .then((r) => r.json())
+            .then((data) => {
+              const raw = Array.isArray(data) ? data : data.sessions ?? [];
+              return raw as SubagentSession[];
+            })
+            .catch(() => [] as SubagentSession[])
+        : Promise.resolve([] as SubagentSession[]),
+      fetch('/api/openclaw/config')
+        .then((r) => r.json())
+        .catch(() => null),
+    ]).then(([sessionData, configData]) => {
+      setSessions(sessionData);
+      setConfig(configData);
+      setError(null);
+    }).catch((err) => {
+      setError(err instanceof Error ? err.message : '加载失败');
+    }).finally(() => {
+      setLoading(false);
+    });
   }, [agentId, sessionKey]);
+
+  const getCurrentPolicy = (kind: SubagentPolicyKind): SubagentPolicy => {
+    if (!config) return {};
+    if (kind === 'defaults') return config.agents?.defaults?.subagents ?? {};
+    if (kind === 'tools') return config.tools?.subagents ?? {};
+    if (kind === 'agent') {
+      const agentEntry = config.agents?.list?.find((a) => a.id === agentId);
+      return agentEntry?.subagents ?? {};
+    }
+    return {};
+  };
+
+  const handleSave = async (kind: SubagentPolicyKind, policy: SubagentPolicy) => {
+    const res = await fetch('/api/openclaw/subagent-policy/patch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        baseHash: config?.hash ?? '',
+        kind,
+        agentId: kind === 'agent' ? agentId : undefined,
+        subagents: policy,
+      }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      if (data.error === 'STALE_HASH') {
+        throw new Error('配置已被他人修改，请刷新后重试');
+      }
+      throw new Error(data.error ?? `保存失败 (${res.status})`);
+    }
+    // Refresh config
+    const newConfig = await fetch('/api/openclaw/config').then((r) => r.json());
+    setConfig(newConfig);
+  };
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex-shrink-0 px-3 py-2 bg-zinc-900/50 border-b border-zinc-800">
+      <div className="flex-shrink-0 px-3 py-2 bg-zinc-900/50 border-b border-zinc-800 flex items-center justify-between">
         <span className="text-xs text-zinc-400">子会话</span>
+        <button
+          onClick={() => setShowEditModal(true)}
+          className="text-xs px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded transition-colors"
+        >
+          策略
+        </button>
       </div>
       <div className="flex-1 overflow-y-auto min-h-0">
         {!sessionKey ? (
@@ -90,6 +143,17 @@ export function SubagentTabContent({ agentId, sessionKey, onSelectSession }: Sub
           </div>
         )}
       </div>
+
+      {showEditModal && config && (
+        <SubagentPolicyEditModal
+          agentId={agentId}
+          currentPolicy={getCurrentPolicy('agent')}
+          onSave={handleSave}
+          onClose={() => {
+            setShowEditModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }

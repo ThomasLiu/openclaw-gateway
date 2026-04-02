@@ -99,30 +99,63 @@
 
 【当前完成状态】
 
-feature_list.json：65 个测试
-  ✅ 通过：65 个
+feature_list.json：67 个测试
+  ✅ 通过：67 个
   ❌ 待实现：0 个
-  进度：65/65 (100%)
+  进度：67/67 (100%)
 
 Vitest：118/118 测试通过
-Playwright E2E：14/14 通过
+Playwright E2E：20/20 通过
 
 TypeScript：零错误 tsc --noEmit
 ESLint：零错误
 
 =====================================================
 
+【第九会话完成项 - 2026-04-03】
+
+1. SkillInstallScopeModal 完整实现
+   - 位置：apps/openclaw-chat/src/components/right-panel/SkillInstallScopeModal.tsx
+   - 导出 SkillInstallScope 类型（global/agent）
+   - 名称输入（必填）+ 作用域选择（全局/当前 Agent）
+   - 安装按钮 disabled 当名称为空
+   - POST /api/openclaw/skills/install
+
+2. SkillsTabContent 增强
+   - 新增「+ 安装」按钮，打开 SkillInstallScopeModal
+   - 安装成功后自动刷新 Skill 列表
+
+3. SubagentPolicyEditModal 完整实现
+   - 位置：apps/openclaw-chat/src/components/right-panel/SubagentPolicyEditModal.tsx
+   - 导出 SubagentPolicyKind 类型（defaults/tools/agent）
+   - allowAgents 逗号分隔输入 + maxDepth 数字输入
+   - enabled 切换按钮 + 三个策略类型单选按钮
+   - POST /api/openclaw/subagent-policy/patch
+
+4. SubagentTabContent 增强
+   - 新增「策略」按钮，打开 SubagentPolicyEditModal
+   - 模态框加载时从 /api/openclaw/config 获取当前策略
+   - STALE_HASH 错误友好提示
+
+5. Playwright E2E 测试
+   - 新增 e2e/skills-install-subagent.spec.ts（6 个测试）
+   - 测试安装模态框、作用域选择、名称验证
+   - 测试策略模态框、三种策略类型、Escape 关闭
+
+6. feature_list.json 更新
+   - 新增 2 个测试条目（67 总计）
+   - 当前：67/67 通过
+
+=====================================================
+
 【未完成项 / 后续会话重点】
 
-1. Agent Architect UI 完整实现（右侧面板 agent tab）
-2. 右栏 Tab UI 完整验收（9 个 tab）
-   - ✅ ScheduledTasksTabContent：增删改定时任务 [2026-04-03]
-   - ✅ AgentRequestTabContent：JSONL 日志查看器 [2026-04-03]
-   - SubagentTabContent：子会话策略编辑向导
-3. OpenClaw drift 检查脚本（spec-13）
-4. AI reference sources pull 脚本完整实现
-5. SkillInstallScopeModal：Skill 安装向导
-6. ModelManagementTabContent：完整模型管理
+1. ModelManagementTabContent：完整模型管理（spec-10）
+2. JsonlLogViewer.tsx：Agent 请求日志 JSONL 查看器（spec-10）
+3. SkillInstallScopeModal 增强：skill-recommendations.json 集成（spec-10）
+4. OpenClaw drift 检查脚本增强（--range 支持，spec-13）
+5. AI reference sources pull 脚本完整实现（spec-14）
+6. Agent Architect UI 完整实现（右侧面板 agent tab）
 
 =====================================================
 

@@ -832,5 +832,38 @@
       "步骤 6：运行 Vitest 全部通过（118 tests）"
     ],
     "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "SkillInstallScopeModal 实现安装向导：名称输入 + 作用域选择（全局/Agent） + POST /api/openclaw/skills/install",
+    "steps": [
+      "步骤 1：读取 apps/openclaw-chat/src/components/right-panel/SkillInstallScopeModal.tsx",
+      "步骤 2：验证 SkillInstallScopeModal 组件导出 SkillInstallScope 类型（global/agent）",
+      "步骤 3：验证模态框有名称输入框（必填）和作用域单选按钮",
+      "步骤 4：验证作用域选项：全局安装 / 当前 Agent",
+      "步骤 5：验证安装按钮 disabled 当名称为空",
+      "步骤 6：验证点击安装 POST /api/openclaw/skills/install",
+      "步骤 7：验证 SkillsTabContent 有「+ 安装」按钮打开模态框",
+      "步骤 8：验证安装成功后刷新 Skill 列表",
+      "步骤 9：运行 Playwright E2E skills-install-subagent.spec.ts，全部通过"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "SubagentPolicyEditModal 实现子会话策略编辑向导：defaults/tools/agent 三种策略类型 + allowAgents/maxDepth/enabled 字段 + POST /api/openclaw/subagent-policy/patch",
+    "steps": [
+      "步骤 1：读取 apps/openclaw-chat/src/components/right-panel/SubagentPolicyEditModal.tsx",
+      "步骤 2：验证 SubagentPolicyKind 类型定义（defaults/tools/agent）",
+      "步骤 3：验证模态框有三个策略类型单选按钮",
+      "步骤 4：验证 allowAgents 逗号分隔输入和 maxDepth 数字输入",
+      "步骤 5：验证 enabled 切换按钮",
+      "步骤 6：验证 SubagentTabContent 显示「策略」按钮打开模态框",
+      "步骤 7：验证模态框加载时从 /api/openclaw/config 获取当前策略",
+      "步骤 8：验证点击保存 POST /api/openclaw/subagent-policy/patch",
+      "步骤 9：验证 STALE_HASH 错误显示「配置已被他人修改」",
+      "步骤 10：运行 Playwright E2E skills-install-subagent.spec.ts，全部通过"
+    ],
+    "passes": true
   }
 ]
