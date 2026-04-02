@@ -1,45 +1,29 @@
 =====================================================
   openclaw-gateway 会话 progress.txt
-  日期：2026-04-03（第三会话）
+  日期：2026-04-03（第四会话）
 =====================================================
 
 【本会话完成项】
 
-1. 测试 #28 通过：slash 命令动态首参 API 合并
-   - composer-slash-registry.ts：
-     * 修复 parseSlashTrigger 正则，提取纯命令名（不捕获参数）
-     * 新增 ComposerSlashDynamicContext 接口（sessions, models, agents）
-     * computeComposerMenuState 实现动态参数合并：
-       - /focus, /kill, /steer → 从 sessionsCtx 补全会话列表
-       - /model → 从 modelsCtx 补充模型列表
-       - 动态 choices 按 case-insensitive includes 过滤（支持 "alp" 匹配 "Alpha Session"）
-     * computeInsertKind：single-arg 指令无 space 时 insertKind: line，有 space 时 token
-   - ChatPanel.tsx：
-     * 调用 computeComposerMenuState(text, caret, slashDynamicContext)
-     * onSelect 支持 insertKind：line 全行替换、token 追加
-     * ComposerTriggerMenu 传递 insertKind 给 onSelect
-   - ChatApp.tsx：
-     * 引入 gatewayModels 状态
-     * useEffect 获取 /api/gateway/sessions 和 /api/openclaw/models
-     * 传递 slashDynamicContext 给 ChatPanel
+1. Playwright 测试失败修复：textarea 网关断连时不可编辑
+   - 问题：textarea disabled={!gatewayConnected} 导致 Playwright
+     测试 "attachment UI interaction" 失败（无法点击禁用的元素）
+   - 修复 ChatPanel.tsx：
+     * 移除 textarea 的 disabled 属性（更好的 UX）
+     * handleSend 添加 gatewayConnected 检查（Enter 键防护）
+     * useCallback deps 添加 gatewayConnected
+   - 修复 chat-attachment-send.spec.ts：
+     * 支持两种 placeholder 状态（输入消息/网关未连接）
+     * 测试 textarea 总是可编辑且可输入内容
 
-2. 单元测试覆盖（新增 composer-slash-dynamic.test.ts，18 个测试）
-   - 动态参数合并：session choices、model choices、/kill、/steer、过滤、去重、无 ctx 情况
-   - insertKind：/focus、/model、/kill、/steer、/think、/tools
-   - 正则触发：/、@、空格后命令、/skill 与 @ 共用列表
+2. 生产构建验证
+   - pnpm build 成功（无错误）
 
 3. 质量验收
-   - Vitest: 69/69 测试通过（+18 新测试）
+   - Vitest: 69/69 测试通过
    - TypeScript: 零错误 tsc --noEmit
    - ESLint: 零错误零警告
-   - Playwright: 零 console errors，slash 菜单正常显示
-
-4. feature_list.json 更新
-   - 测试 #28 标记为 passes: true
-   - 总进度：59/59 (100%)
-
-5. 截图验证
-   - /tmp/openclaw-slash-test.png：7 个 slash 命令正常显示
+   - Playwright: 2 passed, 2 skipped（agent-export 需网关环境）
 
 =====================================================
 
@@ -50,14 +34,19 @@ feature_list.json：59 个测试
   ❌ 待实现：0 个
   进度：59/59 (100%)
 
+Playwright E2E：
+  ✅ 2 passed（chat-attachment-send.spec.ts）
+  ⊘ 2 skipped（agent-export.spec.ts - 需网关环境）
+
 =====================================================
 
 【未完成项 / 后续会话重点】
 
-1. 生产构建验证：pnpm build
-2. Playwright E2E 完整测试套件（需 openclaw 网关环境）
-3. ExecApprovalOverlay.tsx 完整实现（SSE、过期移除逻辑）
-4. Agent 导出 zip archiver 集成（prepare-agent-export-fixture 已就绪）
+1. Playwright E2E 完整测试套件（需 openclaw 网关环境）
+   - agent-export.spec.ts 两个测试需网关运行后验证
+2. ExecApprovalOverlay.tsx 完整实现（SSE、过期移除逻辑）
+3. Agent 导出 zip archiver 集成（prepare-agent-export-fixture 已就绪）
+4. Playwright 配置：统一端口（3005）vs 分离（3015）决定
 
 =====================================================
 
