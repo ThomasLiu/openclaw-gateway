@@ -7,20 +7,24 @@ import { SkillsTabContent } from './right-panel/SkillsTabContent';
 import { ModelManagementTabContent } from './right-panel/ModelManagementTabContent';
 import { ScheduledTasksTabContent } from './right-panel/ScheduledTasksTabContent';
 import { McpServicesTabContent } from './right-panel/McpServicesTabContent';
+import { SubagentTabContent } from './right-panel/SubagentTabContent';
+import { WorkspaceExplorerTabContent } from './right-panel/WorkspaceExplorerTabContent';
+import { AgentTabContent } from './right-panel/AgentTabContent';
 
 interface OpenClawLogsPanelProps {
   agentId: string;
   sessionKey?: string;
   activeTab: string;
   onClose: () => void;
+  onTabChange: (tabId: string) => void;
 }
 
-export function OpenClawLogsPanel({ agentId, activeTab }: OpenClawLogsPanelProps) {
+export function OpenClawLogsPanel({ agentId, sessionKey, activeTab, onTabChange }: OpenClawLogsPanelProps) {
   const tabId = activeTab as RightPanelTabId;
 
   return (
     <aside className="w-72 flex-shrink-0 bg-zinc-900 border-l border-zinc-800 flex flex-col min-w-0 overflow-hidden">
-      <RightPanelTabBar tabs={RIGHT_PANEL_TABS} activeTab={tabId} />
+      <RightPanelTabBar tabs={RIGHT_PANEL_TABS} activeTab={tabId} onTabChange={onTabChange} />
 
       <div className="flex-1 min-h-0 overflow-hidden">
         {tabId === 'logs' && <LogsTabContent agentId={agentId} />}
@@ -31,11 +35,9 @@ export function OpenClawLogsPanel({ agentId, activeTab }: OpenClawLogsPanelProps
         {tabId === 'agentRequest' && (
           <div className="p-3 text-sm text-zinc-500">Agent 请求日志功能开发中</div>
         )}
-        {tabId === 'subagent' && (
-          <div className="p-3 text-sm text-zinc-500">Subagent 功能开发中</div>
-        )}
-        {tabId === 'workspace' && <div className="p-3 text-sm text-zinc-500">工作区功能开发中</div>}
-        {tabId === 'agent' && <div className="p-3 text-sm text-zinc-500">Agent 信息开发中</div>}
+        {tabId === 'subagent' && <SubagentTabContent agentId={agentId} sessionKey={sessionKey} />}
+        {tabId === 'workspace' && <WorkspaceExplorerTabContent agentId={agentId} />}
+        {tabId === 'agent' && <AgentTabContent agentId={agentId} />}
       </div>
     </aside>
   );

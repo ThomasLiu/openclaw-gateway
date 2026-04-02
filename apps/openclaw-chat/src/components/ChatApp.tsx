@@ -89,6 +89,7 @@ export function ChatApp({
             sessionKey={sessionKey}
             activeTab={rightPanelTab}
             onClose={() => setRightPanelOpen(false)}
+            onTabChange={(tabId) => setRightPanelTab(tabId)}
           />
         )}
       </div>

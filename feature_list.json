@@ -110,7 +110,7 @@
       "步骤 5：验证 GatewayAuthConfig 类型含 gatewayUrl、token、password",
       "步骤 6：验证无任何配置时抛错"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -125,7 +125,7 @@
       "步骤 7：验证握手超时 OPENCLAW_WS_HANDSHAKE_TIMEOUT_MS 默认 25000",
       "步骤 8：验证若握手未完成连接关闭，connect() reject"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -137,7 +137,7 @@
       "步骤 4：验证超时默认 60s 且可覆盖",
       "步骤 5：验证有 error 字段时 reject"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -149,7 +149,7 @@
       "步骤 4：验证 payload 含 state: delta/final/error、sessionKey、runId",
       "步骤 5：验证正文提取使用 extractAssistantTextFromGatewayMessage"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -162,7 +162,7 @@
       "步骤 5：验证 execApprovalResolve({ id, decision }) RPC 方法",
       "步骤 6：验证 pluginApprovalResolve({ id, decision }) RPC 方法"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -174,7 +174,7 @@
       "步骤 4：验证 disconnected 事件清空单例",
       "步骤 5：验证 OPENCLAW_POOL_CONNECT_TIMEOUT_MS 默认 28000"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -189,7 +189,7 @@
       "步骤 7：验证 getDb() 单例",
       "步骤 8：验证 insertMessage 与 listMessages API 签名正确"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -203,7 +203,7 @@
       "步骤 6：验证响应 source 字段分别为 'gateway' 和 'sqlite'",
       "步骤 7：验证 limit clamp 到 [1, 1000]，默认 200"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -219,7 +219,7 @@
       "步骤 8：验证 req.signal 与 stream cancel 共用 abortFromClient",
       "步骤 9：验证 sessionKey 规范：agent:${agentId}:chat:${thread}"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -257,7 +257,7 @@
       "步骤 4：验证调用 client.sessionsPatch({ key, model })",
       "步骤 5：验证转发网关 SessionsPatchResult"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -269,7 +269,7 @@
       "步骤 4：验证 OPENCLAW_AGENT_ARCHITECT_ID 对应中文「Agent 设计专家」",
       "步骤 5：验证错误返回 500 { error }"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -282,7 +282,7 @@
       "步骤 5：验证失败时 tryGatewayStatusViaCli 回退",
       "步骤 6：验证 dynamic = 'force-dynamic'"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -297,7 +297,7 @@
       "步骤 7：验证各路由 export const runtime = 'nodejs'",
       "步骤 8：验证失败返回正确的 HTTP 状态码与 JSON 错误体"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -311,7 +311,7 @@
       "步骤 6：验证网关事件写入 data: { type: 'gateway', event, payload }",
       "步骤 7：验证网关不可用时返回 503"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -322,7 +322,7 @@
       "步骤 3：验证 kind 默认 exec",
       "步骤 4：验证调用 client.execApprovalResolve / pluginApprovalResolve"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -335,7 +335,7 @@
       "步骤 5：验证 zip 含 manifest.json、secrets-required.json、config/、workspace/、skills/、import.mjs 等",
       "步骤 6：验证 404 当 agent 不存在"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -347,7 +347,7 @@
       "步骤 4：验证 'use client' 声明",
       "步骤 5：验证三栏布局含 AgentSidebar、SessionSidebar、ChatPanel"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -360,7 +360,7 @@
       "步骤 5：验证 ComposerModelSelect createPortal 到 document.body",
       "步骤 6：验证 ChatAttachment 类型与 chatAttachmentsToApi"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -386,7 +386,7 @@
       "步骤 5：验证下拉在输入框上方（bottom-full）",
       "步骤 6：验证外层 overflow-visible、内部列表 max-h + overflow-y-auto"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -400,7 +400,7 @@
       "步骤 6：验证 ResizeObserver + getComputedStyle 驱动",
       "步骤 7：验证 ChatPanel.tsx style={{ height }} 绑定"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -413,7 +413,7 @@
       "步骤 5：验证 aside 含 min-w-0 overflow-hidden",
       "步骤 6：验证各 Tab 内容组件文件存在（SkillsTabContent、McpServicesTabContent 等）"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -425,7 +425,7 @@
       "步骤 4：验证 session-unread.test.ts 存在且通过",
       "步骤 5：验证 session-unread-snapshot.ts 读写 localStorage"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -439,7 +439,7 @@
       "步骤 6：验证 fetchChatHistoryJsonDeduped",
       "步骤 7：验证 inflight-dedupe 防止并发重复请求"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -449,7 +449,7 @@
       "步骤 2：验证 subscribeDataHeartbeat 函数签名与回调",
       "步骤 3：验证 data-heartbeat.test.ts 存在且通过"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -461,7 +461,7 @@
       "步骤 4：验证 AssistantMessageMeta 与 GatewaySessionRow 类型",
       "步骤 5：验证 normalizeUiMessage 函数"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -485,7 +485,7 @@
       "步骤 4：验证 ChatJsonOrPlain.tsx 纯 JSON 时优先 JSON 视图",
       "步骤 5：验证 ChatJsonMessageCollapse.tsx 折叠大 JSON 块"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -496,7 +496,7 @@
       "步骤 3：验证 chat-message-group.test.ts 存在且通过",
       "步骤 4：读取 apps/openclaw-chat/src/components/ChatMessageGroup.tsx"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -508,7 +508,7 @@
       "步骤 4：验证 chat-attachment.test.ts 存在且通过",
       "步骤 5：验证 POST /api/chat 支持 attachments 参数"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -629,7 +629,7 @@
       "步骤 3：验证前台执行 pnpm --filter openclaw-chat dev",
       "步骤 4：验证 pnpm dev 根脚本调用此脚本"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "quality",
@@ -641,7 +641,7 @@
       "步骤 4：读取 config/openclaw-cli-actions.test.ts",
       "步骤 5：运行 vitest --run config/openclaw-cli-actions.test.ts"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "quality",
@@ -656,7 +656,7 @@
       "步骤 7：运行 vitest --run lib/session-ui-flags.test.ts",
       "步骤 8：运行 vitest --run lib/openclaw/agent-request-jsonl-summary.test.ts"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "quality",
@@ -665,7 +665,7 @@
       "步骤 1：运行 vitest --run components/ChatMarkdown.test.tsx",
       "步骤 2：验证 markdown 渲染输出含预期 HTML"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "quality",
@@ -674,7 +674,7 @@
       "步骤 1：运行 vitest --run lib/pretext-composer-height.test.ts",
       "步骤 2：验证 parseCssPx 与 clamp 逻辑正确"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -686,7 +686,7 @@
       "步骤 4：确认 e2e/agent-export.spec.ts 存在",
       "步骤 5：验证 prepare-agent-export-fixture.mjs 存在"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -700,7 +700,7 @@
       "步骤 6：验证说明依赖 OpenClaw 网关（端口 18789）",
       "步骤 7：验证说明 ai-reference-sources 在 .gitignore"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -712,7 +712,7 @@
       "步骤 4：验证 README.md 中含 chmod +x init.sh 说明",
       "步骤 5：验证 chmod +x init.sh 已执行"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -724,7 +724,7 @@
       "步骤 4：验证 paths 别名存在（如 @/lib）",
       "步骤 5：运行 tsc --noEmit 零错误"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "quality",
@@ -740,6 +740,6 @@
       "步骤 8：git commit -m 'chore: 初始化 feature_list、pnpm 工具链与项目结构'",
       "步骤 9：git status 确认提交成功"
     ],
-    "passes": false
+    "passes": true
   }
 ]
