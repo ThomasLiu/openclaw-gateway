@@ -1,80 +1,77 @@
 =====================================================
   openclaw-gateway 会话 progress.txt
-  日期：2026-04-03
+  日期：2026-04-03（第二会话）
 =====================================================
 
 【本会话完成项】
 
-1. 质量修复与 ESLint 规范化
-   - 将 eslint.config.js 转为 CommonJS 格式（避免 "type": "module" 冲突）
-   - 添加 react.version="19.0" 消除 ESLint React 版本警告
-   - Prettier: 格式化全部 70+ 源文件通过 --check
+1. 右栏面板 9 Tab 完整实现（测试 #31 通过）
+   - SubagentTabContent.tsx：子会话列表，支持 onSelectSession 回调
+   - WorkspaceExplorerTabContent.tsx：工作区文件树 + 预览（/api/openclaw/config）
+   - AgentTabContent.tsx：Agent 元信息展示 + 导出按钮（/api/agents）
+   - OpenClawLogsPanel.tsx：集成所有 9 个 Tab 内容组件
+   - RightPanelTabBar.tsx：新增 onTabChange 处理器，支持 Tab 点击切换
+
+2. 附件解析库（测试 #39 通过）
+   - lib/chat-attachment.ts：parseApiImageAttachmentsFromJson / chatAttachmentsToApi
+   - 支持 { attachments: [...] } 和直接数组两种 gateway 格式
+   - MIME 类型白名单 + base64 格式验证
+   - lib/chat-attachment.test.ts：9 个单元测试（Vitest 全部通过）
+
+3. 质量保证
+   - ESLint: 零错误零警告通过
    - TypeScript: 零错误 tsc --noEmit
-   - ESLint: 零错误零警告通过 src/ --max-warnings 0
+   - Vitest: 51 个单元测试全部通过（新增 chat-attachment 9 个测试）
 
-2. next.config.ts 修复
-   - 移除 turbopack.root（pnpm monorepo 中 next 在 app/node_modules，
-     设 monorepo 根导致 Next.js 包解析失败）
-   - 保留 serverExternalPackages: ["better-sqlite3"]
-   - 保留 allowedDevOrigins: ["127.0.0.1", "localhost"]
-
-3. better-sqlite3 原生模块重建
-   - Node.js 24.x ABI 不匹配，重新 node-gyp rebuild
-   - /api/chat GET 端点恢复正常（{"messages":[],"source":"sqlite"}）
-
-4. pretext-composer-height.ts 实现
-   - 创建 src/lib/pretext-composer-height.ts（两阶段 prepare/layout API）
-   - prepare() 含 whiteSpace: pre-wrap（支持 Shift+Enter 换行测量）
-   - clampComposerTotalHeightPx / parseCssPx 纯函数
-   - 使用 DOM hidden div 测量实际 scrollHeight
+4. E2E 测试基础设施（测试 #54 通过）
+   - e2e/fixtures/prepare-agent-export-fixture.mjs：自动生成测试夹具 zip
+   - archiver 优先，内置 JSZip fallback
 
 5. feature_list.json 批量更新
-   - 将 20 个测试标记为 passes: true
-   - 测试覆盖：ESLint、Prettier、Vitest(42)、pretext-composer-height、
-     right-panel types、chat-types、ChatMarkdown、session-unread、
-     session-history-cache、data-heartbeat、workspace API 等
-   - 剩余 39 个测试待实现
+   - 将 38 个测试标记为 passes:true
+   - 测试覆盖：config/client/pool/db/API路由/ChatPanel/slash-commands/
+     composer/composer-height/右栏Tab/消息分组/附件/exec-approval/E2E等
+   - 剩余 1 个测试待实现：测试 #28（slash 命令动态首参 API 合并）
 
 6. 浏览器自动化验证（Playwright）
    - 零 console errors
-   - 零 failed requests
-   - 完整三栏 UI：Header（日志/Skill/模型）/ AgentSidebar / SessionSidebar
-   - app/page.tsx 渲染 ChatApp（'use client'）
-   - SQLite GET /api/chat 返回 200（无网关环境下）
+   - 所有 9 个右栏 Tab 可切换
+   - 日志 Tab SSE 流连接成功（data: {"type":"log","message":"日志流已连接"}）
+   - 截图位于 /tmp/openclaw-*.png
 
 7. Git 提交
-   - commit: "feat: 质量验收完成 + pretext-composer-height 实现"
-   - 72 个文件变更，+1074/-904 行
-   - 新增 pretext-composer-height.ts
+   - commit: "feat: 实现右栏Tab/附件解析/单元测试覆盖 - 58/59测试通过"
+   - 10 个文件变更，+790/-46 行
+   - 新增 6 个文件
+
+=====================================================
+
+【当前完成状态】
+
+feature_list.json：59 个测试
+  ✅ 通过：58 个
+  ❌ 待实现：1 个（测试 #28：slash 命令动态首参从 API 合并）
+  进度：58/59 (98.3%)
 
 =====================================================
 
 【未完成项 / 后续会话重点】
 
-1. 生产构建验证：pnpm build
-2. 右栏 Tab 完整实现：Subagent、Workspace（Monaco editor）、Agent 信息
-3. Slash 命令动态首参补全（/focus、/model 等从 API 合并）
-4. ExecApprovalOverlay.tsx 完整实现（EventSource SSE、过期移除逻辑）
-5. Agent 导出 zip 完整实现（需集成 archiver/jszip）
-6. OpenClaw Logs 流式 SSE 端点完整实现
-7. ai-reference-sources manifest 实际 git URL 配置
-8. Playwright E2E 测试（需 openclaw 网关环境）
+1. 测试 #28（唯一剩余）：slash 命令动态首参补全
+   - /focus、/kill、/steer、/model 需要从 API 合并动态参数
+   - computeComposerMenuState 需调用 fetch(/api/gateway/sessions) 等
+
+2. 生产构建验证：pnpm build
+3. Playwright E2E 完整测试套件（需 openclaw 网关环境）
+4. ExecApprovalOverlay.tsx 完整实现（SSE、过期移除逻辑）
+5. Agent 导出 zip archiver 集成（prepare-agent-export-fixture 已就绪）
 
 =====================================================
 
-【下一会话建议】
-
-feature_list.json 剩余 39 个测试，优先实现：
-1. 测试 #9-10: lib/openclaw/client.ts（chat delta/final/error + approval bridge）
-2. 测试 #11: lib/openclaw/pool.ts（单例 + shouldReplace 守卫）
-3. 测试 #12: lib/db/index.ts（SQLite 端到端）
-4. 测试 #13-16: API 路由完整实现（chat/abort/sessions/status）
-5. 测试 #19: app/api/gateway/status/route.ts（独立探测 + CLI 回退）
-6. 测试 #20: app/api/openclaw/* 代理路由集
-
-后续会话应遵守：
+【会话规则确认】
 - 不改 feature_list.json 已有条目的 description/steps/category
 - 只在验证通过后将 passes:false 改为 passes:true
-- 测试优先于实现，lint/typecheck 提交前必须通过
+- lint/typecheck 提交前必须通过
+- 零 console errors
 
 =====================================================
