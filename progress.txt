@@ -1,0 +1,93 @@
+=====================================================
+  openclaw-gateway 初始化会话 progress.txt
+  日期：2026-04-02
+=====================================================
+
+【本会话完成项】
+
+1. 关键任务一：feature_list.json（53 条）
+   - 覆盖 spec-01..spec-17 全部主要能力
+   - category 含 functional（功能）与 quality（质量）
+   - 含 10+ 条 8 步及以上条目
+   - 初始全部 passes:false
+   - 禁止删除/改写已有条目的规则已写入规范
+
+2. 关键任务二：pnpm 工具链初始化
+   - 根 package.json（dev/build/start/lint/test 等 scripts）
+   - apps/openclaw-chat/package.json（next 16.x、react 19.x、所有 spec-01 依赖）
+   - pnpm-workspace.yaml
+   - next.config.ts（serverExternalPackages、turbopack.root、allowedDevOrigins）
+   - tsconfig.json、vitest.config.ts、postcss.config.mjs
+   - eslint.config.js（ESLint 9 flat config）
+   - .prettierrc
+   - pnpm install 成功，pnpm-lock.yaml 已生成
+   - playwright.config.ts（端口 3015）
+
+3. 关键任务三：Git 首次提交
+   - commit: "chore: 初始化 feature_list、pnpm 工具链与项目结构"
+   - 93 个文件，+11129 行
+
+4. 关键任务四：目录结构与核心实现
+   - apps/openclaw-chat/src/app/api/chat/route.ts（含 GET/POST SSE）
+   - apps/openclaw-chat/src/app/api/chat/abort/route.ts
+   - apps/openclaw-chat/src/app/api/gateway/sessions/route.ts + patch/
+   - apps/openclaw-chat/src/app/api/gateway/status/route.ts
+   - apps/openclaw-chat/src/app/api/gateway/exec-approvals/stream + resolve/
+   - apps/openclaw-chat/src/app/api/agents/route.ts + [agentId]/export/
+   - apps/openclaw-chat/src/app/api/openclaw/* 代理路由（config/models/skills/cron/mcp/cli-exec 等）
+   - apps/openclaw-chat/src/app/api/agent/workspace/[agentId]/ + tree/ + file/
+   - apps/openclaw-chat/src/lib/openclaw/client.ts（OpenClawClient，含握手/chat/approval）
+   - apps/openclaw-chat/src/lib/openclaw/pool.ts（getOpenClawClient 单例）
+   - apps/openclaw-chat/src/lib/openclaw/config.ts（getGatewayConfig）
+   - apps/openclaw-chat/src/lib/openclaw/exec-approval-bridge.ts
+   - apps/openclaw-chat/src/lib/db/index.ts（SQLite better-sqlite3）
+   - apps/openclaw-chat/src/components/ChatApp.tsx（三栏布局）
+   - apps/openclaw-chat/src/components/ChatPanel.tsx（SSE 流处理）
+   - apps/openclaw-chat/src/components/right-panel/*（9 个 Tab 面板）
+   - apps/openclaw-chat/src/lib/slash-commands/composer-slash-registry.ts
+   - apps/openclaw-chat/src/lib/session-unread.ts、session-history-cache.ts、data-heartbeat.ts
+   - apps/openclaw-chat/src/config/openclaw-cli-actions.ts（CLI 白名单）
+   - scripts/pull-ai-reference-sources.mjs、openclaw-drift.mjs、dev-with-reference-pull.mjs
+   - openclaw-integration.manifest.json
+
+5. 质量验收
+   - TypeScript tsc --noEmit：零错误
+   - ESLint src/ --max-warnings 0：零错误
+   - Vitest --run：42 测试全部通过（9 个测试文件）
+
+6. README.md（完整文档：pnpm 安装、命令、前置条件、环境变量）
+7. init.sh（chmod +x 说明在 README.md）
+
+=====================================================
+
+【未完成项 / 后续会话重点】
+
+1. 生产构建验证：pnpm build（需先完成所有 API 路由端点存根到完整实现）
+2. 右栏 Tab 完整实现：Subagent、Workspace（Monaco editor）、Agent 信息
+3. Slash 命令动态首参补全（GET /api/openclaw/skills/status、models.list 集成）
+4. Skill 描述翻译 API（libretranslate / mymemory）
+5. OpenClaw Logs 流式 SSE 端点（当前为 stub）
+6. ExecApprovalOverlay.tsx 完整实现（EventSource SSE、过期移除逻辑）
+7. Agent 导出 zip 完整实现（需集成 archiver/jszip）
+8. Playwright E2E 测试（需 openclaw 网关环境）
+9. ai-reference-sources manifest 实际 git URL 配置
+
+=====================================================
+
+【下一会话建议】
+
+优先从 feature_list.json 最高优先级条目开始实现：
+- 条目 9-10：lib/openclaw/client.ts chat 事件与 approval bridge（已部分完成）
+- 条目 13-14：pool.ts 单例与版本守卫
+- 条目 30-33：Slash 命令菜单 UI（ComposerTriggerMenu 完善）
+- 条目 34：Pretext Composer Height 完整集成
+- 条目 41：OpenClawLogsPanel 完整 SSE 流实现
+- 条目 50：ExecApprovalOverlay 完整实现
+- 条目 52：Agent 导出 zip 完整实现（archiver 集成）
+
+后续会话应遵守：
+- 不改 feature_list.json 已有条目的 description/steps/category
+- 只在验证通过后将 passes:false 改为 passes:true
+- 测试优先于实现，lint/typecheck 提交前必须通过
+
+=====================================================
