@@ -741,5 +741,19 @@
       "步骤 9：git status 确认提交成功"
     ],
     "passes": true
+  },
+  {
+    "category": "quality",
+    "description": "exec-approval-gateway.ts 解析工具函数：parseExecApprovalRequested、parsePluginApprovalRequested、parseExecApprovalResolved、formatCommandForDisplay、formatExpiresIn，Vitest 测试覆盖",
+    "steps": [
+      "步骤 1：读取 apps/openclaw-chat/src/lib/exec-approval-gateway.ts",
+      "步骤 2：验证 parseExecApprovalRequested 解析有效 payload 并拒绝无效输入",
+      "步骤 3：验证 parsePluginApprovalRequested 强制 kind='plugin'",
+      "步骤 4：验证 parseExecApprovalResolved 识别 allow-once/allow-always/deny",
+      "步骤 5：验证 formatCommandForDisplay 截断长命令并附加省略号",
+      "步骤 6：验证 formatExpiresIn 正确计算秒/分钟/小时过期提示",
+      "步骤 7：运行 vitest --run src/lib/exec-approval-gateway.test.ts，全部通过"
+    ],
+    "passes": true
   }
 ]

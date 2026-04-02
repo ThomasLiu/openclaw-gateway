@@ -6,6 +6,7 @@ import { AgentSidebar } from '@/components/AgentSidebar';
 import { SessionSidebar } from '@/components/SessionSidebar';
 import { AppTitleBar } from '@/components/AppTitleBar';
 import { GatewayAlertDialog } from '@/components/GatewayAlertDialog';
+import { ExecApprovalOverlay } from '@/components/ExecApprovalOverlay';
 import type { GatewaySessionRow } from '@/components/chat-types';
 import type { ComposerSlashDynamicContext } from '@/lib/slash-commands/composer-slash-registry';
 
@@ -123,6 +124,8 @@ export function ChatApp({
       {gatewayAlert && (
         <GatewayAlertDialog message={gatewayAlert} onClose={() => setGatewayAlert(null)} />
       )}
+
+      <ExecApprovalOverlay onGatewayAlert={setGatewayAlert} />
     </div>
   );
 }

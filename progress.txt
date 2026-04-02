@@ -1,39 +1,51 @@
 =====================================================
   openclaw-gateway 会话 progress.txt
-  日期：2026-04-03（第四会话）
+  日期：2026-04-03（第五会话）
 =====================================================
 
 【本会话完成项】
 
-1. Playwright 测试失败修复：textarea 网关断连时不可编辑
-   - 问题：textarea disabled={!gatewayConnected} 导致 Playwright
-     测试 "attachment UI interaction" 失败（无法点击禁用的元素）
-   - 修复 ChatPanel.tsx：
-     * 移除 textarea 的 disabled 属性（更好的 UX）
-     * handleSend 添加 gatewayConnected 检查（Enter 键防护）
-     * useCallback deps 添加 gatewayConnected
-   - 修复 chat-attachment-send.spec.ts：
-     * 支持两种 placeholder 状态（输入消息/网关未连接）
-     * 测试 textarea 总是可编辑且可输入内容
+1. ExecApprovalOverlay.tsx 完整实现
+   - 位置：apps/openclaw-chat/src/components/ExecApprovalOverlay.tsx
+   - 功能：
+     * EventSource 订阅 /api/gateway/exec-approvals/stream SSE
+     * FIFO 队列维护 pending 审批请求
+     * 三个按钮：拒绝 / 仅允许一次 / 始终允许
+     * POST /api/gateway/exec-approvals/resolve 提交决策
+     * expiresAtMs 倒计时过期自动移除
+     * resolved 事件自动从队列移除
+     * z-index: z-[340]（高于 AppTitleBar z-200）
+   - 集成：ChatApp.tsx 引入并挂载
 
-2. 生产构建验证
-   - pnpm build 成功（无错误）
+2. lib/exec-approval-gateway.ts 解析工具
+   - 位置：apps/openclaw-chat/src/lib/exec-approval-gateway.ts
+   - 函数：parseExecApprovalRequested、parsePluginApprovalRequested、
+     parseExecApprovalResolved、parsePluginApprovalResolved、
+     formatCommandForDisplay、formatExpiresIn
 
-3. 质量验收
-   - Vitest: 69/69 测试通过
+3. exec-approval-gateway Vitest 测试
+   - 位置：apps/openclaw-chat/src/lib/exec-approval-gateway.test.ts
+   - 24 个测试覆盖所有解析函数和格式化函数
+
+4. 质量验收
+   - Vitest: 93/93 测试通过（+24 新测试）
    - TypeScript: 零错误 tsc --noEmit
-   - ESLint: 零错误零警告
-   - Playwright: 2 passed, 2 skipped（agent-export 需网关环境）
+   - Playwright: 2 passed, 2 skipped
+   - 浏览器验证：零 console errors
+
+5. 生产构建
+   - pnpm build 成功，无错误
 
 =====================================================
 
 【当前完成状态】
 
-feature_list.json：59 个测试
-  ✅ 通过：59 个
+feature_list.json：60 个测试
+  ✅ 通过：60 个
   ❌ 待实现：0 个
-  进度：59/59 (100%)
+  进度：60/60 (100%)
 
+Vitest：93/93 测试通过
 Playwright E2E：
   ✅ 2 passed（chat-attachment-send.spec.ts）
   ⊘ 2 skipped（agent-export.spec.ts - 需网关环境）
@@ -42,11 +54,13 @@ Playwright E2E：
 
 【未完成项 / 后续会话重点】
 
-1. Playwright E2E 完整测试套件（需 openclaw 网关环境）
-   - agent-export.spec.ts 两个测试需网关运行后验证
-2. ExecApprovalOverlay.tsx 完整实现（SSE、过期移除逻辑）
-3. Agent 导出 zip archiver 集成（prepare-agent-export-fixture 已就绪）
-4. Playwright 配置：统一端口（3005）vs 分离（3015）决定
+1. Playwright E2E agent-export 完整测试（需网关环境 + 夹具）
+2. Agent 导出 zip archiver 集成（lib/openclaw/agent-export/）
+   - mergeObjectArraysById.ts
+   - redact-secrets-for-export.ts
+   - enumerate-effective-skills-for-export.ts
+   - import-script.mjs
+3. Playwright 配置：统一端口（3005）vs 分离（3015）
 
 =====================================================
 
