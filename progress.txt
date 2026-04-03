@@ -1,15 +1,61 @@
 =====================================================
   openclaw-gateway 会话 progress.txt
-  日期：2026-04-03（第十会话）
+  日期：2026-04-03（第十一会话）
 =====================================================
 
 【本会话完成项】
+
+1. JsonlLogViewer.tsx 独立组件实现（spec-10）
+   - 位置：apps/openclaw-chat/src/components/JsonlLogViewer.tsx
+   - 导出 JsonlEntry 类型接口和 parseJsonl() 解析函数
+   - JsonPretty 组件：null/undefined/boolean/number/string/array/object
+     颜色化渲染
+   - EntryRow 组件：展开/折叠详情，timestamp/agentId/sessionKey/
+     model/status/durationMs/messageCount/summary 显示
+   - TypeIndicator：error/info/session/request 颜色符号
+   - JsonlLogViewer 主组件：autoScroll/maxEntries/onSessionClick/
+     renderEntry props 支持
+   - 四种过滤器：全部/会话/错误/信息 + 清空按钮
+   - 更新 AgentRequestLogsTabContent 使用 JsonlLogViewer
+
+2. openclaw-drift.mjs --range 支持增强（spec-13）
+   - 位置：scripts/openclaw-drift.mjs
+   - 新增 parseArgs()：--range/-r/--status/-h 参数解析
+   - 新增 printHelp()：完整帮助输出
+   - 新增 checkRange()：git log --name-status + git diff --stat
+   - 新增 parseGitNameStatus()：解析 <status>\t<path> 格式
+   - 新增 collectIntegrationHits()：映射变更到本地集成点
+   - OPENCLAW_SRC 环境变量覆盖 upstreamRoot
+
+3. generate-ai-reference-sources-manifest.mjs 完整实现（spec-14）
+   - 位置：scripts/generate-ai-reference-sources-manifest.mjs
+   - discoverSignificantFiles()：发现 server-methods/agents/ui 文件
+   - mapToIntegrates()：上游路径 → 本地集成点映射
+   - buildWatchEntries()：生成排序 watch 数组
+   - detectGitRemote()：git remote get-url origin
+   - --dry-run 模式：不写入文件，只输出 JSON
+   - 同时更新 openclaw-integration.manifest.json
+
+4. feature_list.json 更新
+   - 新增 3 个测试条目（72 总计）
+   - 当前：72/72 通过
+
+5. 质量验收
+   - Vitest：118/118 测试通过
+   - TypeScript：零错误 tsc --noEmit
+   - ESLint：零错误
+   - Playwright E2E：28/28 通过
+   - 浏览器自动化验证：JsonlLogViewer 滤镜 UI 截图
+
+=====================================================
+
+【第十会话完成项 - 2026-04-03】
 
 1. ModelManagementTabContent 完整实现（spec-10）
    - 位置：apps/openclaw-chat/src/components/right-panel/ModelManagementTabContent.tsx
    - 从 /api/openclaw/models 获取模型列表并显示
    - 从 /api/openclaw/config 获取当前默认模型（agents.defaults.model.primary）
-   - 模型卡片显示：provider/name、上下文窗口（formatContextWindow）、推理徽章、输入类型
+   - 模型卡片显示：provider/name、上下文窗口、推理徽章、输入类型
    - 当前默认模型绿色高亮（border-green-600/50 + 默认标签 + radio indicator）
    - 点击非默认模型打开确认对话框（ConfirmDialog）
    - 确认对话框：取消按钮、确认切换按钮、错误提示（STALE_HASH 友好提示）
@@ -36,114 +82,6 @@
 
 4. feature_list.json 更新
    - 新增 2 个测试条目（69 总计）
-   - 当前：69/69 通过
-
-=====================================================
-  第十会话完成项（2026-04-03）
-
-   - 安装 jszip 依赖
-   - 实现 lib/agent-export/ 目录（之前为空）：
-     * load-openclaw-json.ts — 读取 openclaw.json
-     * merge-object-arrays-by-id.ts — 按 id 数组合并
-     * redact-secrets-for-export.ts — 深度脱敏 + secrets-required.json 生成
-     * enumerate-effective-skills-for-export.ts — 按层枚举技能目录
-     * import-script.mjs — 完整导入脚本（--force/--secrets-file/TTY 提示）
-     * docs/IMPORT.md — 导入说明文档
-   - 新增单元测试：
-     * merge-object-arrays-by-id.test.ts（7 测试）
-     * redact-secrets-for-export.test.ts（15 测试）
-     * load-openclaw-json.test.ts（3 测试）
-
-2. Export Route 完整实现（从 stub → 真实 zip）
-   - 位置：apps/openclaw-chat/src/app/api/agents/[agentId]/export/route.ts
-   - 使用 jszip 创建真实 ZIP 文件（不再只是 manifest.json）
-   - 包含所有 spec-17 规定的文件：
-     * manifest.json（含 exportedSkills 列表）
-     * secrets-required.json
-     * config/agent-list-entry.json、agents-defaults.json、bindings.json
-     * config/hooks-mappings.json、mcp.json、skills-root.json
-     * config/tools-root.json、models.json
-     * workspace/（排除 skills/ 子目录）
-     * skills/<name>/（按白名单过滤）
-     * agent-dir/
-     * import.mjs、import.sh
-     * docs/IMPORT.md
-
-3. 修复 lint 错误
-   - ExecApprovalOverlay.tsx：移除未使用的 ApprovalResolved 导入
-   - ExecApprovalOverlay.tsx：修复 catch 块未使用 err 变量
-   - eslint.config.js：排除 lib/agent-export/*.mjs
-
-4. 质量验收
-   - Vitest：118/118 测试通过（+25 新测试）
-   - TypeScript：零错误 tsc --noEmit
-   - ESLint：零错误
-   - Playwright E2E：4 passed（之前 2 passed + 2 skipped）
-
-=====================================================
-
-【第七会话完成项 - 2026-04-03 续】
-
-1. 工作区文件浏览器 Monaco Editor 集成
-   - WorkspaceExplorerTabContent.tsx 完全重写
-   - 从 /api/agent/workspace/[agentId]/tree 加载真实目录树
-   - Monaco Editor（readOnly）预览模式
-   - Monaco DiffEditor 编辑模式（左侧原始、右侧当前编辑）
-   - 保存按钮 PUT /api/agent/workspace/[agentId]/file
-   - 取消按钮放弃编辑并返回只读模式
-   - SVG 图标替代 emoji（无障碍）
-   - 工具栏显示文件名、操作按钮
-
-2. MCP 服务管理 UI 完整实现
-   - McpServicesTabContent.tsx：支持 mcp.servers 数组和对象格式
-   - McpDeleteConfirmDialog.tsx：z-500 遮罩确认删除
-   - Hover 显示删除按钮（opacity-0 group-hover:opacity-100）
-   - 删除后自动刷新列表
-
-3. Playwright E2E 测试
-   - 新增 workspace-explorer.spec.ts（4 个测试）
-   - 测试树加载、API 路径验证、安全拒绝
-
-4. feature_list.json 更新
-   - 新增 2 个测试（Monaco 编辑器 + MCP 删除确认）
-   - 当前：62/62 通过
-
-=====================================================
-
-【第八会话完成项 - 2026-04-03 续】
-
-1. 定时任务 CRUD UI 完整实现
-   - lib/openclaw/use-scheduled-cron-tasks.ts：hook（拉取/创建/更新/删除）
-   - ScheduledTaskJsonModal.tsx：新建/编辑模态框（名称/Cron/启用切换/预设快捷键/表单验证）
-   - ScheduledTasksTabContent.tsx：完整 CRUD UI（新建/编辑/删除/确认对话框/刷新按钮）
-   - cron route 改善错误序列化（不再显示 [object Object]）
-
-2. Agent 请求日志标签页
-   - AgentRequestLogsTabContent.tsx：SSE 日志流 + 诊断摘要 + 过滤（全部/会话/错误）
-   - GET /api/openclaw/agent-request-diagnostics：诊断数据 API
-   - GET /api/openclaw/agent-request-logs：SSE 日志流 API
-
-3. Playwright E2E 测试
-   - 新增 e2e/scheduled-tasks.spec.ts（6 个测试）
-   - 测试定时任务 UI/模态框/验证/诊断 API/日志流
-
-4. feature_list.json 更新
-   - 新增 3 个测试条目（65 总计）
-
-=====================================================
-
-【当前完成状态】
-
-feature_list.json：69 个测试
-  ✅ 通过：69 个
-  ❌ 待实现：0 个
-  进度：69/69 (100%)
-
-Vitest：118/118 测试通过
-Playwright E2E：28/28 通过
-
-TypeScript：零错误 tsc --noEmit
-ESLint：零错误
 
 =====================================================
 
@@ -174,22 +112,65 @@ ESLint：零错误
 
 5. Playwright E2E 测试
    - 新增 e2e/skills-install-subagent.spec.ts（6 个测试）
-   - 测试安装模态框、作用域选择、名称验证
-   - 测试策略模态框、三种策略类型、Escape 关闭
 
-6. feature_list.json 更新
-   - 新增 2 个测试条目（67 总计）
-   - 当前：67/67 通过
+=====================================================
+
+【第八会话完成项 - 2026-04-03】
+
+1. 定时任务 CRUD UI 完整实现
+   - lib/openclaw/use-scheduled-cron-tasks.ts：hook（拉取/创建/更新/删除）
+   - ScheduledTaskJsonModal.tsx：新建/编辑模态框
+   - ScheduledTasksTabContent.tsx：完整 CRUD UI
+
+2. Agent 请求日志标签页
+   - AgentRequestLogsTabContent.tsx：SSE 日志流 + 诊断摘要 + 过滤
+   - GET /api/openclaw/agent-request-diagnostics
+   - GET /api/openclaw/agent-request-logs
+
+3. Playwright E2E 测试
+   - 新增 e2e/scheduled-tasks.spec.ts（6 个测试）
+
+=====================================================
+
+【第七会话完成项 - 2026-04-03】
+
+1. 工作区文件浏览器 Monaco Editor 集成
+   - WorkspaceExplorerTabContent.tsx 完全重写
+   - Monaco Editor（readOnly）预览模式
+   - Monaco DiffEditor 编辑模式
+   - 保存按钮 PUT /api/agent/workspace/[agentId]/file
+
+2. MCP 服务管理 UI 完整实现
+   - McpServicesTabContent.tsx
+   - McpDeleteConfirmDialog.tsx
+
+3. Playwright E2E 测试
+   - 新增 workspace-explorer.spec.ts（4 个测试）
+
+=====================================================
+
+【当前完成状态】
+
+feature_list.json：72 个测试
+  ✅ 通过：72 个
+  ❌ 待实现：0 个
+  进度：72/72 (100%)
+
+Vitest：118/118 测试通过
+Playwright E2E：28/28 通过
+
+TypeScript：零错误 tsc --noEmit
+ESLint：零错误
 
 =====================================================
 
 【未完成项 / 后续会话重点】
 
 1. ✅ ModelManagementTabContent：完整模型管理（spec-10）（第十会话完成）
-2. JsonlLogViewer.tsx：Agent 请求日志 JSONL 查看器（spec-10）
+2. ✅ JsonlLogViewer.tsx：Agent 请求日志 JSONL 查看器（spec-10）（第十一会话完成）
 3. SkillInstallScopeModal 增强：skill-recommendations.json 集成（spec-10）
-4. OpenClaw drift 检查脚本增强（--range 支持，spec-13）
-5. AI reference sources pull 脚本完整实现（spec-14）
+4. ✅ OpenClaw drift 检查脚本增强（--range 支持，spec-13）（第十一会话完成）
+5. ✅ AI reference sources pull 脚本完整实现（spec-14）（第十一会话完成）
 6. AgentTabContent 增强（spec-10）：Agent Architect UI
 
 =====================================================
