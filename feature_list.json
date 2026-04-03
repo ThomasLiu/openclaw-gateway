@@ -897,5 +897,50 @@
       "步骤 7：运行 Playwright E2E 测试验证切换流程"
     ],
     "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "JsonlLogViewer.tsx 实现独立 JSONL 日志查看器组件：parseJsonl 解析函数、展开/折叠行、Pretty JSON 渲染、按类型过滤（all/session/error/info）、autoScroll、onSessionClick 回调",
+    "steps": [
+      "步骤 1：读取 apps/openclaw-chat/src/components/JsonlLogViewer.tsx",
+      "步骤 2：验证 parseJsonl() 将 JSONL 字符串解析为 JsonlEntry[]，解析失败的行返回 {type:'error', line, summary:'JSON 解析失败'}",
+      "步骤 3：验证 JsonPretty 组件渲染 null/undefined/boolean/number/string/array/object 的正确样式（颜色对应）",
+      "步骤 4：验证 EntryRow 支持展开/折叠，显示 timestamp/agentId/sessionKey/model/status/durationMs/messageCount/summary",
+      "步骤 5：验证 TypeIndicator 组件正确显示 error/info/session/request 类型的颜色和符号",
+      "步骤 6：验证 JsonlLogViewer 支持 autoScroll、maxEntries、onSessionClick、renderEntry props",
+      "步骤 7：验证 AgentRequestLogsTabContent 使用 JsonlLogViewer 组件替代内联日志渲染",
+      "步骤 8：运行 pnpm typecheck 零错误 + pnpm lint 零错误"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "openclaw-drift.mjs --range 支持：--range '<old>..<new>' 标志实现上游源码指定提交范围的 diff 检查，输出变更文件列表及本地集成点映射",
+    "steps": [
+      "步骤 1：读取 scripts/openclaw-drift.mjs",
+      "步骤 2：验证 --help 输出包含 --range 用法说明和示例",
+      "步骤 3：验证 parseArgs 支持 --range、-r、--status、-h 参数及 = 分隔形式",
+      "步骤 4：验证无上游源码时输出友好错误提示（OPENCLAW_SRC 环境变量覆盖）",
+      "步骤 5：验证 checkRange 函数调用 git log --name-status --oneline <range>",
+      "步骤 6：验证 parseGitNameStatus 正确解析 git name-status 格式（<status>\\t<path>）",
+      "步骤 7：验证 checkRange 输出变更文件数、diff --stat、与 manifest.watch 的集成点映射",
+      "步骤 8：运行 node scripts/openclaw-drift.mjs --help 验证输出"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "generate-ai-reference-sources-manifest.mjs 实现：从上游源码目录发现 significant 文件（server-methods/agents/ui），生成 ai-reference-sources.manifest.json 的 watch 数组并映射到本地集成点，同时更新 openclaw-integration.manifest.json",
+    "steps": [
+      "步骤 1：读取 scripts/generate-ai-reference-sources-manifest.mjs",
+      "步骤 2：验证 --dry-run 模式输出 manifest JSON 但不写入文件",
+      "步骤 3：验证 discoverSignificantFiles 发现 src/gateway/server-methods/、src/agents/、ui/src/ui/ 下的 .ts/.js/.json 文件",
+      "步骤 4：验证 mapToIntegrates 为已知上游路径返回正确的本地集成文件列表",
+      "步骤 5：验证 buildWatchEntries 按 path 字母序排序生成的 watch 条目",
+      "步骤 6：验证 detectGitRemote 使用 git remote get-url origin 获取上游 git URL",
+      "步骤 7：验证脚本写入 ai-reference-sources.manifest.json 和 openclaw-integration.manifest.json",
+      "步骤 8：运行 node scripts/generate-ai-reference-sources-manifest.mjs --dry-run 验证"
+    ],
+    "passes": true
   }
 ]

@@ -1,19 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { JsonlLogViewer, type JsonlEntry } from '../JsonlLogViewer';
 
 interface AgentRequestLogsTabContentProps {
   agentId: string;
-}
-
-interface LogEntry {
-  type: 'session' | 'error' | 'info' | 'status';
-  line?: string;
-  message?: string;
-  sessionKey?: string;
-  agentId?: string;
-  model?: string;
-  timestamp?: string;
 }
 
 interface Diagnostics {
@@ -23,12 +14,10 @@ interface Diagnostics {
 }
 
 export function AgentRequestLogsTabContent({ agentId }: AgentRequestLogsTabContentProps) {
-  const [lines, setLines] = useState<LogEntry[]>([]);
+  const [lines, setLines] = useState<JsonlEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [diagnostics, setDiagnostics] = useState<Diagnostics | null>(null);
-  const [filter, setFilter] = useState<'all' | 'session' | 'error'>('all');
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,7 +47,7 @@ export function AgentRequestLogsTabContent({ agentId }: AgentRequestLogsTabConte
     es.onmessage = (e) => {
       if (cancelled) return;
       try {
-        const data: LogEntry = JSON.parse(e.data);
+        const data: JsonlEntry = JSON.parse(e.data);
         setLines((prev) => {
           const next = [...prev, data].slice(-500);
           return next;
@@ -81,15 +70,6 @@ export function AgentRequestLogsTabContent({ agentId }: AgentRequestLogsTabConte
       es.close();
     };
   }, [agentId]);
-
-  // Auto-scroll to bottom
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [lines]);
-
-  const filteredLines = filter === 'all' ? lines : lines.filter((l) => l.type === filter);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -114,84 +94,16 @@ export function AgentRequestLogsTabContent({ agentId }: AgentRequestLogsTabConte
         )}
       </div>
 
-      {/* Filter bar */}
-      <div className="flex-shrink-0 flex items-center gap-1 px-2 py-1 border-b border-zinc-800 bg-zinc-900/30">
-        {(['all', 'session', 'error'] as const).map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-2 py-0.5 text-xs rounded transition-colors ${
-              filter === f
-                ? 'bg-zinc-700 text-zinc-100'
-                : 'text-zinc-500 hover:text-zinc-300'
-            }`}
-          >
-            {f === 'all' ? '全部' : f === 'session' ? '会话' : '错误'}
-          </button>
-        ))}
-        <div className="flex-1" />
-        <button
-          onClick={() => setLines([])}
-          className="px-2 py-0.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
-        >
-          清空
-        </button>
-      </div>
-
-      {/* Log content */}
+      {/* Log viewer */}
       {error ? (
         <div className="p-3 text-xs text-red-400">{error}</div>
       ) : (
-        <div
-          ref={scrollRef}
-          className="flex-1 overflow-y-auto font-mono text-xs text-zinc-400 p-2 space-y-0.5 min-h-0"
-        >
-          {filteredLines.length === 0 && !loading ? (
-            <div className="text-center py-8 text-zinc-600">
-              {filter === 'error' ? '暂无错误' : '暂无日志'}
-            </div>
-          ) : (
-            filteredLines.map((line, i) => (
-              <LogLine key={i} line={line} />
-            ))
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function LogLine({ line }: { line: LogEntry }) {
-  if (line.type === 'error') {
-    return (
-      <div className="flex items-start gap-1.5 text-red-400">
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" className="mt-0.5 flex-shrink-0">
-          <circle cx="5" cy="5" r="4.5" strokeWidth="0" />
-          <path d="M5 3v2.5M5 6.5v.5" stroke="black" strokeWidth="1" />
-        </svg>
-        <span>{line.message}</span>
-      </div>
-    );
-  }
-
-  if (line.type === 'info' || line.type === 'status') {
-    return (
-      <div className="text-zinc-600 italic pl-4">
-        {line.message}
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex items-start gap-1.5 hover:bg-zinc-800/30 rounded px-1 py-0.5 group">
-      <span className="text-zinc-600 flex-shrink-0 select-none">›</span>
-      <span className="whitespace-pre-wrap break-all flex-1">
-        {line.line ?? line.message ?? ''}
-      </span>
-      {line.timestamp && (
-        <span className="text-zinc-700 flex-shrink-0 ml-2">
-          {new Date(line.timestamp).toLocaleTimeString()}
-        </span>
+        <JsonlLogViewer
+          entries={lines}
+          autoScroll={true}
+          maxEntries={500}
+          className="flex-1 min-h-0"
+        />
       )}
     </div>
   );
