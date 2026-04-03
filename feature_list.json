@@ -865,5 +865,37 @@
       "步骤 10：运行 Playwright E2E skills-install-subagent.spec.ts，全部通过"
     ],
     "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "ModelManagementTabContent 完整实现：模型列表 + 默认模型高亮 + 选择确认对话框 + 向导信息展示 + 刷新按钮",
+    "steps": [
+      "步骤 1：读取 apps/openclaw-chat/src/components/right-panel/ModelManagementTabContent.tsx",
+      "步骤 2：验证组件从 /api/openclaw/models 获取模型列表",
+      "步骤 3：验证组件从 /api/openclaw/config 获取当前默认模型（agents.defaults.model.primary）",
+      "步骤 4：验证模型卡片显示：名称、上下文窗口（formatContextWindow）、推理徽章、输入类型",
+      "步骤 5：验证当前默认模型有绿色高亮（border-green-600/50 + 默认标签）",
+      "步骤 6：验证点击非默认模型打开确认对话框（ConfirmDialog）",
+      "步骤 7：验证确认对话框有取消和确认按钮",
+      "步骤 8：验证向导信息区域显示 lastRunAt/version/command/mode",
+      "步骤 9：验证刷新按钮可重新加载模型列表",
+      "步骤 10：验证 Escape 键关闭确认对话框（useEffect 监听）",
+      "步骤 11：运行 Playwright E2E model-management.spec.ts，全部通过"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Config Patch API：PATCH /api/openclaw/config/patch 实现默认模型切换（baseHash 乐观锁 + STALE_HASH 处理）",
+    "steps": [
+      "步骤 1：确认 apps/openclaw-chat/src/app/api/openclaw/config/patch/route.ts 存在",
+      "步骤 2：验证请求体接受 baseHash（必填）和 modelId（必填）",
+      "步骤 3：验证 agentId 可选（指定时 patch agents.list[].model；否则 patch agents.defaults.model）",
+      "步骤 4：验证调用 client.configPatch({ patch, baseHash })",
+      "步骤 5：验证 STALE_HASH 错误返回 409 状态码",
+      "步骤 6：验证其他错误返回 500 状态码",
+      "步骤 7：运行 Playwright E2E 测试验证切换流程"
+    ],
+    "passes": true
   }
 ]

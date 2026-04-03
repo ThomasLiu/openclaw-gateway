@@ -1,11 +1,46 @@
 =====================================================
   openclaw-gateway 会话 progress.txt
-  日期：2026-04-03（第六会话）
+  日期：2026-04-03（第十会话）
 =====================================================
 
 【本会话完成项】
 
-1. Agent Export Zip 完整实现
+1. ModelManagementTabContent 完整实现（spec-10）
+   - 位置：apps/openclaw-chat/src/components/right-panel/ModelManagementTabContent.tsx
+   - 从 /api/openclaw/models 获取模型列表并显示
+   - 从 /api/openclaw/config 获取当前默认模型（agents.defaults.model.primary）
+   - 模型卡片显示：provider/name、上下文窗口（formatContextWindow）、推理徽章、输入类型
+   - 当前默认模型绿色高亮（border-green-600/50 + 默认标签 + radio indicator）
+   - 点击非默认模型打开确认对话框（ConfirmDialog）
+   - 确认对话框：取消按钮、确认切换按钮、错误提示（STALE_HASH 友好提示）
+   - 向导信息区域（wizard.lastRunAt/version/command/mode）
+   - 刷新按钮（fetchAll 重新加载）
+   - Escape 键关闭对话框（useEffect 监听 document keydown）
+   - TypeScript：零错误
+   - ESLint：零错误
+
+2. Config Patch API 实现
+   - 位置：apps/openclaw-chat/src/app/api/openclaw/config/patch/route.ts
+   - PATCH /api/openclaw/config/patch
+   - 请求体：baseHash（必填）、modelId（必填）、agentId（可选）
+   - baseHash 验证 + STALE_HASH 409 处理
+   - 调用 client.configPatch({ patch, baseHash })
+
+3. Playwright E2E 测试
+   - 新增 e2e/model-management.spec.ts（8 个测试）
+   - 测试模型列表显示、section header、config API wizard 数据
+   - 测试点击模型打开确认对话框
+   - 测试对话框取消/确认按钮
+   - 测试 Escape 键关闭对话框
+   - 测试刷新按钮
+
+4. feature_list.json 更新
+   - 新增 2 个测试条目（69 总计）
+   - 当前：69/69 通过
+
+=====================================================
+  第十会话完成项（2026-04-03）
+
    - 安装 jszip 依赖
    - 实现 lib/agent-export/ 目录（之前为空）：
      * load-openclaw-json.ts — 读取 openclaw.json
@@ -99,13 +134,13 @@
 
 【当前完成状态】
 
-feature_list.json：67 个测试
-  ✅ 通过：67 个
+feature_list.json：69 个测试
+  ✅ 通过：69 个
   ❌ 待实现：0 个
-  进度：67/67 (100%)
+  进度：69/69 (100%)
 
 Vitest：118/118 测试通过
-Playwright E2E：20/20 通过
+Playwright E2E：28/28 通过
 
 TypeScript：零错误 tsc --noEmit
 ESLint：零错误
@@ -150,12 +185,12 @@ ESLint：零错误
 
 【未完成项 / 后续会话重点】
 
-1. ModelManagementTabContent：完整模型管理（spec-10）
+1. ✅ ModelManagementTabContent：完整模型管理（spec-10）（第十会话完成）
 2. JsonlLogViewer.tsx：Agent 请求日志 JSONL 查看器（spec-10）
 3. SkillInstallScopeModal 增强：skill-recommendations.json 集成（spec-10）
 4. OpenClaw drift 检查脚本增强（--range 支持，spec-13）
 5. AI reference sources pull 脚本完整实现（spec-14）
-6. Agent Architect UI 完整实现（右侧面板 agent tab）
+6. AgentTabContent 增强（spec-10）：Agent Architect UI
 
 =====================================================
 
