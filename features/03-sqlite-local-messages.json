@@ -130,7 +130,7 @@
         "无 sessionKey 时将 assistant 回复写入 SQLite",
         "需要从 SSE 事件中提取完整文本"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "docs/spec/spec-05-sqlite-local-messages.md",
       "modificationNote": "assistant 消息在 final 事件后写入，用户消息在请求开始时写入。"
     },
@@ -166,7 +166,7 @@
         "测试 insertMessage 返回 lastInsertRowid",
         "测试 listMessages 返回按 id DESC 排序"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "docs/spec/spec-05-sqlite-local-messages.md",
       "modificationNote": "使用临时数据库文件进行测试，避免污染生产数据。"
     },
@@ -177,7 +177,7 @@
         "build 后检查 .next/static/chunks/*.js 不包含 better-sqlite3",
         "客户端组件引用 db 模块时应在编译时报错"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "docs/spec/spec-05-sqlite-local-messages.md",
       "modificationNote": "server-only 包在构建时检测客户端导入并报错。"
     }

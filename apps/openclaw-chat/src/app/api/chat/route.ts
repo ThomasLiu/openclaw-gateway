@@ -231,15 +231,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           state: string;
         }) => {
           if (event.sessionKey !== finalSessionKey) return;
+          if (completed) return;
+          completed = true;
           activeRunId = null;
+          if (idleTimer) clearTimeout(idleTimer);
 
           // SQLite 模式：写入 assistant 回复
           if (persistSqlite && assistantText.trim()) {
-            insertMessage({
-              agent_id: agentId,
-              role: "assistant",
-              content: assistantText,
-            });
+            try {
+              insertMessage({
+                agent_id: agentId,
+                role: "assistant",
+                content: assistantText,
+              });
+            } catch {
+              // ignore write errors
+            }
           }
 
           send({ type: "final", runId: event.runId });
@@ -257,7 +264,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           state: string;
         }) => {
           if (event.sessionKey !== finalSessionKey) return;
+          if (completed) return;
+          completed = true;
           activeRunId = null;
+          if (idleTimer) clearTimeout(idleTimer);
           send({ type: "error", error: event.error, runId: event.runId });
           try {
             controller.close();
@@ -281,17 +291,34 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
         // 空闲超时：30 秒无活动则关闭
         let idleTimer: ReturnType<typeof setTimeout> | null = null;
+        let completed = false;
         const resetIdle = () => {
           if (idleTimer) clearTimeout(idleTimer);
           idleTimer = setTimeout(() => {
+            if (completed) return;
+            completed = true;
             aborted = true;
-            send({ type: "error", error: "idle timeout" });
+
+            // SQLite 模式：写入 assistant 回复（使用累积文本）
+            if (persistSqlite && assistantText.trim()) {
+              try {
+                insertMessage({
+                  agent_id: agentId,
+                  role: "assistant",
+                  content: assistantText,
+                });
+              } catch {
+                // ignore write errors
+              }
+            }
+
+            send({ type: "final", runId: result.runId });
             try {
               controller.close();
             } catch {
               // ignore
             }
-          }, 30_000);
+          }, 60_000);
         };
         resetIdle();
 

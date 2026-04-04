@@ -367,7 +367,9 @@ export class OpenClawClient extends EventEmitter {
     params.sessionKey = normalizedSessionKey;
     params.idempotencyKey = uuidv4();
 
-    if (agentId) {
+    // Only send agentId when sessionKey doesn't already have an agent: prefix.
+    // The gateway extracts agent ID from the sessionKey when prefixed with "agent:".
+    if (agentId && !normalizedSessionKey.startsWith("agent:")) {
       params.agentId = agentId;
     }
 
