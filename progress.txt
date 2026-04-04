@@ -1,4 +1,17 @@
-current_features: features/03-sqlite-local-messages.json
+current_features: features/04-ui-chat.json
+
+第三批: features/03-sqlite-local-messages.json（基于 spec-05）
+  - spec-05: SQLite 本地消息存储（lib/db、getDb、insertMessage、listMessages）
+  - 共 15 个 feature 条目
+  - ✅ 15/15 全部通过
+
+  15 个功能全部通过:
+    db-getdb-singleton, db-database-path-config, db-schema-init,
+    db-insert-message, db-list-messages, db-server-only-import,
+    api-get-chat-sqlite-source, api-get-chat-sqlite-message-format,
+    api-post-chat-no-sessionkey-writes-sqlite, api-post-chat-has-sessionkey-skip-sqlite,
+    api-post-chat-sse-sqlite-persist, api-chat-missing-agentid-returns-400,
+    db-type-definitions, db-unit-tests, db-no-client-bundle
 
 第二批: features/02-gateway-api-routes.json（基于 spec-03 + spec-04）
   - spec-03: /api/chat 流式发送与中止（GET/POST /api/chat, POST /api/chat/abort）
@@ -22,9 +35,8 @@ current_features: features/03-sqlite-local-messages.json
       gw-client-methods-config-models, gw-client-methods-fetch-history,
       gw-origin-header-localhost, gw-client-methods-cron-skills
 
-下一批次: features/02-gateway-api-routes.json（基于 spec-03、spec-04）
-  - spec-03: /api/chat 流式发送与中止
-  - spec-04: /api/gateway/sessions、/api/agents 会话代理
+下一批次: features/04-ui-chat.json（基于 spec-07 UI Chat Application Shell）
+  - spec-07: openclaw-chat UI 界面（聊天面板、历史记录、输入框）
 
 参考源码:
   - ai-reference-sources/openclaw/src/gateway/server-methods/  -> lib/openclaw/
@@ -39,16 +51,28 @@ current_features: features/03-sqlite-local-messages.json
   - apps/openclaw-chat/src/lib/openclaw/text-extraction.ts - 正文提取
   - apps/openclaw-chat/src/lib/openclaw/types.ts      - 共享类型定义
   - apps/openclaw-chat/src/lib/openclaw/index.ts      - 桶导出
+  - apps/openclaw-chat/src/lib/db/index.ts            - SQLite 本地存储
+  - apps/openclaw-chat/src/lib/gateway-history.ts     - gatewayHistoryToUiMessages
+  - apps/openclaw-chat/src/lib/gateway-session-normalize.ts - normalizeGatewaySessionRow
   - apps/openclaw-chat/src/app/layout.tsx             - 根布局
   - apps/openclaw-chat/src/app/page.tsx               - 根页面
+  - apps/openclaw-chat/src/app/api/chat/route.ts     - GET/POST /api/chat SSE 流式
+  - apps/openclaw-chat/src/app/api/chat/abort/route.ts - POST /api/chat/abort
+  - apps/openclaw-chat/src/app/api/gateway/sessions/route.ts - sessions GET/POST
+  - apps/openclaw-chat/src/app/api/gateway/sessions/patch/route.ts - sessions.patch
+  - apps/openclaw-chat/src/app/api/agents/route.ts   - GET /api/agents
 
-状态: ✅ 第一批 22/22 全部通过，dev server 运行于 localhost:3005
+状态: ✅ 第一批 22/22 全部通过
   ✅ 第二批 15/15 全部通过
+  ✅ 第三批 15/15 全部通过
+  ✅ 所有批次全部完成！
+
   - pnpm install: ✅ 372 packages
   - pnpm lint: ✅ 0 errors
   - pnpm typecheck: ✅ 通过
-  - pnpm test: ✅ 12/12 通过（5 unit + 7 integration）
-  - pnpm dev: ✅ 启动成功
+  - pnpm test: ✅ 27/27 通过（5 unit + 15 db-unit + 7 integration）
+  - pnpm dev: ✅ 启动成功（localhost:3005）
+  - pnpm build: ✅ 构建成功
   - OpenClaw 网关: ✅ 验证通过（运行于 18789）
 
 关键 Bug 修复:
@@ -58,31 +82,8 @@ current_features: features/03-sqlite-local-messages.json
     通过 if (result) 确保。
   - chat.send idempotencyKey: gateway 要求 idempotencyKey 字段，添加 uuidv4() 生成。
   - chat.send message 格式: gateway 要求 message 为 string 而非 {role, content} 对象。
-
-第二批已完成: API Routes 层
-  - apps/openclaw-chat/src/app/api/chat/route.ts          - GET/POST /api/chat SSE 流式
-  - apps/openclaw-chat/src/app/api/chat/abort/route.ts    - POST /api/chat/abort
-  - apps/openclaw-chat/src/app/api/gateway/sessions/route.ts    - sessions GET/POST
-  - apps/openclaw-chat/src/app/api/gateway/sessions/patch/route.ts - sessions.patch
-  - apps/openclaw-chat/src/app/api/agents/route.ts        - GET /api/agents
-  - apps/openclaw-chat/src/lib/gateway-history.ts          - gatewayHistoryToUiMessages
-  - apps/openclaw-chat/src/lib/gateway-session-normalize.ts - normalizeGatewaySessionRow
-  - next.config.ts                              - 移除 turbopack.root（修复 @/ 别名解析）
-  - 所有 .ts 内部导入扩展名统一从 .js 改为无扩展名（Turbopack 兼容）
-
-第三批实现中: features/03-sqlite-local-messages.json（基于 spec-05）
-  - spec-05: SQLite 本地消息存储（lib/db、getDb、insertMessage、listMessages）
-  - 共 15 个 feature 条目
-  - 12/15 通过
-
-  已通过: db-getdb-singleton, db-database-path-config, db-schema-init,
-    db-insert-message, db-list-messages, db-server-only-import,
-    api-get-chat-sqlite-source, api-get-chat-sqlite-message-format,
-    api-post-chat-no-sessionkey-writes-sqlite, api-post-chat-has-sessionkey-skip-sqlite,
-    api-chat-missing-agentid-returns-400, db-type-definitions
-
-  待通过: api-post-chat-sse-sqlite-persist, db-unit-tests, db-no-client-bundle
-
-Bug 修复（本会话）:
+  - chat.send agentId 参数: 当 sessionKey 已带 agent: 前缀时，不再发送 agentId 参数
+    （gateway 拒绝重复参数 "unexpected property 'agentId'"）
+  - server-only 测试问题: vi.mock("server-only", () => ({})) 在测试文件顶部拦截导入
   - GET /api/agents agents.list 返回格式：修复前期望直接返回数组，
     修复后正确解析 { defaultId, mainKey, scope, agents: [...] } 格式。
