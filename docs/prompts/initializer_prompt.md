@@ -116,9 +116,24 @@ git commit -m "chore: 初始化 openclaw-chat 项目结构
 
 在 `progress.txt` 中说明：
 - 第一批生成的 feature 文件
+- **必须包含 `current_features: features/01-monorepo.json`** 字段，指示当前批次
 - 下一批次要生成的 spec 编号
 - 参考源码的 key files
 - 当前应用状态（可安装/可运行）
+
+**progress.txt 格式示例**：
+```
+current_features: features/01-monorepo.json
+
+第一批: features/01-monorepo.json（基于 spec-01）
+下一批次: features/02-gateway.json（基于 spec-02）
+
+参考源码:
+- apps/openclaw-chat/ -> apps/openclaw-chat/
+- src/gateway/ -> 内嵌在项目中
+
+状态: 可安装，运行 ./init.sh 启动
+```
 
 ---
 

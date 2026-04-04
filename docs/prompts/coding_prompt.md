@@ -21,21 +21,28 @@ pwd
 # 2. 列出文件以了解项目结构
 ls -la
 
-# 3. 阅读 progress.txt 了解当前进度
+# 3. 阅读 progress.txt 了解当前进度和当前批次
 cat progress.txt
 
-# 4. 查看已生成的 feature 文件
+# 4. 从 progress.txt 提取当前批次的 feature 文件名
+# progress.txt 格式：包含 "current_features: features/xx-name.json"
+CURRENT_FEATURES=$(grep -m1 "^current_features:" progress.txt | sed 's/^current_features: *//')
+echo "当前批次: $CURRENT_FEATURES"
+
+# 5. 查看所有已生成的 feature 文件
 ls features/
 
-# 5. 读取当前批次 feature 文件（如 features/01-monorepo.json）
-cat features/01-monorepo.json
+# 6. 读取当前批次 feature 文件
+cat "$CURRENT_FEATURES"
 
-# 6. 查看 git 历史
+# 7. 查看 git 历史
 git log --oneline -10
 
-# 7. 检查 openclaw gateway 是否运行（端口 18789）
+# 8. 检查 openclaw gateway 是否运行（端口 18789）
 lsof -i :18789 || echo "Gateway 未运行"
 ```
+
+**关键**：`progress.txt` 中的 `current_features` 字段指示当前批次，coding_prompt 必须读取这个字段而不是 hardcode 文件名。
 
 ---
 
@@ -179,16 +186,42 @@ git commit -m "feat: 实现 [功能名称] - 验证通过
 - 下一个要实现的 feature
 - 当前状态（如 "features/01: 5/10 通过"）
 
+**如果当前批次所有 feature 都 passes: true**，需要切换到下一批次：
+
+```bash
+# 从 progress.txt 读取当前批次
+CURRENT=$(grep -m1 "^current_features:" progress.txt | sed 's/^current_features: *//')
+
+# 从当前批次文件名提取编号（如 01）
+CURRENT_NUM=$(echo "$CURRENT" | sed 's/features\/\([0-9]*\)-.*/\1/')
+
+# 计算下一个批次编号
+NEXT_NUM=$(printf "%02d" $((CURRENT_NUM + 1)))
+
+# 查找下一个 spec 对应的 feature 文件
+# 例如 features/02-gateway.json（如果存在）
+NEXT_FEATURES=$(ls features/${NEXT_NUM}-*.json 2>/dev/null | head -1)
+
+if [ -n "$NEXT_FEATURES" ]; then
+  # 更新 progress.txt 的 current_features 字段
+  sed -i '' "s/^current_features:.*/current_features: $NEXT_FEATURES/" progress.txt
+  echo "已切换到下一批次: $NEXT_FEATURES"
+else
+  echo "所有批次已完成或下一批次文件不存在"
+fi
+```
+
 ---
 
-### Step 11：判断是否需要生成下一批 features
+### Step 11：生成下一批 features（如需要）
 
-如果当前批次所有 feature 都 passes: true：
+如果 `progress.txt` 中 `current_features` 已更新到下一批次：
 
-1. 阅读下一个 spec 文件（如 spec-03-*）
-2. 使用 `/investigate` 分析对应的 ai-reference-sources/openclaw 源码
-3. 生成下一个 `features/xx-*.json`（5-15 条）
-4. 提交新生成的 feature 文件
+1. 阅读下一个 spec 文件（如 `docs/spec/spec-03-*.md`）
+2. 使用 `/investigate` 分析对应的 `ai-reference-sources/openclaw` 源码
+3. 生成下一个 `features/xx-name.json`（5-15 条）
+4. **重要**：在 `progress.txt` 中设置 `current_features: features/xx-name.json`
+5. 提交新生成的 feature 文件
 
 ---
 
