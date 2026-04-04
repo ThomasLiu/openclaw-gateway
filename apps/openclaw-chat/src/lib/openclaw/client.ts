@@ -502,6 +502,35 @@ export class OpenClawClient extends EventEmitter {
   async skillsInstall(skillId: string): Promise<void> {
     await this.request("skills.install", { skillId });
   }
+
+  // ─── Logs Methods ─────────────────────────────────────────────────────────
+
+  /**
+   * Tail gateway logs.
+   * @param opts.cursor - Byte offset to resume from
+   * @param opts.limit - Max number of lines (default 100)
+   * @param opts.maxBytes - Max bytes to read (default 64KB)
+   */
+  async logsTail(opts?: {
+    cursor?: number;
+    limit?: number;
+    maxBytes?: number;
+  }): Promise<{ entries: LogEntry[]; cursor: number }> {
+    const params: Record<string, unknown> = {};
+    if (opts?.cursor !== undefined) params.cursor = opts.cursor;
+    if (opts?.limit !== undefined) params.limit = opts.limit;
+    if (opts?.maxBytes !== undefined) params.maxBytes = opts.maxBytes;
+    return (await this.request<{ entries: LogEntry[]; cursor: number }>(
+      "logs.tail",
+      params
+    )) as { entries: LogEntry[]; cursor: number };
+  }
 }
 
 export type { OpenClawClientMethods };
+
+export type LogEntry = {
+  timestamp: string;
+  level: "info" | "warn" | "error";
+  message: string;
+};

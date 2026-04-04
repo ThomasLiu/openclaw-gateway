@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import "./globals.css";
 
 // eslint-disable-next-line react-refresh/only-export-components -- Next.js App Router layout convention
 export const metadata: Metadata = {

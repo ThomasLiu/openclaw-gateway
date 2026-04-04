@@ -11,7 +11,7 @@
         "根布局 (layout.tsx) 包含 html/body，无多余 wrapper",
         "页面标题为 'OpenClaw Gateway'"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "docs/spec/spec-07-ui-chat-application-shell.md",
       "modificationNote": "page.tsx 作为 Next.js App Router 页面，直接渲染客户端组件。"
     },
@@ -24,7 +24,7 @@
         "使用 Tailwind CSS 类（flex、h-screen 等）",
         "响应式设计，支持收起侧栏"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "docs/spec/spec-07-ui-chat-application-shell.md",
       "modificationNote": "ChatApp 负责管理全局状态（agentId、sessionKey、消息列表）。"
     },
@@ -37,7 +37,7 @@
         "右侧有命令入口按钮（如 Settings、About）",
         "Tailwind 深色主题样式（bg-zinc-900/950）"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "docs/spec/spec-07-ui-chat-application-shell.md",
       "modificationNote": "网关状态通过 getOpenClawClient().connected 获取。"
     },
@@ -51,7 +51,7 @@
         "当前选中的 agent 高亮显示",
         "OPENCLAW_AGENT_ARCHITECT_ID 特殊样式"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "docs/spec/spec-07-ui-chat-application-shell.md",
       "modificationNote": "agent 列表缓存，避免频繁请求。"
     },
@@ -66,7 +66,7 @@
         "删除会话功能",
         "当前选中的 session 高亮"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "docs/spec/spec-07-ui-chat-application-shell.md",
       "modificationNote": "需要 sessionKeyStorageKey(agentId) localStorage 持久化。"
     },
@@ -78,7 +78,7 @@
         "ChatPanel 是独立客户端组件",
         "包含消息列表区（MessageList）和输入框（Composer）"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "docs/spec/spec-07-ui-chat-application-shell.md",
       "modificationNote": "动态导入注释说明：Turbopack 热更新场景需要。"
     },
@@ -94,7 +94,7 @@
         "Markdown 渲染（react-markdown + remark-gfm）",
         "自动滚动到底部（最新消息）"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "docs/spec/spec-09-message-rendering-markdown-tools.md",
       "modificationNote": "支持 Markdown 渲染，包含代码高亮支持。"
     },
@@ -109,7 +109,7 @@
         "流式结束时（final）停止输入框加载状态",
         "支持 Enter 发送，Shift+Enter 换行"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "docs/spec/spec-08-ui-chat-panel-composer-and-pretext.md",
       "modificationNote": "流式状态通过 React state 管理，loading 状态时禁用输入。"
     },
@@ -122,7 +122,7 @@
         "流式结束移除 wave bar",
         "StreamingWaveBar 样式：浅绿色渐变波动动画"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "docs/spec/spec-08-ui-chat-panel-composer-and-pretext.md",
       "modificationNote": "wave bar 仅在流式进行中且非『待续跑』时显示。"
     },
@@ -148,7 +148,7 @@
         "显示实时日志流（gateway 日志）",
         "日志级别颜色区分（info=蓝、warn=黄、error=红）"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "docs/spec/spec-10-right-panel-features.md",
       "modificationNote": "日志流通过 WebSocket 或 SSE 从网关获取。"
     },
@@ -161,7 +161,7 @@
         "新建会话时生成新的 sessionKey",
         "页面刷新后恢复会话状态"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "docs/spec/spec-11-session-state-unread-and-caching.md",
       "modificationNote": "需要 sessionKeyBelongsToAgent 校验一致性。"
     },
@@ -174,7 +174,7 @@
         "组件使用 Tailwind 深色色板（bg-zinc-900/800/700 等）",
         "StreamingWaveBar 动画样式"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "docs/spec/spec-07-ui-chat-application-shell.md",
       "modificationNote": "使用 Tailwind v4（@tailwindcss/postcss）+ globals.css。"
     },
@@ -187,7 +187,7 @@
         "AgentInfo: { id, label }",
         "SessionInfo: { key, label, updatedAt }"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "docs/spec/spec-07-ui-chat-application-shell.md",
       "modificationNote": "类型定义放在组件同目录的 .ts 文件中。"
     },
