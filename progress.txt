@@ -1,8 +1,9 @@
 # openclaw-gateway 进度报告
 
-## 当前状态：✅ 全部完成
+## 当前状态：✅ 全部完成 + 1 个关键 Bug 修复
 
 所有 6 个 spec 批次（共 126 个 feature）已全部实现并验证通过。
+发现并修复 1 个关键浏览器端 bug（见下方"关键 Bug 修复记录"）。
 
 ## 批次概览
 
@@ -199,3 +200,7 @@
 - **gateway-history.ts extractText**: 修复对 { type: "text", text } 单对象格式的处理。
 - **session-unread maxUiMessageId**: 修复数字比较（原按字符串导致 100<50）。
 - **inflight-dedupe**: 修复请求结束后再次调用时返回旧 Promise 的 bug（添加 settled 标志）。
+- **浏览器端网关连接检查 bug**: ChatApp.tsx 的 checkConnection() 动态导入 getOpenClawClient()，
+  该函数依赖 Node.js fs/os 模块，在浏览器中调用失败，导致每次打开应用都显示"网关连接失败"。
+  修复：改用 fetch("/api/gateway/status") API 调用，服务端正确读取 ~/.openclaw/openclaw.json。
+  截图：verification/01-gateway-fix.png
