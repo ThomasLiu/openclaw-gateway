@@ -76,6 +76,9 @@ export class OpenClawClient extends EventEmitter {
   private config: GatewayAuthConfig;
   private handshakeTimeout: ReturnType<typeof setTimeout> | null = null;
   private isIntentionallyClosed = false;
+  // Stored per-connect so handleMessage can call them
+  private _pendingConnectResolve: ((v: void) => void) | null = null;
+  private _pendingConnectReject: ((e: unknown) => void) | null = null;
 
   constructor(config: GatewayAuthConfig) {
     super();
@@ -167,22 +170,11 @@ export class OpenClawClient extends EventEmitter {
         this.emit("error", err);
       });
 
-      // Intercept the connect() resolve to complete the flow
-      const originalResolve = resolve;
-      const connectResolver = {
-        resolve: (v: void) => {
-          if (!this._connected) {
-            originalResolve(v);
-          }
-        },
-        reject,
+      // Store resolve/reject so handleMessage can call them
+      this._pendingConnectResolve = (v: void) => {
+        resolve(v);
       };
-
-      // Store a marker so handleMessage knows about this special resolve
-      (this as unknown as Record<string, unknown>).__connectResolve =
-        connectResolver.resolve;
-      (this as unknown as Record<string, unknown>).__connectReject =
-        connectResolver.reject;
+      this._pendingConnectReject = reject;
     });
   }
 
@@ -204,14 +196,14 @@ export class OpenClawClient extends EventEmitter {
               this.handshakeTimeout = null;
             }
             this.emit("connected");
-            const resolve = (this as unknown as Record<string, unknown>)
-              .__connectResolve as ((v: void) => void) | undefined;
-            resolve?.();
+            this._pendingConnectResolve?.();
+            this._pendingConnectResolve = null;
+            this._pendingConnectReject = null;
           }
         } catch (err) {
-          const reject = (this as unknown as Record<string, unknown>)
-            .__connectReject as ((e: unknown) => void) | undefined;
-          reject?.(err);
+          this._pendingConnectReject?.(err);
+          this._pendingConnectReject = null;
+          this._pendingConnectResolve = null;
           this.ws?.close();
         }
       } else if (event === "chat") {
@@ -361,10 +353,7 @@ export class OpenClawClient extends EventEmitter {
     agentId?: string
   ): Promise<{ runId: string }> {
     const params: Record<string, unknown> = {
-      message: {
-        role: "user",
-        content: [{ type: "text", text: message }],
-      },
+      message,
     };
 
     // Normalize sessionKey: if not agent: prefix, add it
@@ -376,6 +365,7 @@ export class OpenClawClient extends EventEmitter {
     }
 
     params.sessionKey = normalizedSessionKey;
+    params.idempotencyKey = uuidv4();
 
     if (agentId) {
       params.agentId = agentId;

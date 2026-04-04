@@ -4,6 +4,17 @@ current_features: features/01-monorepo.json
   - spec-01: monorepo and tooling（pnpm workspace、scripts、next.config.ts、依赖）
   - spec-02: gateway config and WS client（OpenClawClient、WebSocket 连接池、JSON-RPC 协议）
   - 共 22 个 feature 条目
+  - ✅ 22/22 全部通过：
+    7 质量工具: tool-pnpm-workspace-config, tool-root-package-scripts,
+      tool-app-package-scripts, tool-next-config-external,
+      tool-eslint-prettier-vitest, tool-init-shell, tool-tsconfig-paths
+    15 网关功能: gw-gateway-config-from-env, gw-gateway-url-ws-normalize,
+      gw-openclaw-client-websocket, gw-openclaw-client-request-response,
+      gw-openclaw-client-chat-events, gw-connection-pool-singleton,
+      gw-pool-connect-timeout, gw-handshake-timeout,
+      gw-client-methods-send-abort, gw-client-methods-sessions,
+      gw-client-methods-config-models, gw-client-methods-fetch-history,
+      gw-origin-header-localhost, gw-client-methods-cron-skills
 
 下一批次: features/02-gateway-api-routes.json（基于 spec-03、spec-04）
   - spec-03: /api/chat 流式发送与中止
@@ -12,15 +23,36 @@ current_features: features/01-monorepo.json
 参考源码:
   - ai-reference-sources/openclaw/src/gateway/server-methods/  -> lib/openclaw/
   - ai-reference-sources/openclaw/src/gateway/                 -> lib/openclaw/
-  - apps/openclaw-chat/                                        -> apps/openclaw-chat/（待实现）
+  - apps/openclaw-chat/                                        -> apps/openclaw-chat/（已实现 lib/openclaw/）
 
-状态: 结构已创建（package.json、pnpm-workspace.yaml、next.config.ts 等）
-  运行 ./init.sh 安装依赖（pnpm install）
-  运行 pnpm dev 启动（端口 3005，需 OpenClaw 网关运行于 18789）
+已实现代码:
+  - apps/openclaw-chat/src/lib/openclaw/config.ts      - Gateway 配置加载
+  - apps/openclaw-chat/src/lib/openclaw/client.ts     - OpenClawClient WebSocket 客户端
+  - apps/openclaw-chat/src/lib/openclaw/pool.ts       - 连接池单例
+  - apps/openclaw-chat/src/lib/openclaw/singleton-guard.ts - 单例守卫
+  - apps/openclaw-chat/src/lib/openclaw/text-extraction.ts - 正文提取
+  - apps/openclaw-chat/src/lib/openclaw/types.ts      - 共享类型定义
+  - apps/openclaw-chat/src/lib/openclaw/index.ts      - 桶导出
+  - apps/openclaw-chat/src/app/layout.tsx             - 根布局
+  - apps/openclaw-chat/src/app/page.tsx               - 根页面
+
+状态: ✅ 第一批 22/22 全部通过，dev server 运行于 localhost:3005
+  - pnpm install: ✅ 372 packages
+  - pnpm lint: ✅ 0 errors, 2 warnings
+  - pnpm typecheck: ✅ 通过
+  - pnpm test: ✅ 12/12 通过（5 unit + 7 integration）
+  - pnpm dev: ✅ 启动成功
+  - OpenClaw 网关: ✅ 验证通过（运行于 18789）
+
+关键 Bug 修复:
+  - connect() resolve bug: _pendingConnectResolve wrapper 中检查了 !this._connected，
+    但 handleMessage 在调用前已设置 _connected=true，导致 resolve 永远不被调用。
+    修复：移除 resolve wrapper 中的 _connected 检查，guard 已在 handleMessage 中
+    通过 if (result) 确保。
+  - chat.send idempotencyKey: gateway 要求 idempotencyKey 字段，添加 uuidv4() 生成。
+  - chat.send message 格式: gateway 要求 message 为 string 而非 {role, content} 对象。
 
 第二批待实现: API Routes 层
   - apps/openclaw-chat/src/app/api/chat/route.ts
   - apps/openclaw-chat/src/app/api/gateway/sessions/route.ts
-  - apps/openclaw-chat/src/lib/openclaw/client.ts
-  - apps/openclaw-chat/src/lib/openclaw/pool.ts
-  - apps/openclaw-chat/src/lib/openclaw/config.ts
+  - apps/openclaw-chat/src/app/api/agents/route.ts

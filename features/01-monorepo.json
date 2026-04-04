@@ -115,7 +115,7 @@
         "清除环境变量后重启，确认应用降级读取 ~/.openclaw/openclaw.json",
         "确认当两者都缺失时报配置错误"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "spec-02-gateway-config-ws-client.md",
       "modificationNote": ""
     },
@@ -128,7 +128,7 @@
         "启动应用后检查内部 WS URL 是否以 ws:// 开头",
         "确认 normalizeHttpBase 将用户误写的 ws 替换为 http"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "spec-02-gateway-config-ws-client.md",
       "modificationNote": ""
     },
@@ -143,7 +143,7 @@
         "确认握手包含正确的 client.id、version、mode: webchat",
         "确认成功时 connected=true 并 emit connected 事件"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "spec-02-gateway-config-ws-client.md",
       "modificationNote": ""
     },
@@ -157,7 +157,7 @@
         "确认 request() 有默认 60s 超时",
         "确认超时后 reject 而非永久挂起"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "spec-02-gateway-config-ws-client.md",
       "modificationNote": ""
     },
@@ -171,7 +171,7 @@
         "确认正文提取使用 extractAssistantTextFromGatewayMessage",
         "确认 final 帧包含 sessionKey 和 runId"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "spec-02-gateway-config-ws-client.md",
       "modificationNote": ""
     },
@@ -185,7 +185,7 @@
         "确认 disconnected 事件触发后下次调用创建新实例",
         "确认应只存在一个活跃连接"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "spec-02-gateway-config-ws-client.md",
       "modificationNote": ""
     },
@@ -199,7 +199,7 @@
         "确认超时后清空单例",
         "确认错误信息包含超时原因"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "spec-02-gateway-config-ws-client.md",
       "modificationNote": ""
     },
@@ -213,7 +213,7 @@
         "确认超时关闭 WebSocket 并 reject",
         "确认不再重试"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "spec-02-gateway-config-ws-client.md",
       "modificationNote": ""
     },
@@ -227,7 +227,7 @@
         "确认 abortChat 发送 chat.abort 请求",
         "确认 abort 支持可选 runId 参数"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "spec-02-gateway-config-ws-client.md",
       "modificationNote": ""
     },
@@ -241,7 +241,7 @@
         "确认 sessionsCreate 支持 agentId 和 label",
         "确认 sessionsPatch 支持 key 和 model 参数"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "spec-02-gateway-config-ws-client.md",
       "modificationNote": ""
     },
@@ -255,7 +255,7 @@
         "确认 modelsList 发送 models.list 请求",
         "确认返回模型列表格式与 models.list 语义一致"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "spec-02-gateway-config-ws-client.md",
       "modificationNote": ""
     },
@@ -268,7 +268,7 @@
         "确认支持 sessionKey 和 limit 参数",
         "确认返回消息数组格式与网关一致"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "spec-02-gateway-config-ws-client.md",
       "modificationNote": ""
     },
@@ -281,7 +281,7 @@
         "确认 Origin 值与 gatewayUrl 匹配",
         "确认非 localhost 连接不设置额外 Origin（避免 CORS 问题）"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "spec-02-gateway-config-ws-client.md",
       "modificationNote": ""
     },
@@ -295,7 +295,7 @@
         "确认 skillsInstall 发送 skills.install 请求",
         "确认参数格式与网关协议一致"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "spec-02-gateway-config-ws-client.md",
       "modificationNote": ""
     }

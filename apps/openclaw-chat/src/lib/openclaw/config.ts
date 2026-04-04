@@ -39,12 +39,24 @@ function readOpenClawJson(): Record<string, unknown> | null {
   }
 }
 
-interface OpenClawJsonGateway {
-  url?: string;
+interface OpenClawJsonRoot {
+  gateway?: {
+    url?: string;
+    port?: number;
+    auth?: {
+      token?: string;
+      password?: string;
+    };
+  };
+  // Top-level structure (observed in real ~/.openclaw/openclaw.json)
   port?: number;
   auth?: {
+    mode?: string;
     token?: string;
     password?: string;
+  };
+  agents?: {
+    list?: Array<{ id: string; name?: string }>;
   };
 }
 
@@ -70,12 +82,14 @@ export function getGatewayConfig(): GatewayAuthConfig {
     }
     const jsonConfig = readOpenClawJson();
     if (jsonConfig) {
-      const gw = jsonConfig.gateway as OpenClawJsonGateway | undefined;
-      return {
-        gatewayUrl,
-        token: envToken ?? gw?.auth?.token,
-        password: envPassword ?? gw?.auth?.password,
-      };
+      const gw = jsonConfig as OpenClawJsonRoot;
+      // Support both nested `gateway` key and top-level structure
+      const nestedGw = gw.gateway;
+      const token =
+        envToken ?? nestedGw?.auth?.token ?? gw.auth?.token;
+      const password =
+        envPassword ?? nestedGw?.auth?.password ?? gw.auth?.password;
+      return { gatewayUrl, token, password };
     }
     return { gatewayUrl, token: envToken, password: envPassword };
   }
@@ -88,14 +102,15 @@ export function getGatewayConfig(): GatewayAuthConfig {
     );
   }
 
-  const gw = jsonConfig.gateway as OpenClawJsonGateway | undefined;
-  const port = gw?.port ?? 18789;
+  const gw = jsonConfig as OpenClawJsonRoot;
+  const nestedGw = gw.gateway;
+  const port = nestedGw?.port ?? gw.port ?? 18789;
   const gatewayUrl = `http://127.0.0.1:${port}`;
 
   return {
     gatewayUrl,
-    token: gw?.auth?.token,
-    password: gw?.auth?.password,
+    token: nestedGw?.auth?.token ?? gw.auth?.token,
+    password: nestedGw?.auth?.password ?? gw.auth?.password,
   };
 }
 
