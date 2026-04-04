@@ -194,18 +194,25 @@ export default function ChatApp() {
 
     async function checkConnection() {
       try {
-        // 动态 import 避免 server-side 问题
-        const { getOpenClawClient } = await import("@/lib/openclaw");
-        const client = await getOpenClawClient();
-        if (client.connected) {
-          setGatewayStatus("connected");
-          setShowGatewayAlert(false);
-          setGatewayAlertMessage(undefined);
+        // 使用 /api/gateway/status API 检查连接（避免在浏览器中调用 Node.js 模块）
+        const resp = await fetch("/api/gateway/status");
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.connected) {
+            setGatewayStatus("connected");
+            setShowGatewayAlert(false);
+            setGatewayAlertMessage(undefined);
+          } else {
+            setGatewayStatus("disconnected");
+            setGatewayAlertMessage(
+              data.error ?? "无法连接到 OpenClaw Gateway。请确认网关已在端口 18789 运行，并检查网络连接。"
+            );
+            setShowGatewayAlert(true);
+          }
         } else {
           setGatewayStatus("disconnected");
-          // 连接失败时显示告警
           setGatewayAlertMessage(
-            "无法连接到 OpenClaw Gateway。请确认网关已在端口 18789 运行，并检查网络连接。"
+            `网关状态检查失败（HTTP ${resp.status}）。请确认 OpenClaw Gateway 已启动。`
           );
           setShowGatewayAlert(true);
         }
