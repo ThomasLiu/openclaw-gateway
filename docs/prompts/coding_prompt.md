@@ -3,7 +3,14 @@
 你正在持续执行一个长时间运行的自主开发任务。
 这是一个全新的上下文窗口——你对之前的会话没有记忆。
 
-### 步骤 1：找准方向（必须执行）
+**核心约束**：
+- **TDD 驱动**：passes: false 的功能必须等到 passes: true 验证通过后才能实现
+- **先验证再实现**：每轮必须先验证当前功能正常，再实现新功能
+- **源码参考**：通过 feature 的 `sourceFile` 和 `modificationNote` 理解实现方向
+
+---
+
+### Step 1：找准方向（必须执行）
 
 首先明确你的工作环境：
 
@@ -14,182 +21,253 @@ pwd
 # 2. 列出文件以了解项目结构
 ls -la
 
-# 3. 阅读项目规格说明，了解你要构建的内容
-cat ./docs/spec/app_spec.md
-
-# 4. 阅读功能列表，查看所有工作项
-cat feature_list.json | head -50
-
-# 5. 阅读之前会话的进度笔记
+# 3. 阅读 progress.txt 了解当前进度
 cat progress.txt
 
-# 6. 检查最近的 git 历史
-git log --oneline -20
+# 4. 查看已生成的 feature 文件
+ls features/
 
-# 7. 统计剩余测试数量
-cat feature_list.json | grep '"passes": false' | wc -l
+# 5. 读取当前批次 feature 文件（如 features/01-monorepo.json）
+cat features/01-monorepo.json
+
+# 6. 查看 git 历史
+git log --oneline -10
+
+# 7. 检查 openclaw gateway 是否运行（端口 18789）
+lsof -i :18789 || echo "Gateway 未运行"
 ```
 
-理解 `app_spec.md` 至关重要——它包含你正在构建的应用的完整需求。
+---
 
-### 步骤 2：启动服务器（如未运行）
+### Step 2：启动服务器（如未运行）
 
 如果存在 `init.sh`，运行它：
+
 ```bash
 chmod +x init.sh
 ./init.sh
 ```
 
-否则，手动启动服务器并记录过程。
+否则手动启动服务器并记录过程。
 
-### 步骤 3：验证测试（关键！）
+**注意**：openclaw-chat 需要 openclaw gateway 运行在 `ws://127.0.0.1:18789`。
 
-**新工作前的必须操作：**
+---
 
-之前的会话可能引入了 bug。在实现任何新内容之前，
-你必须运行验证测试。
+### Step 3：验证当前状态（关键！必须先做！）
 
-运行 1-2 个标记为 `"passes": true` 且与应用核心功能最相关的功能测试，以验证它们仍然正常工作。
-例如，如果这是一个聊天应用，你应该执行一个测试：登录应用、发送消息并获得回复。
+**在实现任何 passes: false 的功能之前，必须先验证 passes: true 的功能仍然正常。**
 
-**如果发现任何问题（功能或视觉）：**
-- 立即将该功能标记为 `"passes": false`
-- 将问题添加到列表中
-- 在继续新功能之前修复所有问题
-- 这包括 UI bug，例如：
-  * 白字白底或对比度差
-  * 显示乱码
-  * 时间戳错误
-  * 布局问题或溢出
-  * 按钮间距过近
-  * 缺少悬停状态
-  * 控制台错误
+**强制验证流程**：
 
-### 步骤 4：选择一个功能来实现
+1. 使用 `/browse` skill 验证应用可访问：
+   ```
+   /browse http://localhost:3005
+   ```
+   截图确认 UI 正常渲染。
 
-查看 feature_list.json，找到优先级最高且为 `"passes": false` 的功能。
+2. 验证核心功能（选择当前批次中 passes: true 的 1-2 个功能）：
+   - 尝试复现 feature 的验证步骤
+   - 截图记录验证结果
 
-专注于在本会话中完美完成一个功能并完成其测试步骤，然后再处理其他功能。
-如果本会话只完成一个功能也没关系，后续会有更多会话继续推进。
+3. **如果发现问题**：
+   - 立即将该功能标记为 `"passes": false`
+   - 修复问题
+   - 再次验证
+   - 只有问题修复后才能继续实现新功能
 
-### 步骤 5：实现该功能
+**禁止**：跳过验证步骤直接实现新功能。这会导致到处是 bug，最终产物完全不可用。
 
-彻底实现选定的功能：
-1. 编写代码（根据需要包括前端和/或后端）
-2. 使用浏览器自动化进行手动测试（见步骤 6）
-3. 修复发现的任何问题
-4. 验证功能端到端正常工作
+---
 
-### 步骤 6：使用浏览器自动化验证
+### Step 4：选择要实现的功能
 
-**关键：** 你必须通过实际 UI 验证功能。
+从当前批次的 `features/*.json` 中选择：
 
-使用浏览器自动化工具：
-- 在真实浏览器中导航到应用
-- 像人类用户一样交互（点击、输入、滚动）
-- 在每个步骤截图
-- 验证功能和视觉外观
+1. 找到所有 `"passes": false` 的条目
+2. 按顺序选择优先级最高的
+3. 理解该条目的：
+   - `sourceFile` - 参考源码路径
+   - `modificationNote` - 相对于源码的修改方向
+   - `steps` - 验证步骤
 
-**应该做：**
-- 通过 UI 进行点击和键盘输入测试
-- 截图以验证视觉外观
-- 检查浏览器控制台错误
-- 端到端验证完整的用户工作流
+**一次只实现一个功能**（或强相关的一小组），做完再处理下一个。
 
-**不应该做：**
-- 仅使用 curl 命令测试（仅后端测试是不够的）
-- 使用 JavaScript 评估来绕过 UI（不要走捷径）
-- 跳过视觉验证
-- 未经彻底验证就将测试标记为通过
+---
 
-### 步骤 7：更新 feature_list.json（谨慎操作！）
+### Step 5：理解参考源码
 
-**你只能修改一个字段：`"passes"`**
+在实现之前，先阅读参考源码：
 
-经过彻底验证后，将：
-```json
-"passes": false
-```
-改为：
-```json
-"passes": true
+```bash
+# 阅读 sourceFile 指定的文件
+cat ai-reference-sources/openclaw/apps/openclaw-chat/src/...
+
+# 如果有特定方法需要理解
+grep -n "class\|function\|interface" ai-reference-sources/openclaw/...
 ```
 
-**禁止：**
-- 删除测试
-- 编辑测试描述
-- 修改测试步骤
-- 合并或整合测试
-- 重新排序测试
+理解：
+- 它的接口设计
+- 它的工作原理
+- `modificationNote` 要求你做哪些调整
 
-**仅在有截图验证后更改 `passes` 字段。**
+---
 
-### 步骤 8：提交你的进度
+### Step 6：实现功能
 
-创建一个描述性的 git 提交：
+根据源码参考实现功能：
+
+1. 编写代码（前端和/或后端）
+2. 遵循项目的代码风格（ESLint/Prettier）
+3. 如果需要，创建对应的测试
+4. 对照 `modificationNote` 确认实现方向正确
+
+---
+
+### Step 7：验证实现
+
+**使用 `/browse` skill 进行端到端验证**：
+
+1. 截图确认 UI 正常渲染
+2. 按 feature 的 `steps` 逐项验证
+3. 检查浏览器控制台是否有错误
+4. 截图记录验证结果
+
+**必须截图验证后才能标记 passes: true**。
+
+---
+
+### Step 8：更新 feature 文件
+
+**只能修改 `passes` 字段**（false → true）：
+
+```json
+"passes": false  →  "passes": true
+```
+
+**禁止**：
+- 修改 `description`
+- 修改 `steps`
+- 修改 `sourceFile`
+- 修改 `modificationNote`
+- 删除条目
+
+---
+
+### Step 9：提交进度
+
 ```bash
 git add .
-git commit -m "实现 [功能名称] - 端到端验证
+git commit -m "feat: 实现 [功能名称] - 验证通过
 
-- 添加了 [具体更改]
-- 使用浏览器自动化测试
-- 更新 feature_list.json：将测试 #X 标记为通过
-- 截图位于 verification/ 目录
-"
+- 功能：xxx
+- 参考源码：ai-reference-sources/openclaw/xxx
+- 修改方向：xxx
+- 使用 /browse 验证截图：verification/xxx.png
+- 更新 features/xx.json：将 #N 标记为通过"
 ```
 
-### 步骤 9：更新进度笔记
+---
+
+### Step 10：更新 progress.txt
 
 在 `progress.txt` 中更新：
 - 本会话完成的工作
-- 完成的测试
+- 完成的 feature 编号
 - 发现或修复的问题
-- 下一个工作项
-- 当前完成状态（例如 "45/200 测试通过"）
-
-### 步骤 10：干净地结束会话
-
-在上下文填满之前：
-1. 提交所有工作代码
-2. 更新 progress.txt
-3. 如果测试已验证则更新 feature_list.json
-4. 确保没有未提交的更改
-5. 保持应用处于工作状态（无损坏的功能）
+- 下一个要实现的 feature
+- 当前状态（如 "features/01: 5/10 通过"）
 
 ---
 
-## 测试要求
+### Step 11：判断是否需要生成下一批 features
 
-**所有测试必须使用浏览器自动化工具。**
+如果当前批次所有 feature 都 passes: true：
 
-可用工具：
-- puppeteer_navigate - 启动浏览器并访问 URL
-- puppeteer_screenshot - 捕获截图
-- puppeteer_click - 点击元素
-- puppeteer_fill - 填写表单输入
-- puppeteer_evaluate - 执行 JavaScript（尽量少用，仅用于调试）
-
-像人类用户一样使用鼠标和键盘进行测试。不要使用 JavaScript 评估来走捷径。
-不要使用 puppeteer 的"活动标签页"工具。
+1. 阅读下一个 spec 文件（如 spec-03-*）
+2. 使用 `/investigate` 分析对应的 ai-reference-sources/openclaw 源码
+3. 生成下一个 `features/xx-*.json`（5-15 条）
+4. 提交新生成的 feature 文件
 
 ---
 
-## 重要提醒
+### 浏览器自动化工具
 
-**你的目标：** 所有 200+ 测试通过的生产质量应用
+**使用 `/browse` skill 进行浏览器自动化**（首选）：
 
-**本会话目标：** 完美完成至少一个功能
+```
+/browse <url>                    # 打开页面
+/browse screenshot               # 截图
+/browse click <selector>         # 点击元素
+/browse fill <selector> <value>  # 填写表单
+```
 
-**优先级：** 在实现新功能之前修复损坏的测试
+**或者直接使用 Playwright MCP 工具**：
 
-**质量标准：**
-- 零控制台错误
-- UI 精致，符合 app_spec.md 中指定的设计
-- 所有功能通过 UI 端到端工作
-- 快速、响应迅速、专业
+- `mcp__playwright__playwright_navigate`
+- `mcp__playwright__playwright_screenshot`
+- `mcp__playwright__playwright_click`
+- `mcp__playwright__playwright_fill`
+- `mcp__playwright__playwright_select`
 
-**你拥有无限时间。** 按需花费时间以确保正确。在终止会话之前，最重要的事情是保持代码库处于干净状态（步骤 10）。
+**禁止使用已废弃的工具名**：
+- `puppeteer_navigate`（错误）
+- `puppeteer_screenshot`（错误）
 
 ---
 
-首先执行步骤 1（找准方向）。
+### gstack skills 使用指南
+
+| 场景 | 使用的 skill |
+|------|-------------|
+| 理解源码结构 | `/investigate` |
+| 验证 UI 功能 | `/browse` |
+| 代码质量审查 | `/review` |
+| 发现 bug | `/qa` |
+| 设计方案咨询 | `/design-consultation` |
+| 发布前检查 | `/ship` |
+
+---
+
+### openclaw Gateway 集成
+
+当前项目依赖 openclaw gateway 运行在 `ws://127.0.0.1:18789`。
+
+**Gateway 协议**：
+- WebSocket 连接，使用 JSON 帧（`{type: "req"/"res"/"evt", ...}`）
+- 支持 `agent`、`sessions.send`、`chat.send`、`config.patch` 等方法
+- 认证使用 token 模式
+
+**如果 Gateway 未运行**：
+- 检查 `lsof -i :18789`
+- 需要先启动 openclaw gateway 才能完整验证功能
+
+---
+
+### 质量标准
+
+- **零控制台错误**：浏览器控制台不能有 Error level 日志
+- **UI 精致**：符合 spec 中指定的设计
+- **功能完整**：每个 feature 必须端到端可工作
+- **截图验证**：每次验证必须截图存档在 `verification/` 目录
+
+---
+
+### 重要提醒
+
+**你的目标**：完整复刻 openclaw-chat 功能到当前项目。
+
+**本会话目标**：完美完成至少一个 feature。
+
+**优先级**：
+1. 验证已有功能（Step 3）
+2. 修复发现的问题
+3. 实现新功能
+4. 验证新功能
+
+**先验证再实现是铁律**——跳过验证会导致不可用的产物。
+
+---
+
+### 首先执行 Step 1（找准方向）。
