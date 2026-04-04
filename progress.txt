@@ -1,4 +1,24 @@
-current_features: features/04-ui-chat.json
+current_features: features/05-advanced-gateway-features.json
+
+第五批: features/05-advanced-gateway-features.json（基于 spec-12 + spec-13 + spec-14 + spec-16 + spec-17）
+  - spec-12: Agent 设计专家、工作区与诊断
+  - spec-13: openclaw-integration.manifest.json 与 drift
+  - spec-14: AI 参考源码与脚本
+  - spec-16: Shell / 插件执行审批（SSE 桥 + Overlay UI）
+  - spec-17: Agent 配置导出 Zip
+  - 共 25 个 feature 条目
+  - ✅ 25/25 全部通过
+
+  25 个功能全部通过:
+    arch-architect-constants, arch-ensure-endpoint, arch-status-endpoint,
+    ws-workspace-path-lib, ws-workspace-tree-endpoint, ws-workspace-file-endpoints,
+    diag-jsonl-summary-lib, diag-context-filters-lib, diag-api-routes,
+    mfest-integration-manifest, mfest-drift-script,
+    src-manifest-script, src-pull-script, src-dev-script,
+    appr-client-bridge-lib, appr-client-methods, appr-sse-stream-route,
+    appr-resolve-route, appr-ui-overlay,
+    export-merge-lib, export-redact-lib, export-skills-lib,
+    export-api-route, export-import-scripts, export-sidebar-ui
 
 第三批: features/03-sqlite-local-messages.json（基于 spec-05）
   - spec-05: SQLite 本地消息存储（lib/db、getDb、insertMessage、listMessages）
@@ -54,7 +74,7 @@ current_features: features/04-ui-chat.json
   - ui-unit-tests: 新增 MessageList.test.tsx(7)、Composer.test.tsx(12)、ChatApp.test.tsx(4)
   - 测试基础设施: vitest jsdom 环境、test-setup.ts、tsconfig vitest/globals 配置
 
-下一批次: 待定（基于 spec-12+）
+下一批次: 待定（所有 5 批 spec 已覆盖，spec-06 openclaw-admin-proxy-routes 未实现）
 
 参考源码:
   - ai-reference-sources/openclaw/src/gateway/server-methods/  -> lib/openclaw/
@@ -87,22 +107,52 @@ current_features: features/04-ui-chat.json
   - apps/openclaw-chat/src/components/Composer.tsx    - 输入框（auto-height）
   - apps/openclaw-chat/src/components/StreamingWaveBar.tsx - 流式波浪条
   - apps/openclaw-chat/src/components/OpenClawLogsPanel.tsx - 右侧日志面板
-  - apps/openclaw-chat/src/components/GatewayAlertDialog.tsx - 网关告警弹窗（本批次新增）
+  - apps/openclaw-chat/src/components/GatewayAlertDialog.tsx - 网关告警弹窗
+  - apps/openclaw-chat/src/components/ExecApprovalOverlay.tsx - 审批弹窗（z-340，全屏遮罩）
   - apps/openclaw-chat/src/components/chat-types.ts  - UI 层 TypeScript 类型
-  - apps/openclaw-chat/src/test-setup.ts           - Vitest 测试环境配置（jsdom + scrollIntoView mock）
+  - apps/openclaw-chat/src/test-setup.ts           - Vitest 测试环境配置（jsdom + scrollIntoView + EventSource mock）
   - apps/openclaw-chat/src/components/MessageList.test.tsx - 消息列表测试（7 tests）
   - apps/openclaw-chat/src/components/Composer.test.tsx    - 输入框测试（12 tests）
   - apps/openclaw-chat/src/components/ChatApp.test.tsx     - ChatApp 渲染测试（4 tests）
+
+第五批新增代码:
+  - lib/openclaw-agent-architect/constants.ts - OPENCLAW_AGENT_ARCHITECT_ID + getArchitectLabel
+  - lib/openclaw-agent-architect/index.ts - 桶导出
+  - lib/openclaw/workspace-path.ts - 工作区路径解析（safeWorkspaceRelativePath 等）
+  - lib/openclaw/workspace-explore.ts - 工作区目录树列举（listWorkspaceTree）
+  - lib/openclaw/exec-approval-bridge.ts - 审批事件桥接库
+  - lib/openclaw/agent-request-jsonl-summary.ts - JSONL 日志摘要工具
+  - lib/openclaw/agent-request-context-filters-persist.ts - 上下文过滤器持久化
+  - lib/openclaw/agent-export/merge-object-arrays-by-id.ts - 同 id 深度合并
+  - lib/openclaw/agent-export/redact-secrets-for-export.ts - 敏感字段脱敏
+  - lib/openclaw/agent-export/enumerate-effective-skills-for-export.ts - 技能目录枚举
+  - lib/openclaw/agent-export/import-script.mjs - 导入脚本模板
+  - lib/openclaw/agent-export/import.sh - Bash wrapper
+  - app/api/agent-architect/ensure/route.ts - POST /api/agent-architect/ensure
+  - app/api/agent-architect/status/route.ts - GET /api/agent-architect/status
+  - app/api/agent/workspace/[agentId]/tree/route.ts - 工作区目录树 API
+  - app/api/agent/workspace/[agentId]/file/route.ts - 工作区文件读写 API
+  - app/api/agents/[agentId]/export/route.ts - Agent ZIP 导出 API
+  - app/api/gateway/exec-approvals/stream/route.ts - 审批 SSE 流
+  - app/api/gateway/exec-approvals/resolve/route.ts - 审批决策 API
+  - app/api/openclaw/agent-request-diagnostics/route.ts - 诊断数据 API
+  - app/api/openclaw/agent-request-logs/route.ts - Agent 日志 API
+  - openclaw-integration.manifest.json - 集成点清单
+  - scripts/openclaw-drift.mjs - drift 检测脚本
+  - scripts/generate-ai-reference-sources-manifest.mjs - manifest 生成脚本
+  - scripts/pull-ai-reference-sources.mjs - 拉取参考源码脚本
+  - scripts/dev-with-reference-pull.mjs - 后台拉取 + 前台启动 dev
 
 状态: ✅ 第一批 22/22 全部通过
   ✅ 第二批 15/15 全部通过
   ✅ 第三批 15/15 全部通过
   ✅ 第四批 15/15 全部通过（ui-gateway-alert、ui-unit-tests 已实现）
+  ✅ 第五批 25/25 全部通过
 
   - pnpm install: ✅ 372 packages
-  - pnpm lint: ✅ 0 errors（3 warnings）
+  - pnpm lint: ✅ 0 errors（15 warnings）
   - pnpm typecheck: ✅ 通过
-  - pnpm test: ✅ 50/50 通过（5 unit + 15 db-unit + 7 integration + 23 UI tests）
+  - pnpm test: ✅ 50/50 通过（50 tests）
   - pnpm dev: ✅ 启动成功（localhost:3005）
   - pnpm build: ✅ 构建成功
   - OpenClaw 网关: ✅ 验证通过（运行于 18789）
@@ -117,6 +167,7 @@ current_features: features/04-ui-chat.json
   - chat.send agentId 参数: 当 sessionKey 已带 agent: 前缀时，不再发送 agentId 参数
     （gateway 拒绝重复参数 "unexpected property 'agentId'"）
   - server-only 测试问题: vi.mock("server-only", () => ({})) 在测试文件顶部拦截导入
+  - EventSource jsdom mock: ExecApprovalOverlay 使用 EventSource，测试环境需 mock
   - GET /api/agents agents.list 返回格式：修复前期望直接返回数组，
     修复后正确解析 { defaultId, mainKey, scope, agents: [...] } 格式。
   - OpenClawClient 缺少 logsTail 方法：gateway 支持 logs.tail RPC，新增 logsTail 方法

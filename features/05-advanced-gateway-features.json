@@ -1,0 +1,357 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "sourceSpec": ["spec-12-agent-architect-and-diagnostics.md", "spec-13-integration-manifest-and-drift.md", "spec-14-reference-sources-scripts.md", "spec-16-exec-and-plugin-approvals.md", "spec-17-agent-export-zip.md"],
+  "features": [
+    {
+      "id": "arch-architect-constants",
+      "description": "OPENCLAW_AGENT_ARCHITECT_ID 常量定义（lib/openclaw-agent-architect/constants.ts）",
+      "steps": [
+        "导出常量 OPENCLAW_AGENT_ARCHITECT_ID",
+        "导出函数 getArchitectLabel() 返回中文标签「Agent 设计专家」",
+        "Architect ID 与 ChatApp.tsx 中的 OPENCLAW_AGENT_ARCHITECT_ID 常量一致",
+        "server-only 导出"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-12-agent-architect-and-diagnostics.md",
+      "modificationNote": "前端 ChatApp.tsx 已有该常量（agent-architect），后端 lib 层新增单例模块。"
+    },
+    {
+      "id": "arch-ensure-endpoint",
+      "description": "POST /api/agent-architect/ensure 确保 Architect agent 存在",
+      "steps": [
+        "路由 apps/openclaw-chat/src/app/api/agent-architect/ensure/route.ts",
+        "runtime = 'nodejs'",
+        "GET /api/agents 获取现有 agents，检查 architect 是否存在",
+        "若不存在，调用 agents.create 创建 architect",
+        "幂等：alreadyExists 时返回现有信息",
+        "返回 { alreadyExists, agentId, workspaceDir }"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-12-agent-architect-and-diagnostics.md",
+      "modificationNote": "通过 getOpenClawClient().agentsCreate() RPC 调用网关。"
+    },
+    {
+      "id": "arch-status-endpoint",
+      "description": "GET /api/agent-architect/status 查询 Architect 是否就绪",
+      "steps": [
+        "路由 apps/openclaw-chat/src/app/api/agent-architect/status/route.ts",
+        "检查 architect agent 是否在 agents.list 中",
+        "返回 { ready: boolean, agentId?, workspaceDir? }"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-12-agent-architect-and-diagnostics.md",
+      "modificationNote": "读取配置 JSON，验证 workspace 路径存在。"
+    },
+    {
+      "id": "ws-workspace-path-lib",
+      "description": "lib/openclaw/workspace-path.ts：工作区路径解析工具",
+      "steps": [
+        "safeWorkspaceRelativePath(workspaceDir, rel)：仅允许不含 .. 和 . 的 POSIX 相对路径，解析结果必须在 workspaceDir 之下",
+        "safeWorkspaceFilePath(workspaceDir, filename)：单层 basename 白名单（WORKSPACE_MARKDOWN_BASENAMES 等）",
+        "assertWorkspaceTargetSafe(workspaceDir, targetPath)：对已有路径做 realpath 校验，防止符号链接逃逸",
+        "resolveAgentWorkspaceDir(agentId)：返回该 agent 的 workspace 目录",
+        "resolveAgentDir(agentId)：返回该 agent 的 agent 目录",
+        "resolveOpenClawStateDir()：返回 ~/.openclaw 或 OPENCLAW_STATE_DIR"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-12-agent-architect-and-diagnostics.md",
+      "modificationNote": "参考 ai-reference-sources/openclaw/src/agents/agent-scope.ts 和 workspace.ts。"
+    },
+    {
+      "id": "ws-workspace-tree-endpoint",
+      "description": "GET /api/agent/workspace/[agentId]/tree 列举工作区目录树",
+      "steps": [
+        "路由 apps/openclaw-chat/src/app/api/agent/workspace/[agentId]/tree/route.ts",
+        "runtime = 'nodejs'",
+        "Query: maxDepth（默认 10，上限 20）",
+        "返回 { workspaceDir, agentId, tree: WorkspaceTreeNode[] }",
+        "节点类型：{ name, relPath, type: 'file'|'dir', size?, children? }",
+        "跳过 node_modules, .git, .next 等常见构建目录",
+        "单目录最多约 500 项",
+        "实现于 lib/openclaw/workspace-explore.ts 的 listWorkspaceTree"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-12-agent-architect-and-diagnostics.md",
+      "modificationNote": "使用 safeWorkspaceRelativePath 确保安全。"
+    },
+    {
+      "id": "ws-workspace-file-endpoints",
+      "description": "GET/PUT /api/agent/workspace/[agentId]/file 读写工作区文本文件",
+      "steps": [
+        "GET：?path= URL 编码的相对路径（POSIX）",
+        "成功返回 { workspaceDir, agentId, path, content }",
+        "413 超大文件，415 探测二进制（首段含 \\0），404 非文件",
+        "PUT：JSON { path, content }，UTF-8，约 2MiB 上限",
+        "写入前调用 assertWorkspaceTargetSafe 校验",
+        "路由 apps/openclaw-chat/src/app/api/agent/workspace/[agentId]/file/route.ts"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-12-agent-architect-and-diagnostics.md",
+      "modificationNote": "仅允许 WORKSPACE_MARKDOWN_BASENAMES 列表内的文件名（AGENTS.md 等）。"
+    },
+    {
+      "id": "diag-jsonl-summary-lib",
+      "description": "lib/openclaw/agent-request-jsonl-summary.ts：JSONL 摘要生成",
+      "steps": [
+        "parseJsonlSummary(text: string)：解析 JSONL 日志，返回摘要对象",
+        "extractJsonlEntries(text: string)：提取每行的 JSON 对象",
+        "getJsonlEntryCount(text: string)：返回行数",
+        "单测 agent-request-jsonl-summary.test.ts"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-12-agent-architect-and-diagnostics.md",
+      "modificationNote": "参考 ai-reference-sources/openclaw/src/gateway/。"
+    },
+    {
+      "id": "diag-context-filters-lib",
+      "description": "lib/openclaw/agent-request-context-filters-persist.ts：上下文过滤器持久化",
+      "steps": [
+        "loadContextFilters(agentId)：从 agent-dir 读取上下文过滤配置",
+        "saveContextFilters(agentId, filters)：保存上下文过滤配置",
+        "ContextFilter 类型：{ type: 'include'|'exclude', patterns: string[] }"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-12-agent-architect-and-diagnostics.md",
+      "modificationNote": "使用 agent-dir 路径而非 workspace-dir。"
+    },
+    {
+      "id": "diag-api-routes",
+      "description": "GET/POST /api/openclaw/agent-request-diagnostics 和 /agent-request-logs",
+      "steps": [
+        "apps/openclaw-chat/src/app/api/openclaw/agent-request-diagnostics/route.ts",
+        "apps/openclaw-chat/src/app/api/openclaw/agent-request-logs/route.ts",
+        "runtime = 'nodejs'",
+        "GET：返回诊断数据（使用 lib/openclaw/agent-request-diagnostics.ts）",
+        "POST：写入/更新诊断配置",
+        "调用 getOpenClawClient() 的 gateway RPC"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-12-agent-architect-and-diagnostics.md",
+      "modificationNote": "路径脱敏，不泄露绝对路径到 UI。"
+    },
+    {
+      "id": "mfest-integration-manifest",
+      "description": "openclaw-integration.manifest.json：集成点清单",
+      "steps": [
+        "根目录文件 openclaw-integration.manifest.json",
+        "upstreamRoot 字段：ai-reference-sources/openclaw",
+        "watch 数组：每个条目的 path 和 integrates",
+        "JSON Schema 验证格式正确"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-13-integration-manifest-and-drift.md",
+      "modificationNote": "当前 upstreamRoot 指向 ai-reference-sources/openclaw，与本地路径一致。"
+    },
+    {
+      "id": "mfest-drift-script",
+      "description": "scripts/openclaw-drift.mjs：drift 检测脚本",
+      "steps": [
+        "读取 openclaw-integration.manifest.json",
+        "git diff 获取变更文件",
+        "对照 watch 列表输出对应的 integrates",
+        "支持 --range 参数指定 commit 范围",
+        "使用 OPENCLAW_SRC 环境变量覆盖 upstreamRoot"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-13-integration-manifest-and-drift.md",
+      "modificationNote": "输出 human-readable review 格式。"
+    },
+    {
+      "id": "src-manifest-script",
+      "description": "scripts/generate-ai-reference-sources-manifest.mjs：生成 manifest",
+      "steps": [
+        "遍历 ai-reference-sources/ 子目录",
+        "读取各子仓库的 .git/config 获取 remote URL",
+        "写入 ai-reference-sources.manifest.json"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-14-reference-sources-scripts.md",
+      "modificationNote": "ai-reference-sources/ 已在 .gitignore 中。"
+    },
+    {
+      "id": "src-pull-script",
+      "description": "scripts/pull-ai-reference-sources.mjs：拉取/更新参考源码",
+      "steps": [
+        "读取 ai-reference-sources.manifest.json",
+        "对每个条目执行 git clone 或 git pull",
+        "目标目录：ai-reference-sources/<name>",
+        "网络失败时优雅降级"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-14-reference-sources-scripts.md",
+      "modificationNote": "pnpm pull:ai-reference-sources 调用此脚本。"
+    },
+    {
+      "id": "src-dev-script",
+      "description": "scripts/dev-with-reference-pull.mjs：后台拉取 + 前台启动 dev",
+      "steps": [
+        "异步后台运行 pull-ai-reference-sources.mjs（不阻塞）",
+        "前台运行 pnpm --filter openclaw-chat dev",
+        "输出提示说明参考源码拉取进度"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-14-reference-sources-scripts.md",
+      "modificationNote": "这是根 dev 脚本的完整实现，替换现有 stub。"
+    },
+    {
+      "id": "appr-client-bridge-lib",
+      "description": "lib/openclaw/exec-approval-bridge.ts：审批桥接库",
+      "steps": [
+        "subscribeExecApprovalBridge(listener)：订阅审批事件",
+        "broadcastExecApprovalBridge({ event, payload })：广播事件",
+        "Event 类型：exec.approval.requested, exec.approval.resolved, plugin.approval.requested, plugin.approval.resolved",
+        "多订阅者支持（同一事件可被多个消费者订阅）"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-16-exec-and-plugin-approvals.md",
+      "modificationNote": "OpenClawClient 在 WS message 中识别 type=event 并调用 broadcast。"
+    },
+    {
+      "id": "appr-client-methods",
+      "description": "OpenClawClient 新增审批相关 RPC 方法",
+      "steps": [
+        "execApprovalResolve({ id, decision }) → exec.approval.resolve",
+        "pluginApprovalResolve({ id, decision }) → plugin.approval.resolve",
+        "listenExecApprovals()：监听审批事件流（EventEmitter 风格）",
+        "单例守卫 singleton-guard.ts 纳入新版客户端探测"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-16-exec-and-plugin-approvals.md",
+      "modificationNote": "参考 ai-reference-sources/openclaw/src/gateway/server-methods/exec-approval.ts。"
+    },
+    {
+      "id": "appr-sse-stream-route",
+      "description": "GET /api/gateway/exec-approvals/stream SSE 流式审批事件",
+      "steps": [
+        "路由 apps/openclaw-chat/src/app/api/gateway/exec-approvals/stream/route.ts",
+        "runtime = 'nodejs'",
+        "SSE (text/event-stream)，首包 hello",
+        "周期性 ping 保持连接",
+        "网关事件以 { type: 'gateway', event, payload } 写入 data:",
+        "503 当网关不可用",
+        "连接前 await getOpenClawClient() 确保 WS 已建立"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-16-exec-and-plugin-approvals.md",
+      "modificationNote": "与聊天 SSE 同属「浏览器只认 Next HTTP/SSE」的统一模式。"
+    },
+    {
+      "id": "appr-resolve-route",
+      "description": "POST /api/gateway/exec-approvals/resolve 解析审批决策",
+      "steps": [
+        "路由 apps/openclaw-chat/src/app/api/gateway/exec-approvals/resolve/route.ts",
+        "runtime = 'nodejs'",
+        "JSON body: { id, decision: 'allow-once'|'allow-always'|'deny', kind?: 'exec'|'plugin' }",
+        "默认 kind: 'exec'",
+        "内部调用 OpenClawClient.execApprovalResolve 或 pluginApprovalResolve"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-16-exec-and-plugin-approvals.md",
+      "modificationNote": "插件队列项传 kind: 'plugin'。"
+    },
+    {
+      "id": "appr-ui-overlay",
+      "description": "ExecApprovalOverlay.tsx 前端审批弹窗组件",
+      "steps": [
+        "挂载于 ChatApp 根节点，z-index: 340（高于顶栏 z-200）",
+        "EventSource 订阅 /api/gateway/exec-approvals/stream",
+        "解析 type==='gateway' 的消息，维护 FIFO 审批队列",
+        "按钮：Allow once / Always allow / Deny",
+        "过期时间：按 expiresAtMs 定时移除",
+        "收到 resolved 事件时从队列移除",
+        "显示 N pending 提示"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-16-exec-and-plugin-approvals.md",
+      "modificationNote": "lib/exec-approval-gateway.ts 中实现 parseExecApprovalRequested 等解析函数。"
+    },
+    {
+      "id": "export-merge-lib",
+      "description": "lib/openclaw/agent-export/merge-object-arrays-by-id.ts：同 id 合并",
+      "steps": [
+        "mergeObjectArraysById(arr1, arr2)：按 id 字段合并两个对象数组",
+        "相同 id 的项深度合并（arr2 覆盖 arr1）",
+        "与上游 mergeObjectArraysById 行为一致（参考 openclaw/src/config/merge-patch.ts）",
+        "单测 merge-object-arrays-by-id.test.ts"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-17-agent-export-zip.md",
+      "modificationNote": "agents.list 的同 id 合并语义与 upstream 一致。"
+    },
+    {
+      "id": "export-redact-lib",
+      "description": "lib/openclaw/agent-export/redact-secrets-for-export.ts：敏感字段脱敏",
+      "steps": [
+        "redactSecretsForExport(obj)：深度遍历对象，替换敏感字段",
+        "敏感键：apiKey, token, password, secret, credential 等",
+        "替换为占位符 __OPENCLAW_IMPORT_REQUIRED__:<id>",
+        "secrets-required.json：记录所有被脱敏的字段路径和标签",
+        "单测 redact-secrets-for-export.test.ts"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-17-agent-export-zip.md",
+      "modificationNote": "典型键：apiKey, token, password；深度递归处理数组和嵌套对象。"
+    },
+    {
+      "id": "export-skills-lib",
+      "description": "lib/openclaw/agent-export/enumerate-effective-skills-for-export.ts：技能目录枚举",
+      "steps": [
+        "listEffectiveSkillDirsForExport(agentConfig, workspaceDir)：按层合并顺序枚举",
+        "层顺序：extra → bundled → managed → ~/.agents/skills → <workspace>/.agents/skills → <workspace>/skills",
+        "按 agents.list[].skills 白名单过滤",
+        "省略=全部，空数组=不导出任何",
+        "OPENCLAW_BUNDLED_SKILLS_DIR 环境变量指向 bundled 根"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-17-agent-export-zip.md",
+      "modificationNote": "插件包内 skills 未展开。"
+    },
+    {
+      "id": "export-api-route",
+      "description": "GET /api/agents/[agentId]/export 导出 Agent ZIP",
+      "steps": [
+        "路由 apps/openclaw-chat/src/app/api/agents/[agentId]/export/route.ts",
+        "runtime = 'nodejs'",
+        "agentId URL 段经 decodeURIComponent + normalizeAgentId",
+        "返回 200: Content-Type: application/zip",
+        "Content-Disposition: attachment; filename='openclaw-agent-<id>-export.zip'",
+        "Cache-Control: no-store",
+        "404: 未找到配置或 agentId 不存在",
+        "ZIP 内：manifest.json, secrets-required.json, config/, workspace/, skills/, agent-dir/, import.mjs, import.sh, docs/"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-17-agent-export-zip.md",
+      "modificationNote": "使用 archiver 或 jszip 库生成 ZIP。"
+    },
+    {
+      "id": "export-import-scripts",
+      "description": "ZIP 内 import.mjs 和 import.sh 导入脚本",
+      "steps": [
+        "import.mjs：Node 18+ 入口脚本",
+        "import.sh：Bash wrapper 调用 import.mjs",
+        "参数：--force（覆盖同 id agent），--secrets-file <path>（JSON 密钥文件）",
+        "TTY 交互：未传 secrets-file 且有终端时逐项提示输入密钥",
+        "OPENCLAW_CONFIG_PATH + OPENCLAW_STATE_DIR 决定目标路径",
+        "合并前备份原配置",
+        "skills/<name>/ 复制到导入后 workspace 的 skills/<name>/"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-17-agent-export-zip.md",
+      "modificationNote": "模板源：lib/openclaw/agent-export/import-script.mjs, import.sh。"
+    },
+    {
+      "id": "export-sidebar-ui",
+      "description": "AgentSidebar 导出按钮：hover 显示导出入口",
+      "steps": [
+        "每条 agent 行 hover 时显示「导出」按钮",
+        "点击按钮 fetch(/api/agents/${id}/export) → Blob → 触发浏览器下载",
+        "stopPropagation 防止触发行选择",
+        "非 2xx 响应时 alert 简短错误消息"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-17-agent-export-zip.md",
+      "modificationNote": "在 AgentSidebar 组件中实现，导出按钮图标与删除按钮对齐。"
+    }
+  ]
+}

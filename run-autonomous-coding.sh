@@ -43,6 +43,13 @@ echo "初始化提示词: $INITIALIZER_PROMPT"
 echo "编码提示词: $CODING_PROMPT"
 echo "应用规格: $APP_SPEC"
 echo "模型: ${ANTHROPIC_MODEL:-MiniMax-M2.7}"
+
+# 检查是否启用了 verbose 模式
+if echo "$@" | grep -q "verbose"; then
+  echo "详细日志: 开启 (-v/--verbose)"
+else
+  echo "详细日志: 关闭 (使用 -v/--verbose 开启)"
+fi
 echo "=========================================="
 echo ""
 

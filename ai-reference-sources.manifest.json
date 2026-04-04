@@ -1,0 +1,16 @@
+{
+  "version": "1.0.0",
+  "description": "AI 参考源码清单 - 记录 ai-reference-sources/ 中各子仓库的来源",
+  "repositories": [
+    {
+      "name": "claude-autonomous-coding",
+      "path": "ai-reference-sources/claude-autonomous-coding",
+      "remoteUrl": "git@github.com:ThomasLiu/claude-autonomous-coding.git"
+    },
+    {
+      "name": "openclaw",
+      "path": "ai-reference-sources/openclaw",
+      "remoteUrl": "git@github.com:openclaw/openclaw.git"
+    }
+  ]
+}

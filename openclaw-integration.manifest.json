@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "description": "OpenClaw Gateway 集成点清单 - 用于追踪上游 OpenClaw 源码与本仓库集成点的对应关系",
+  "upstreamRoot": "ai-reference-sources/openclaw",
+  "watch": [
+    {
+      "path": "src/gateway/server-methods/agents.ts",
+      "integrates": [
+        "apps/openclaw-chat/src/app/api/agent/workspace/[agentId]/file/route.ts",
+        "apps/openclaw-chat/src/lib/openclaw/workspace-path.ts"
+      ]
+    },
+    {
+      "path": "src/gateway/server-methods/exec-approval.ts",
+      "integrates": [
+        "apps/openclaw-chat/src/lib/openclaw/exec-approval-bridge.ts",
+        "apps/openclaw-chat/src/app/api/gateway/exec-approvals/stream/route.ts",
+        "apps/openclaw-chat/src/app/api/gateway/exec-approvals/resolve/route.ts"
+      ]
+    },
+    {
+      "path": "src/gateway/server-methods/plugin-approval.ts",
+      "integrates": [
+        "apps/openclaw-chat/src/lib/openclaw/exec-approval-bridge.ts",
+        "apps/openclaw-chat/src/components/ExecApprovalOverlay.tsx"
+      ]
+    },
+    {
+      "path": "src/agents/agent-scope.ts",
+      "integrates": [
+        "apps/openclaw-chat/src/lib/openclaw/workspace-path.ts"
+      ]
+    },
+    {
+      "path": "src/agents/workspace.ts",
+      "integrates": [
+        "apps/openclaw-chat/src/lib/openclaw/workspace-path.ts"
+      ]
+    },
+    {
+      "path": "src/config/merge-patch.ts",
+      "integrates": [
+        "apps/openclaw-chat/src/lib/openclaw/agent-export/merge-object-arrays-by-id.ts"
+      ]
+    }
+  ]
+}
