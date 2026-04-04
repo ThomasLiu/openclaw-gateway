@@ -1,8 +1,29 @@
 # openclaw-gateway 进度报告
 
-## 当前状态：✅ 全部完成 + E2E 测试修复
+## 当前状态：✅ 全部完成 + 代码质量清理
 
 所有 6 个 spec 批次（共 125 个 feature）已全部实现并验证通过。
+
+### 本次代码质量清理（2026-04-04）
+
+ESLint 从 16 warnings → 0 warnings，代码更清洁：
+
+| 文件 | 修复内容 |
+|------|---------|
+| `merge-object-arrays-by-id.ts` | 删除未使用的文件（1 个文件） |
+| `agent-request-logs/route.ts` | 移除未使用导入（getOpenClawClient, JsonlSummary） |
+| `exec-approvals/stream/route.ts` | 移除未使用 client 变量和 pingInterval |
+| `agents/[agentId]/export/route.ts` | 移除未使用导入（Readable, os, mergeObjectArraysById） |
+| `agent-architect/ensure/route.ts` | 移除未使用 uuidv4 导入 |
+| `agent/workspace/[agentId]/file/route.ts` | 修复未使用 catch 变量（pathErr → _） |
+| `inflight-dedupe.ts` | 移除冗余 settled 局部变量 |
+| `redact-secrets-for-export.ts` | 移除未使用 RedactionContext 接口 |
+| `workspace-explore.ts` | 修复未使用 err catch 变量 |
+| `unit.test.ts` | 移除未使用 insertMessage 导入 |
+| `ExecApprovalOverlay.tsx` | 修复 timersRef exhaustive-deps 警告 |
+| `ChatApp.tsx` + `chat-utils.ts` | 导出函数移至 chat-utils.ts，修复 react-refresh 警告 |
+
+所有 125 个 feature 全部 passes: true，133 测试通过，TypeScript 0 错误，ESLint 0 警告。
 - features/01-monorepo.json: 21/21 passes
 - features/02-gateway-api-routes.json: 15/15 passes
 - features/03-sqlite-local-messages.json: 15/15 passes
