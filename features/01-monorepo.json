@@ -13,7 +13,7 @@
         "运行 pnpm install，确认 apps/openclaw-chat 被识别为 workspace",
         "截图确认 node_modules/.pnpm 下能看到 openclaw-chat 相关符号链接"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "spec-01-monorepo-and-tooling.md",
       "modificationNote": ""
     },
@@ -27,7 +27,7 @@
         "确认包含 pull:ai-reference-sources 和 openclaw:drift",
         "运行 pnpm run test，截图确认 vitest 可执行（可能失败但不应报 'not found'"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "spec-01-monorepo-and-tooling.md",
       "modificationNote": ""
     },
@@ -43,7 +43,7 @@
         "确认 test 使用 vitest run",
         "确认 test:e2e 使用 playwright test"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "spec-01-monorepo-and-tooling.md",
       "modificationNote": ""
     },
@@ -57,7 +57,7 @@
         "确认 turbopack.root 指向 monorepo 根目录",
         "确认 allowedDevOrigins 包含 127.0.0.1 和 localhost"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "spec-01-monorepo-and-tooling.md",
       "modificationNote": ""
     },
@@ -72,7 +72,7 @@
         "运行 pnpm lint --filter openclaw-chat，确认不报 'not found'",
         "运行 pnpm --filter openclaw-chat test，确认 vitest 可执行"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "spec-01-monorepo-and-tooling.md",
       "modificationNote": ""
     },
@@ -87,7 +87,7 @@
         "确认 init.sh 中包含 pnpm dev 启动命令",
         "确认脚本不以 root 用户身份运行可能导致权限问题的命令"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "spec-01-monorepo-and-tooling.md",
       "modificationNote": ""
     },
@@ -101,7 +101,7 @@
         "确认 paths 包含 @/* 指向 src/",
         "运行 pnpm typecheck --filter openclaw-chat，确认路径别名解析正确"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "spec-01-monorepo-and-tooling.md",
       "modificationNote": ""
     },
