@@ -20,7 +20,7 @@ import { OpenClawClient } from "@/lib/openclaw/client";
 import { getGatewayConfig } from "@/lib/openclaw/config";
 import { tryGatewayStatusViaCli } from "@/lib/openclaw/cli-status";
 
-const PROBE_MS = 12_000;
+const PROBE_MS = 5_000;
 
 type GatewayStatusResult =
   | { ok: true; connected: true; source: "ws"; latencyMs?: number }
