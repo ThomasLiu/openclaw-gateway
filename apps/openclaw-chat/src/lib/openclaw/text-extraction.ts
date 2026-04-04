@@ -6,7 +6,7 @@
 import type {
   GatewayMessage,
   GatewayMessageContent,
-} from "./types.js";
+} from "./types";
 
 export type { GatewayMessage, GatewayMessageContent };
 

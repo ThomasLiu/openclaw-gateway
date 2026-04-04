@@ -3,24 +3,24 @@
  */
 
 // Config
-export { getGatewayConfig, normalizeHttpBase, isLocalhostUrl, listAgentsFromOpenClawJson } from "./config.js";
-export type { GatewayAuthConfig, AgentInfo } from "./config.js";
+export { getGatewayConfig, normalizeHttpBase, isLocalhostUrl, listAgentsFromOpenClawJson } from "./config";
+export type { GatewayAuthConfig, AgentInfo } from "./config";
 
 // Client
-export { OpenClawClient } from "./client.js";
+export { OpenClawClient } from "./client";
 export type {
   OpenClawClientEvents,
   ChatDeltaEvent,
   ChatFinalEvent,
   ChatErrorEvent,
-} from "./client.js";
-export type { OpenClawClientMethods } from "./types.js";
+} from "./client";
+export type { OpenClawClientMethods } from "./types";
 
 // Pool
-export { getOpenClawClient, clearOpenClawClient } from "./pool.js";
+export { getOpenClawClient, clearOpenClawClient } from "./pool";
 
 // Singleton guard
-export { shouldReplaceOpenClawClientSingleton } from "./singleton-guard.js";
+export { shouldReplaceOpenClawClientSingleton } from "./singleton-guard";
 
 // Types (re-exported from types.ts)
 export type {
@@ -32,7 +32,7 @@ export type {
   SkillStatus,
   GatewayMessage,
   GatewayMessageContent,
-} from "./types.js";
+} from "./types";
 
 // Text extraction
-export { extractAssistantTextFromGatewayMessage } from "./text-extraction.js";
+export { extractAssistantTextFromGatewayMessage } from "./text-extraction";

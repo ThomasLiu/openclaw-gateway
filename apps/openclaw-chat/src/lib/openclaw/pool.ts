@@ -3,12 +3,12 @@
  * Uses globalThis singleton to maintain a single connection across requests.
  */
 
-import { getGatewayConfig } from "./config.js";
-import { OpenClawClient } from "./client.js";
+import { getGatewayConfig } from "./config";
+import { OpenClawClient } from "./client";
 import {
   shouldReplaceOpenClawClientSingleton,
   type OpenClawClientMethods,
-} from "./singleton-guard.js";
+} from "./singleton-guard";
 
 const DEFAULT_POOL_CONNECT_TIMEOUT_MS = 28_000;
 

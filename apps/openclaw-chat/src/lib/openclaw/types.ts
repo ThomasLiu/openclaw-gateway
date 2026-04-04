@@ -68,6 +68,9 @@ export type ListSessionsOpts = {
   includeLastMessage?: boolean;
   limit?: number;
   agentId?: string;
+  activeMinutes?: number;
+  search?: string;
+  spawnedBy?: string;
 };
 
 export type SessionsListResult = {

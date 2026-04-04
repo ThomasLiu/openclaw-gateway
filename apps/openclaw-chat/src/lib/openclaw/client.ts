@@ -11,7 +11,7 @@
 import { EventEmitter } from "events";
 import WebSocket from "ws";
 import { v4 as uuidv4 } from "uuid";
-import type { GatewayAuthConfig } from "./config.js";
+import type { GatewayAuthConfig } from "./config";
 import type {
   ListSessionsOpts,
   SessionsListResult,
@@ -21,8 +21,8 @@ import type {
   SkillStatus,
   GatewayMessage,
   OpenClawClientMethods,
-} from "./types.js";
-import { extractAssistantTextFromGatewayMessage } from "./text-extraction.js";
+} from "./types";
+import { extractAssistantTextFromGatewayMessage } from "./text-extraction";
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 60_000;
 const DEFAULT_HANDSHAKE_TIMEOUT_MS = 25_000;
@@ -418,6 +418,9 @@ export class OpenClawClient extends EventEmitter {
       params.includeLastMessage = opts.includeLastMessage;
     if (opts?.limit !== undefined) params.limit = opts.limit;
     if (opts?.agentId !== undefined) params.agentId = opts.agentId;
+    if (opts?.activeMinutes !== undefined) params.activeMinutes = opts.activeMinutes;
+    if (opts?.search !== undefined) params.search = opts.search;
+    if (opts?.spawnedBy !== undefined) params.spawnedBy = opts.spawnedBy;
 
     return (await this.request<SessionsListResult>(
       "sessions.list",

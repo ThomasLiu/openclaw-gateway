@@ -1,4 +1,10 @@
-current_features: features/01-monorepo.json
+current_features: features/02-gateway-api-routes.json
+
+第二批: features/02-gateway-api-routes.json（基于 spec-03 + spec-04）
+  - spec-03: /api/chat 流式发送与中止（GET/POST /api/chat, POST /api/chat/abort）
+  - spec-04: /api/gateway/sessions、/api/agents 会话代理
+  - 共 15 个 feature 条目
+  - ✅ 15/15 全部通过
 
 第一批: features/01-monorepo.json（基于 spec-01 + spec-02）
   - spec-01: monorepo and tooling（pnpm workspace、scripts、next.config.ts、依赖）
@@ -37,8 +43,9 @@ current_features: features/01-monorepo.json
   - apps/openclaw-chat/src/app/page.tsx               - 根页面
 
 状态: ✅ 第一批 22/22 全部通过，dev server 运行于 localhost:3005
+  ✅ 第二批 15/15 全部通过
   - pnpm install: ✅ 372 packages
-  - pnpm lint: ✅ 0 errors, 2 warnings
+  - pnpm lint: ✅ 0 errors
   - pnpm typecheck: ✅ 通过
   - pnpm test: ✅ 12/12 通过（5 unit + 7 integration）
   - pnpm dev: ✅ 启动成功
@@ -52,7 +59,15 @@ current_features: features/01-monorepo.json
   - chat.send idempotencyKey: gateway 要求 idempotencyKey 字段，添加 uuidv4() 生成。
   - chat.send message 格式: gateway 要求 message 为 string 而非 {role, content} 对象。
 
-第二批待实现: API Routes 层
-  - apps/openclaw-chat/src/app/api/chat/route.ts
-  - apps/openclaw-chat/src/app/api/gateway/sessions/route.ts
-  - apps/openclaw-chat/src/app/api/agents/route.ts
+第二批已完成: API Routes 层
+  - apps/openclaw-chat/src/app/api/chat/route.ts          - GET/POST /api/chat SSE 流式
+  - apps/openclaw-chat/src/app/api/chat/abort/route.ts    - POST /api/chat/abort
+  - apps/openclaw-chat/src/app/api/gateway/sessions/route.ts    - sessions GET/POST
+  - apps/openclaw-chat/src/app/api/gateway/sessions/patch/route.ts - sessions.patch
+  - apps/openclaw-chat/src/app/api/agents/route.ts        - GET /api/agents
+  - apps/openclaw-chat/src/lib/gateway-history.ts          - gatewayHistoryToUiMessages
+  - apps/openclaw-chat/src/lib/gateway-session-normalize.ts - normalizeGatewaySessionRow
+  - next.config.ts                              - 移除 turbopack.root（修复 @/ 别名解析）
+  - 所有 .ts 内部导入扩展名统一从 .js 改为无扩展名（Turbopack 兼容）
+
+第三批待生成: spec-05 SQLite 本地消息持久化

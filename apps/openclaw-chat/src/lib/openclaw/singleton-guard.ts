@@ -16,7 +16,7 @@ export type {
   SkillStatus,
   GatewayMessage,
   GatewayMessageContent,
-} from "./types.js";
+} from "./types";
 
 /** Required method names that must exist on any OpenClawClient instance */
 const REQUIRED_METHODS = [
