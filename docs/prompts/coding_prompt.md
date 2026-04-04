@@ -220,7 +220,7 @@ fi
 
 1. 阅读下一个 spec 文件（如 `docs/spec/spec-03-*.md`）
 2. 使用 `/investigate` 分析对应的 `docs/spec/*.md` 规格文档
-3. 生成下一个 `features/xx-name.json`（5-15 条）
+3. 生成下一个 `features/xx-name.json`（15-25 条）
 4. **重要**：在 `progress.txt` 中设置 `current_features: features/xx-name.json`
 5. 提交新生成的 feature 文件
 
