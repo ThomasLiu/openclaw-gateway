@@ -25,18 +25,25 @@ export type UiMessage = {
  * 从网关消息中提取纯文本内容。
  */
 function extractText(content: GatewayMessageContent | GatewayMessageContent[]): string {
-  if (typeof content === "string") {
-    return content;
-  }
+  // 单个 block（常见于简单消息）
   if (!Array.isArray(content)) {
+    const block = content as Record<string, unknown>;
+    if (block?.type === "text") return String(block.text ?? "");
+    if (block?.type === "refusal") return String(block.text ?? "");
+    if (block?.type === "thinking") return ""; // 不显示
     return "";
   }
+
+  // 多个 block 数组
   return content
     .map((block) => {
-      if (typeof block === "object" && block !== null && "text" in block) {
-        return (block as { text: string }).text ?? "";
+      if (typeof block === "object" && block !== null && (block as Record<string, unknown>).type === "text") {
+        return String((block as { text: string }).text ?? "");
       }
-      if (typeof block === "object" && block !== null && "thinking" in block) {
+      if (typeof block === "object" && block !== null && (block as Record<string, unknown>).type === "refusal") {
+        return String((block as { text: string }).text ?? "");
+      }
+      if (typeof block === "object" && block !== null && (block as Record<string, unknown>).type === "thinking") {
         return ""; // 思考内容不显示在 UI
       }
       return "";

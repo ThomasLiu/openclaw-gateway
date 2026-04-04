@@ -1,0 +1,505 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "sourceSpec": [
+    "spec-06-openclaw-admin-proxy-routes.md",
+    "spec-11-session-state-unread-and-caching.md",
+    "spec-15-testing-and-e2e.md"
+  ],
+  "features": [
+    {
+      "id": "adm-config-route",
+      "description": "GET /api/openclaw/config - 获取网关配置快照",
+      "steps": [
+        "路由 apps/openclaw-chat/src/app/api/openclaw/config/route.ts",
+        "runtime = 'nodejs'",
+        "dynamic = 'force-dynamic'",
+        "调用 getOpenClawClient().configGet()",
+        "返回脱敏配置（含 hash）",
+        "失败返回 500 { error }"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-06-openclaw-admin-proxy-routes.md",
+      "modificationNote": "复用现有 getOpenClawClient() 连接池。"
+    },
+    {
+      "id": "adm-subagent-policy-lib",
+      "description": "lib/subagent-policy.ts：子代理策略 merge-patch 库",
+      "steps": [
+        "buildSubagentPolicyPatch(kind, agentId?, subagents)：构造配置 patch 对象",
+        "buildSubagentPolicyRemove(kind, agentId?)：构造删除 patch",
+        "validateSubagentPolicyKind(kind)：校验 kind 为 defaults|tools|agent",
+        "validateAgentId(kind, agentId)：kind=agent 时 agentId 必填",
+        "server-only 导出"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-06-openclaw-admin-proxy-routes.md",
+      "modificationNote": "与网关 config.patch 的 merge 语义对齐。"
+    },
+    {
+      "id": "adm-subagent-policy-route",
+      "description": "POST /api/openclaw/subagent-policy/patch - 子代理策略更新",
+      "steps": [
+        "路由 apps/openclaw-chat/src/app/api/openclaw/subagent-policy/patch/route.ts",
+        "runtime = 'nodejs'",
+        "Body: { baseHash, kind, agentId?, subagents }",
+        "kind=agent 时 agentId 必填",
+        "调用 buildSubagentPolicyPatch 构造 patch",
+        "调用 getOpenClawClient().configPatch(patch, baseHash)",
+        "baseHash 不匹配返回 409 { error: 'STALE_HASH' }"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-06-openclaw-admin-proxy-routes.md",
+      "modificationNote": "409 处理：网关在 baseHash 不匹配时返回特定错误。"
+    },
+    {
+      "id": "adm-default-model-lib",
+      "description": "lib/openclaw/default-model-from-config.ts：默认模型读写工具",
+      "steps": [
+        "getDefaultModelId(config)：从 config 对象提取默认模型 ID",
+        "setDefaultModelInConfig(config, modelId)：返回新 config 对象（纯函数）",
+        "读取：GET /api/openclaw/config → 提取 defaultModel",
+        "写入：调用 config.patch({ defaultModel })",
+        "server-only 导出"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-06-openclaw-admin-proxy-routes.md",
+      "modificationNote": "网关 config 对象中 defaultModel 字段的位置。"
+    },
+    {
+      "id": "adm-default-model-route",
+      "description": "GET/POST /api/openclaw/default-model - 默认模型读写",
+      "steps": [
+        "路由 apps/openclaw-chat/src/app/api/openclaw/default-model/route.ts",
+        "runtime = 'nodejs'",
+        "dynamic = 'force-dynamic'",
+        "GET：读取当前默认模型",
+        "POST：Body { modelId, baseHash }，调用 config.patch",
+        "POST：409 当 baseHash 不匹配"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-06-openclaw-admin-proxy-routes.md",
+      "modificationNote": "POST 需要 baseHash 确保一致性。"
+    },
+    {
+      "id": "adm-models-route",
+      "description": "GET /api/openclaw/models - 模型列表",
+      "steps": [
+        "路由 apps/openclaw-chat/src/app/api/openclaw/models/route.ts",
+        "runtime = 'nodejs'",
+        "dynamic = 'force-dynamic'",
+        "调用 getOpenClawClient().modelsList()",
+        "返回 { models: ModelInfo[] }",
+        "失败返回 500 { error }"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-06-openclaw-admin-proxy-routes.md",
+      "modificationNote": "复用 client.modelsList() 方法。"
+    },
+    {
+      "id": "adm-mcp-lib",
+      "description": "lib/mcp-services-from-config.ts：MCP 服务配置解析",
+      "steps": [
+        "getMcpServersFromConfig(config)：提取 mcpServers 列表",
+        "getMcpServerById(config, id)：按 ID 查找",
+        "removeMcpServerFromConfig(config, id)：构造移除 patch",
+        "addMcpServerToConfig(config, server)：构造添加 patch",
+        "server-only 导出"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-06-openclaw-admin-proxy-routes.md",
+      "modificationNote": "网关 config 中 mcpServers 字段结构。"
+    },
+    {
+      "id": "adm-mcp-remove-route",
+      "description": "POST /api/openclaw/mcp-servers/remove - 移除 MCP 服务",
+      "steps": [
+        "路由 apps/openclaw-chat/src/app/api/openclaw/mcp-servers/remove/route.ts",
+        "runtime = 'nodejs'",
+        "Body: { id, baseHash }",
+        "调用 removeMcpServerFromConfig → config.patch",
+        "404 当指定 ID 的 MCP 服务不存在",
+        "409 当 baseHash 不匹配"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-06-openclaw-admin-proxy-routes.md",
+      "modificationNote": "与网关 merge-patch 语义对齐。"
+    },
+    {
+      "id": "adm-skills-status-route",
+      "description": "GET /api/openclaw/skills/status - 技能状态列表",
+      "steps": [
+        "路由 apps/openclaw-chat/src/app/api/openclaw/skills/status/route.ts",
+        "runtime = 'nodejs'",
+        "dynamic = 'force-dynamic'",
+        "调用 getOpenClawClient().skillsStatus()",
+        "返回 { skills: SkillStatus[] }"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-06-openclaw-admin-proxy-routes.md",
+      "modificationNote": "复用 client.skillsStatus() 方法。"
+    },
+    {
+      "id": "adm-skills-install-route",
+      "description": "POST /api/openclaw/skills/install - 安装技能",
+      "steps": [
+        "路由 apps/openclaw-chat/src/app/api/openclaw/skills/install/route.ts",
+        "runtime = 'nodejs'",
+        "Body: { skillId }",
+        "调用 getOpenClawClient().skillsInstall(skillId)",
+        "返回 202 { ok: true, skillId }",
+        "skillId 缺失返回 400"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-06-openclaw-admin-proxy-routes.md",
+      "modificationNote": "skillsInstall 是异步操作，返回 202 Accepted。"
+    },
+    {
+      "id": "adm-skills-search-route",
+      "description": "GET /api/openclaw/skills/search - 技能搜索",
+      "steps": [
+        "路由 apps/openclaw-chat/src/app/api/openclaw/skills/search/route.ts",
+        "runtime = 'nodejs'",
+        "Query: q（搜索关键词）",
+        "调用 getOpenClawClient().request('skills.search', { query })",
+        "返回 { results: SkillSearchResult[] }",
+        "网关不支持时返回空数组而非错误"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-06-openclaw-admin-proxy-routes.md",
+      "modificationNote": "网关 skills.search RPC 可能不存在，优雅降级。"
+    },
+    {
+      "id": "adm-skills-session-route",
+      "description": "GET/POST /api/openclaw/skills/session - 会话级技能",
+      "steps": [
+        "路由 apps/openclaw-chat/src/app/api/openclaw/skills/session/route.ts",
+        "runtime = 'nodejs'",
+        "GET：Query: sessionKey，返回该会话的激活技能",
+        "POST：Body { sessionKey, skillIds }，更新会话技能",
+        "调用 getOpenClawClient().request('skills.session.patch', { sessionKey, skillIds })"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-06-openclaw-admin-proxy-routes.md",
+      "modificationNote": "会话级技能与会话状态关联。"
+    },
+    {
+      "id": "adm-dev-tool-presence-lib",
+      "description": "lib/dev-tool-presence.ts：开发工具存在探测",
+      "steps": [
+        "checkDevToolPresence(toolName)：检测工具是否存在（node, git, npm, pnpm, python 等）",
+        "使用 child_process.spawn 执行 'which' 命令",
+        "返回 Promise<{ name, found: boolean, path?: string }>",
+        "checkAllDevTools()：并行检测常用工具",
+        "server-only 导出"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-06-openclaw-admin-proxy-routes.md",
+      "modificationNote": "避免重复 spawn，相同工具使用缓存。"
+    },
+    {
+      "id": "adm-dev-tool-presence-route",
+      "description": "GET /api/openclaw/skills/dev-tool-presence - 开发工具存在探测",
+      "steps": [
+        "路由 apps/openclaw-chat/src/app/api/openclaw/skills/dev-tool-presence/route.ts",
+        "runtime = 'nodejs'",
+        "Query: tool（可选，检测特定工具）",
+        "调用 checkDevToolPresence 或 checkAllDevTools",
+        "返回 { tools: ToolPresence[] }"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-06-openclaw-admin-proxy-routes.md",
+      "modificationNote": "无参数时检测所有工具，有参数时检测单个。"
+    },
+    {
+      "id": "adm-cron-route",
+      "description": "GET/POST/DELETE /api/openclaw/cron - 定时任务管理",
+      "steps": [
+        "路由 apps/openclaw-chat/src/app/api/openclaw/cron/route.ts",
+        "runtime = 'nodejs'",
+        "dynamic = 'force-dynamic'",
+        "GET：调用 getOpenClawClient().cronList()",
+        "POST：Body { agentId, schedule, enabled, label }，调用 cronList 的同时准备创建",
+        "DELETE：Query: id，调用 getOpenClawClient().cronRemove(id)"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-06-openclaw-admin-proxy-routes.md",
+      "modificationNote": "网关 cron.create RPC 命名参考 client.cronUpdate。"
+    },
+    {
+      "id": "adm-cli-actions-config",
+      "description": "config/openclaw-cli-actions.ts - CLI 白名单配置",
+      "steps": [
+        "ALLOWED_CLI_ACTIONS 常量：允许的 CLI 子命令列表",
+        "isOpenClawCliExecAction(action)：判断 action 是否在白名单",
+        "getOpenClawCliExecArgv(action, args?)：构造 CLI 参数数组",
+        "OPENCLAW_CLI_PATH 环境变量或默认 'openclaw'",
+        "server-only 导出",
+        "单测 openclaw-cli-actions.test.ts"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-06-openclaw-admin-proxy-routes.md",
+      "modificationNote": "安全关键：禁止任意 shell 命令。"
+    },
+    {
+      "id": "adm-cli-exec-route",
+      "description": "POST /api/openclaw/cli-exec - CLI 执行（白名单）",
+      "steps": [
+        "路由 apps/openclaw-chat/src/app/api/openclaw/cli-exec/route.ts",
+        "runtime = 'nodejs'",
+        "maxDuration = 600",
+        "dynamic = 'force-dynamic'",
+        "OPENCLAW_CLI_EXEC_DISABLED=1 → 503",
+        "Body: { action, args? }",
+        "isOpenClawCliExecAction 校验",
+        "child_process.spawn 流式输出 stdout/stderr",
+        "返回 SSE 流式响应"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-06-openclaw-admin-proxy-routes.md",
+      "modificationNote": "SSE 流式避免大输出内存问题。"
+    },
+    {
+      "id": "adm-version-route",
+      "description": "GET /api/openclaw/version - CLI/网关版本信息",
+      "steps": [
+        "路由 apps/openclaw-chat/src/app/api/openclaw/version/route.ts",
+        "runtime = 'nodejs'",
+        "动态 'force-dynamic'",
+        "spawn 'openclaw --version' 获取 CLI 版本",
+        "调用 getOpenClawClient().request('system.info') 获取网关版本",
+        "返回 { cliVersion, gatewayVersion }"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-06-openclaw-admin-proxy-routes.md",
+      "modificationNote": "CLI 和网关版本可能不同。"
+    },
+    {
+      "id": "adm-update-route",
+      "description": "POST /api/openclaw/update - 更新检查或触发",
+      "steps": [
+        "路由 apps/openclaw-chat/src/app/api/openclaw/update/route.ts",
+        "runtime = 'nodejs'",
+        "POST：Body { action: 'check' | 'install' }",
+        "check：调用网关 update.check RPC",
+        "install：调用网关 update.install RPC（可能耗时）",
+        "返回 { available, currentVersion?, latestVersion? }"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-06-openclaw-admin-proxy-routes.md",
+      "modificationNote": "网关 update RPC 可能不存在，优雅降级。"
+    },
+    {
+      "id": "adm-gateway-status-route",
+      "description": "GET /api/gateway/status - 网关探测状态",
+      "steps": [
+        "路由 apps/openclaw-chat/src/app/api/gateway/status/route.ts",
+        "runtime = 'nodejs'",
+        "dynamic = 'force-dynamic'",
+        "每次 new OpenClawClient(config) 不复用连接池",
+        "PROBE_MS = 12000 超时",
+        "成功返回 { ok: true, connected: true, source: 'ws' }",
+        "失败尝试 tryGatewayStatusViaCli（lib/openclaw/cli-status.ts）",
+        "CLI 成功返回 { ok: true, connected: true, source: 'cli', message }"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-06-openclaw-admin-proxy-routes.md",
+      "modificationNote": "独立探测：不同于 getOpenClawClient() 连接池。"
+    },
+    {
+      "id": "sess-unread-lib",
+      "description": "lib/session-unread.ts：未读计数计算",
+      "steps": [
+        "computeSessionUnreadByKey(sessionKey, messages, readMap)：计算某会话未读数",
+        "aggregateUnreadByAgentId(sessions, unreadByKey)：按 agentId 聚合未读",
+        "mergeUnreadWithSnapshot(unread, snapshot)：合并内存未读与持久化快照",
+        "maxUiMessageId(messages)：返回消息列表最大 id",
+        "单测 session-unread.test.ts"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-11-session-state-unread-and-caching.md",
+      "modificationNote": "纯函数，便于单测。"
+    },
+    {
+      "id": "sess-unread-snapshot-lib",
+      "description": "lib/session-unread-snapshot.ts：localStorage 未读快照持久化",
+      "steps": [
+        "readUnreadSnapshot()：从 localStorage 读取未读快照",
+        "writeUnreadSnapshot(snapshot)：写入 localStorage",
+        "removeUnreadSnapshotKey(sessionKey)：删除指定会话快照",
+        "clearUnreadSnapshot()：清空所有快照",
+        "SESSION_UNREAD_SNAPSHOT_KEY 常量"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-11-session-state-unread-and-caching.md",
+      "modificationNote": "浏览器端 localStorage，SSR 时优雅降级。"
+    },
+    {
+      "id": "sess-read-state-lib",
+      "description": "lib/session-read-state.ts：已读游标管理",
+      "steps": [
+        "SessionReadMap 类型：Map<sessionKey, lastReadMessageId>",
+        "readSessionReadMap()：从 localStorage 读取已读游标",
+        "patchSessionRead(sessionKey, lastReadId)：更新已读游标",
+        "getLastReadMessageId(sessionKey)：获取某会话已读游标",
+        "SESSION_READ_STATE_KEY 常量"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-11-session-state-unread-and-caching.md",
+      "modificationNote": "与未读快照共用 localStorage 机制。"
+    },
+    {
+      "id": "sess-history-cache-lib",
+      "description": "lib/session-history-cache.ts：会话历史内存缓存",
+      "steps": [
+        "makeSessionHistoryCacheKey(sessionKey)：生成缓存键",
+        "SESSION_HISTORY_CACHE_MAX_SIZE = 20",
+        "getCachedHistory(sessionKey)：读取缓存",
+        "setCachedHistory(sessionKey, messages)：写入缓存（LRU 淘汰）",
+        "invalidateSessionHistory(sessionKey)：使缓存失效",
+        "单测 session-history-cache.test.ts"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-11-session-state-unread-and-caching.md",
+      "modificationNote": "参考 ui/session-cache.ts 中的 LRU 策略。"
+    },
+    {
+      "id": "sess-inflight-dedupe-lib",
+      "description": "lib/inflight-dedupe.ts：并发请求去重",
+      "steps": [
+        "inflightDedupe(key, fn)：相同 key 的并发调用共享同一个 Promise",
+        "dedupeFetchChatHistory(sessionKey)：专用的聊天历史去重",
+        "clearDeduped(key)：手动清除去重记录",
+        "clearAllDeduped()：清除所有去重记录",
+        "单测 inflight-dedupe.test.ts"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-11-session-state-unread-and-caching.md",
+      "modificationNote": "防止同一 sessionKey 的并发请求打爆网关。"
+    },
+    {
+      "id": "sess-data-heartbeat-lib",
+      "description": "lib/data-heartbeat.ts：数据心跳定时刷新",
+      "steps": [
+        "subscribeDataHeartbeat(callback, intervalMs?)：定时触发回调",
+        "默认 intervalMs = 30000（30秒）",
+        "返回 unsubscribe() 取消订阅",
+        "浏览器 visibilitychange 时暂停/恢复",
+        "单测 data-heartbeat.test.ts"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-11-session-state-unread-and-caching.md",
+      "modificationNote": "防止页面后台时无意义请求。"
+    },
+    {
+      "id": "sess-session-list-cache-lib",
+      "description": "lib/session-list-title-cache.ts：会话列表标题缓存",
+      "steps": [
+        "SESSION_LIST_TITLE_CACHE_KEY 常量",
+        "readSessionListTitleCache()：读取缓存",
+        "writeSessionListTitleCache(titles)：写入缓存",
+        "getSessionTitle(sessionKey)：获取缓存标题（包含 pending 预览）",
+        "setPendingTitle(sessionKey, preview)：设置 pending 发送预览"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-11-session-state-unread-and-caching.md",
+      "modificationNote": "标题缓存避免重复计算。"
+    },
+    {
+      "id": "sess-ui-flags-lib",
+      "description": "lib/session-ui-flags.ts：会话 UI 状态标志",
+      "steps": [
+        "computeSessionNeedsContinue(session)：判断是否显示 Continue 按钮",
+        "extractAgentIdFromSession(session)：提取 agentId",
+        "computeSessionActiveState(session)：判断活跃/空闲状态",
+        "单测 session-ui-flags.test.ts"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-11-session-state-unread-and-caching.md",
+      "modificationNote": "纯函数，便于单测和复用。"
+    },
+    {
+      "id": "sess-gateway-session-label-lib",
+      "description": "lib/gateway-session-label.ts：网关会话标签生成",
+      "steps": [
+        "makeUniqueSessionLabel(session)：生成唯一标签",
+        "SESSION_LABEL_MAX_LENGTH = 50",
+        "truncateSessionLabel(label)：截断超长标签",
+        "formatSessionTimestamp(session)：格式化时间戳"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-11-session-state-unread-and-caching.md",
+      "modificationNote": "标签用于 UI 展示（侧栏列表）。"
+    },
+    {
+      "id": "sess-gateway-session-error-lib",
+      "description": "lib/gateway-session-error.ts：错误消息格式化",
+      "steps": [
+        "formatGatewayUserMessage(error)：将网关错误转为用户友好消息",
+        "isRetryableError(error)：判断错误是否可重试",
+        "getErrorRetryDelay(error)：获取建议的重试延迟",
+        "ERROR_MESSAGES_MAP：常见错误码到中文描述映射"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-11-session-state-unread-and-caching.md",
+      "modificationNote": "中文友好消息，提升用户体验。"
+    },
+    {
+      "id": "test-gateway-history-unit",
+      "description": "lib/openclaw/gateway-history.test.ts：网关历史单测",
+      "steps": [
+        "gatewayHistoryToUiMessages 正确转换 assistant/user/system 消息",
+        "处理 tool_use 和 tool_result 消息类型",
+        "处理 thinking 消息",
+        "处理无 content 情况（空消息）",
+        "处理多条连续消息"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-15-testing-and-e2e.md",
+      "modificationNote": "在 apps/openclaw-chat/src/ 同级目录创建单测文件。"
+    },
+    {
+      "id": "test-cli-actions-unit",
+      "description": "config/openclaw-cli-actions.test.ts：CLI 白名单单测",
+      "steps": [
+        "isOpenClawCliExecAction 正确识别白名单动作",
+        "isOpenClawCliExecAction 拒绝非白名单动作",
+        "getOpenClawCliExecArgv 正确构造参数",
+        "边界：空 action、undefined action"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-15-testing-and-e2e.md",
+      "modificationNote": "安全关键单测，覆盖正向和反向用例。"
+    },
+    {
+      "id": "test-e2e-chat-attachments",
+      "description": "e2e/chat-attachment-send.spec.ts：附件发送 E2E 测试",
+      "steps": [
+        "目录 apps/openclaw-chat/e2e/",
+        "测试启动：浏览器打开 http://localhost:3005",
+        "测试场景：上传附件 → 发送消息 → 确认消息出现",
+        "PLAYWRIGHT_E2E_PORT 环境变量（默认 3015）",
+        "测试数据存放在 e2e/fixtures/",
+        "playwright.config.ts 配置 headless + viewport"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-15-testing-and-e2e.md",
+      "modificationNote": "E2E 测试需要网关环境，可能跳过并文档说明。"
+    },
+    {
+      "id": "test-e2e-agent-export",
+      "description": "e2e/agent-export.spec.ts：Agent 导出 ZIP E2E 测试",
+      "steps": [
+        "GET /api/agents/main/export 返回 application/zip",
+        "ZIP 内包含 manifest.json",
+        "ZIP 内包含 config/ 目录",
+        "ZIP 内包含 import.mjs 文件",
+        "ZIP 内包含 skills/ 目录（可能为空）",
+        "非 2xx 响应时正确报错"
+      ],
+      "passes": true,
+      "sourceSpec": "docs/spec/spec-15-testing-and-e2e.md",
+      "modificationNote": "playwright.config.ts 使用 next start 于 3015。"
+    }
+  ]
+}

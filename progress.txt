@@ -1,4 +1,4 @@
-current_features: features/05-advanced-gateway-features.json
+current_features: features/06-admin-proxy-session-state.json
 
 第五批: features/05-advanced-gateway-features.json（基于 spec-12 + spec-13 + spec-14 + spec-16 + spec-17）
   - spec-12: Agent 设计专家、工作区与诊断
