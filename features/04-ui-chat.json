@@ -135,7 +135,7 @@
         "可关闭弹窗",
         "AppTitleBar 也显示告警指示"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "docs/spec/spec-07-ui-chat-application-shell.md",
       "modificationNote": "告警状态通过 React context 或 props 传递。"
     },
@@ -201,7 +201,7 @@
         "MessageList 渲染消息测试",
         "Mock fetch /api/chat 等接口"
       ],
-      "passes": false,
+      "passes": true,
       "sourceSpec": "docs/spec/spec-15-testing-and-e2e.md",
       "modificationNote": "使用 vi.mock 模拟 API 调用。"
     }

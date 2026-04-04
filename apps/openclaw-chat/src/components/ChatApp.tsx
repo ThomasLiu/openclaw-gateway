@@ -17,6 +17,8 @@ import type {
   SessionInfo_,
 } from "./chat-types";
 
+import GatewayAlertDialog from "./GatewayAlertDialog";
+
 // ============================================================================
 // 子组件 import（避免循环依赖，统一在这里 import）
 // ============================================================================
@@ -116,6 +118,14 @@ export default function ChatApp() {
   /** 左侧 Agent 侧栏是否收起 */
   const [agentSidebarCollapsed, setAgentSidebarCollapsed] = useState(false);
 
+  /** 网关告警弹窗是否显示 */
+  const [showGatewayAlert, setShowGatewayAlert] = useState(false);
+
+  /** 网关告警消息内容 */
+  const [gatewayAlertMessage, setGatewayAlertMessage] = useState<string | undefined>(
+    undefined
+  );
+
   /** 加载状态 */
   const [loadingAgents, setLoadingAgents] = useState(true);
   const [loadingSessions, setLoadingSessions] = useState(false);
@@ -186,9 +196,25 @@ export default function ChatApp() {
         // 动态 import 避免 server-side 问题
         const { getOpenClawClient } = await import("@/lib/openclaw");
         const client = await getOpenClawClient();
-        setGatewayStatus(client.connected ? "connected" : "disconnected");
-      } catch {
+        if (client.connected) {
+          setGatewayStatus("connected");
+          setShowGatewayAlert(false);
+          setGatewayAlertMessage(undefined);
+        } else {
+          setGatewayStatus("disconnected");
+          // 连接失败时显示告警
+          setGatewayAlertMessage(
+            "无法连接到 OpenClaw Gateway。请确认网关已在端口 18789 运行，并检查网络连接。"
+          );
+          setShowGatewayAlert(true);
+        }
+      } catch (err) {
         setGatewayStatus("disconnected");
+        const msg = err instanceof Error ? err.message : String(err);
+        setGatewayAlertMessage(
+          `连接错误: ${msg || "未知错误"}`
+        );
+        setShowGatewayAlert(true);
       }
     }
 
@@ -607,6 +633,13 @@ export default function ChatApp() {
         {/* 右侧日志面板 */}
         {rightPanelOpen && <OpenClawLogsPanel onClose={() => setRightPanelOpen(false)} />}
       </div>
+
+      {/* 网关告警弹窗 */}
+      <GatewayAlertDialog
+        open={showGatewayAlert}
+        message={gatewayAlertMessage}
+        onClose={() => setShowGatewayAlert(false)}
+      />
     </div>
   );
 }

@@ -23,6 +23,18 @@ export default [
       globals: {
         ...globals.browser,
         ...globals.node,
+        // Vitest 测试框架全局变量
+        describe: "readonly",
+        it: "readonly",
+        test: "readonly",
+        expect: "readonly",
+        vi: "readonly",
+        beforeEach: "readonly",
+        afterEach: "readonly",
+        beforeAll: "readonly",
+        afterAll: "readonly",
+        suite: "readonly",
+        "vitest/globals": "readonly",
       },
     },
     plugins: {

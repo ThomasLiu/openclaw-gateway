@@ -3,12 +3,18 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react({
+      // 显式启用 JSX 支持
+      include: "**/*.{jsx,tsx}",
+    }),
+  ],
   test: {
-    environment: "node",
+    environment: "jsdom",
     globals: true,
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
     exclude: ["node_modules", ".next", "e2e"],
+    setupFiles: ["./src/test-setup.ts"],
   },
   resolve: {
     alias: {

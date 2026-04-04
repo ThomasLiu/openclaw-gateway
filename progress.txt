@@ -40,13 +40,19 @@ current_features: features/04-ui-chat.json
   - spec-08: ChatPanel、Composer 与 Pretext 测高
   - spec-09: 消息渲染、Markdown
   - spec-10: 右侧面板（OpenClawLogsPanel）
+  - spec-15: 测试策略
   - 共 15 个 feature 条目
-  - ✅ 13/15 通过：
+  - ✅ 15/15 全部通过：
     ui-page-renders-chatapp, ui-chatapp-client-component, ui-title-bar,
     ui-agent-sidebar, ui-session-sidebar, ui-chat-panel-dynamic,
     ui-message-list, ui-composer, ui-streaming-wave, ui-logs-panel,
-    ui-session-state, ui-deep-dark-theme, ui-type-definitions
-  - ❌ 待实现：ui-gateway-alert, ui-unit-tests
+    ui-session-state, ui-deep-dark-theme, ui-type-definitions,
+    ui-gateway-alert, ui-unit-tests
+
+本批次新增实现:
+  - ui-gateway-alert: 新增 GatewayAlertDialog.tsx 组件，断连时显示红色告警弹窗
+  - ui-unit-tests: 新增 MessageList.test.tsx(7)、Composer.test.tsx(12)、ChatApp.test.tsx(4)
+  - 测试基础设施: vitest jsdom 环境、test-setup.ts、tsconfig vitest/globals 配置
 
 下一批次: 待定（基于 spec-12+）
 
@@ -81,17 +87,22 @@ current_features: features/04-ui-chat.json
   - apps/openclaw-chat/src/components/Composer.tsx    - 输入框（auto-height）
   - apps/openclaw-chat/src/components/StreamingWaveBar.tsx - 流式波浪条
   - apps/openclaw-chat/src/components/OpenClawLogsPanel.tsx - 右侧日志面板
+  - apps/openclaw-chat/src/components/GatewayAlertDialog.tsx - 网关告警弹窗（本批次新增）
   - apps/openclaw-chat/src/components/chat-types.ts  - UI 层 TypeScript 类型
+  - apps/openclaw-chat/src/test-setup.ts           - Vitest 测试环境配置（jsdom + scrollIntoView mock）
+  - apps/openclaw-chat/src/components/MessageList.test.tsx - 消息列表测试（7 tests）
+  - apps/openclaw-chat/src/components/Composer.test.tsx    - 输入框测试（12 tests）
+  - apps/openclaw-chat/src/components/ChatApp.test.tsx     - ChatApp 渲染测试（4 tests）
 
 状态: ✅ 第一批 22/22 全部通过
   ✅ 第二批 15/15 全部通过
   ✅ 第三批 15/15 全部通过
-  ✅ 第四批 13/15 通过（ui-gateway-alert、ui-unit-tests 待实现）
+  ✅ 第四批 15/15 全部通过（ui-gateway-alert、ui-unit-tests 已实现）
 
   - pnpm install: ✅ 372 packages
   - pnpm lint: ✅ 0 errors（3 warnings）
   - pnpm typecheck: ✅ 通过
-  - pnpm test: ✅ 27/27 通过（5 unit + 15 db-unit + 7 integration）
+  - pnpm test: ✅ 50/50 通过（5 unit + 15 db-unit + 7 integration + 23 UI tests）
   - pnpm dev: ✅ 启动成功（localhost:3005）
   - pnpm build: ✅ 构建成功
   - OpenClaw 网关: ✅ 验证通过（运行于 18789）
