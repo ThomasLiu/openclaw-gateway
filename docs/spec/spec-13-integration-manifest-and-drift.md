@@ -19,9 +19,6 @@
 
 - **manifest + drift** 为主；代码内 `@see ai-reference-sources/openclaw/...` 为辅（避免依赖行号）。
 
-## 详见
-
-- `.cursor/skills/openclaw-upstream-drift/SKILL.md`（若存在）。
 
 ## 复刻检查清单
 

@@ -110,7 +110,7 @@ E2E 默认使用端口 3015（避免与本机 `pnpm dev` 端口 3005 冲突）�
 
 ## 贡献指南
 
-- 遵守 `.cursor/rules` 中的工作流规则（测试规划先于执行、lint/typecheck）。
+- 测试规划先于执行、lint/typecheck。
 - 新功能须在对应 `spec-*.md` 中记录。
 - 新增 Vitest 单元测试（优先于仅 E2E）。
 - 提交前运行 `pnpm lint` 和 `pnpm test`（`pnpm format` 如需）。

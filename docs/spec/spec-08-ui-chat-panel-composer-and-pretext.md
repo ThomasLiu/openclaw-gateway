@@ -34,7 +34,7 @@
 | `components/use-composer-textarea-height.ts` | `ResizeObserver` + `getComputedStyle`（宽度、font、line-height、padding） |
 | `ChatPanel.tsx` | `style={{ height }}` 绑定 textarea |
 
-**约定**（与 `.cursor/rules/openclaw-chat-pretext-composer.mdc` 一致）：
+**约定**：
 
 - `prepare(..., { whiteSpace: 'pre-wrap' })`。
 - 内容区宽度 = `clientWidth - paddingLeft - paddingRight`。

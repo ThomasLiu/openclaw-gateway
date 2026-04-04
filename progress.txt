@@ -1,0 +1,26 @@
+current_features: features/01-monorepo.json
+
+第一批: features/01-monorepo.json（基于 spec-01 + spec-02）
+  - spec-01: monorepo and tooling（pnpm workspace、scripts、next.config.ts、依赖）
+  - spec-02: gateway config and WS client（OpenClawClient、WebSocket 连接池、JSON-RPC 协议）
+  - 共 22 个 feature 条目
+
+下一批次: features/02-gateway-api-routes.json（基于 spec-03、spec-04）
+  - spec-03: /api/chat 流式发送与中止
+  - spec-04: /api/gateway/sessions、/api/agents 会话代理
+
+参考源码:
+  - ai-reference-sources/openclaw/src/gateway/server-methods/  -> lib/openclaw/
+  - ai-reference-sources/openclaw/src/gateway/                 -> lib/openclaw/
+  - apps/openclaw-chat/                                        -> apps/openclaw-chat/（待实现）
+
+状态: 结构已创建（package.json、pnpm-workspace.yaml、next.config.ts 等）
+  运行 ./init.sh 安装依赖（pnpm install）
+  运行 pnpm dev 启动（端口 3005，需 OpenClaw 网关运行于 18789）
+
+第二批待实现: API Routes 层
+  - apps/openclaw-chat/src/app/api/chat/route.ts
+  - apps/openclaw-chat/src/app/api/gateway/sessions/route.ts
+  - apps/openclaw-chat/src/lib/openclaw/client.ts
+  - apps/openclaw-chat/src/lib/openclaw/pool.ts
+  - apps/openclaw-chat/src/lib/openclaw/config.ts
