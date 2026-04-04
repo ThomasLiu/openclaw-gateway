@@ -61,7 +61,7 @@ export async function GET(
       // 文件名不在白名单，尝试 safeWorkspaceRelativePath
       try {
         fullPath = safeWorkspaceRelativePath(workspaceDir, relPath);
-      } catch (pathErr) {
+      } catch {
         return NextResponse.json(
           { error: `Invalid path: ${relPath}` },
           { status: 400 }
@@ -163,7 +163,7 @@ export async function PUT(
     } catch {
       try {
         fullPath = safeWorkspaceRelativePath(workspaceDir, relPath);
-      } catch (pathErr) {
+      } catch {
         return NextResponse.json(
           { error: `Invalid path: ${relPath}` },
           { status: 400 }

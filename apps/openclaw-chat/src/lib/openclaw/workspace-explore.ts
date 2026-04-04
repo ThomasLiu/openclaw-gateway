@@ -76,7 +76,7 @@ async function buildTree(
   let entries: Dirent[];
   try {
     entries = await fs.readdir(currentDir, { withFileTypes: true });
-  } catch (err) {
+  } catch {
     // 权限错误或其他错误：静默返回空
     return [];
   }

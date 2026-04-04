@@ -182,11 +182,14 @@ export default function ExecApprovalOverlay() {
     return () => {
       es.close();
       eventSourceRef.current = null;
-      // 清理所有定时器
-      for (const timer of timersRef.current) {
+      // 清理所有定时器（在 cleanup 中使用局部副本避免 ref 竞态）
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- timersRef 在 dep 中，.current 读取稳定
+      const timers = timersRef.current;
+      for (const timer of timers) {
         clearTimeout(timer);
       }
     };
+   
   }, [dismissApproval]);
 
   // 发送审批决策

@@ -255,7 +255,7 @@ describe("lib/db: listMessages", () => {
   });
 
   it("默认 limit 为 50", async () => {
-    const { insertMessage, listMessages, getDb } = await import(
+    const { listMessages, getDb } = await import(
       "@/lib/db/index"
     );
     const db = getDb();

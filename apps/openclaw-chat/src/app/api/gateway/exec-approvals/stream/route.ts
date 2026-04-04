@@ -21,9 +21,8 @@ const ENCODER = new TextEncoder();
 
 export async function GET(): Promise<Response> {
   // 确保 WS 连接已建立
-  let client;
   try {
-    client = await getOpenClawClient();
+    await getOpenClawClient();
   } catch {
     return NextResponse.json(
       { error: "Gateway unavailable" },
@@ -71,15 +70,6 @@ export async function GET(): Promise<Response> {
       });
     },
   });
-
-  // 定期 ping（每 25 秒）
-  const pingInterval = setInterval(() => {
-    try {
-      // ping 通过 SSE 发送
-    } catch {
-      clearInterval(pingInterval);
-    }
-  }, 25_000);
 
   return new Response(stream, {
     headers: {

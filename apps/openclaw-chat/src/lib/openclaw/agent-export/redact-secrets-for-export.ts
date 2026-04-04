@@ -58,11 +58,6 @@ export interface SecretRequiredEntry {
   required: boolean;
 }
 
-interface RedactionContext {
-  path: string;
-  secrets: SecretRequiredEntry[];
-}
-
 /**
  * 深度脱敏对象，替换敏感字段为占位符
  *

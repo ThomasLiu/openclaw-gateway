@@ -14,12 +14,9 @@ import archiver from "archiver";
 import path from "node:path";
 import fs from "node:fs/promises";
 import type { Dirent } from "node:fs";
-import { Readable } from "node:stream";
-import os from "node:os";
 import { readOpenClawJson } from "@/lib/openclaw/config";
 import { resolveAgentWorkspaceDir, resolveAgentDir } from "@/lib/openclaw/workspace-path";
 import { redactWithSecretsList } from "@/lib/openclaw/agent-export/redact-secrets-for-export";
-import { mergeObjectArraysById } from "@/lib/openclaw/agent-export/merge-object-arrays-by-id";
 import { listEffectiveSkillDirsForExport } from "@/lib/openclaw/agent-export/enumerate-effective-skills-for-export";
 
 /** 读取配置（已脱敏） */

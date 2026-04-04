@@ -59,19 +59,10 @@ const OpenClawLogsPanel = dynamic<{ onClose: () => void } & any>(
 // ============================================================================
 // 常量
 // ============================================================================
+import { sessionKeyStorageKey } from "./chat-utils";
 
 /** Architect Agent ID（特殊样式标记） */
-export const OPENCLAW_AGENT_ARCHITECT_ID = "agent-architect";
-
-/** localStorage key 生成器：sessionKeyStorageKey(agentId) */
-export function sessionKeyStorageKey(agentId: string): string {
-  return `openclaw-chat.sessionKey.${agentId}`;
-}
-
-/** localStorage key 生成器：sessionKeyBelongsToAgent 校验用 */
-export function sessionKeyBelongsToAgent(sessionKey: string, agentId: string): boolean {
-  return sessionKey.startsWith(`${agentId}:`);
-}
+const OPENCLAW_AGENT_ARCHITECT_ID = "agent-architect";
 
 // ============================================================================
 // ChatApp 主组件

@@ -31,7 +31,6 @@ export async function inflightDedupe<T>(
   }
 
   // 创建新请求
-  let settled = false;
   let resolveFn: (v: unknown) => void;
   let rejectFn: (e: unknown) => void;
 
@@ -50,17 +49,15 @@ export async function inflightDedupe<T>(
   // 执行请求，结束后标记为已结束并清除
   fn()
     .then((value) => {
-      settled = true;
       entry.settled = true;
       resolveFn(value);
     })
     .catch((err) => {
-      settled = true;
       entry.settled = true;
       rejectFn(err);
     })
     .finally(() => {
-      // 请求结束后同步清除（settled 标志已设为 true，
+      // 请求结束后同步清除（entry.settled 已设为 true，
       // 后续同 key 调用会创建新请求）
       inflightRequests.delete(key);
     });

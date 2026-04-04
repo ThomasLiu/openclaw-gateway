@@ -10,12 +10,10 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { getOpenClawClient } from "@/lib/openclaw/index";
 import { resolveAgentDir } from "@/lib/openclaw/workspace-path";
 import {
   extractJsonlEntries,
   parseJsonlSummary,
-  type JsonlSummary,
 } from "@/lib/openclaw/agent-request-jsonl-summary";
 
 /** Agent 日志目录（从 agentDir 的 logs 子目录） */
