@@ -57,28 +57,72 @@
 
 **不要一次性生成所有 feature** —— 大模型上下文压缩会导致质量差。
 
-**第一批只生成 1-2 个 feature 文件**（建议 spec-01 和 spec-02），每个文件包含 5-15 个 feature 条目。
+**第一批只生成 1 个 feature 文件**（spec-01），每个文件包含 **5-10 个 feature 条目**。
+
+**feature 质量要求（必须严格遵守）**：
+
+#### 3.1 每条 feature 必须原子化
+- **一条 feature 只验证一件事**
+- 禁止"实现 A 和 B 和 C"类型的 feature
+- 例如：分开"显示聊天消息列表"和"发送新消息"，不要合并成一条
+
+#### 3.2 steps 必须具体可执行
+- 每个 step 必须是**能截图验证**的操作
+- 禁止"验证功能正常"这种模糊描述
+- 每个 step 要写明具体操作，如：
+  - ✅ "在输入框输入 'hello world'"
+  - ✅ "点击发送按钮"
+  - ✅ "等待 3 秒，截图确认消息出现在聊天列表"
+  - ❌ "验证消息发送功能"
+
+#### 3.3 description 必须简洁明确
+- 格式：`动作 + 预期结果`
+- 例如："发送消息后，消息应出现在聊天列表并显示正确的时间戳"
+
+#### 3.4 category 分类标准
+- `functional`：核心功能（UI 交互、API 调用）
+- `quality`：工程质量（Lint、类型检查、测试）
+- `style`：视觉样式（布局、颜色、响应式）
+
+#### 3.5 每批 feature 必须覆盖完整用户流程
+- 读取 spec 时，按用户操作流程梳理
+- 每个关键用户流程至少有一条对应的 feature
+- 例如：登录 → 选择会话 → 发送消息 → 收到回复 → 查看历史
 
 **feature 条目格式**：
 
 ```json
 {
+  "id": "ui-chat-send-message",
   "category": "functional",
-  "description": "简要说明该条验证的能力或交付物",
-  "steps": ["步骤 1：……", "步骤 2：……"],
+  "description": "发送消息后，消息应出现在聊天列表并显示发送时间",
+  "steps": [
+    "在消息输入框输入 'test message'",
+    "点击发送按钮或按 Enter 键",
+    "等待 2 秒让消息发送",
+    "截图确认消息出现在聊天列表中",
+    "确认消息旁边显示时间戳"
+  ],
   "passes": false,
-  "sourceSpec": "spec-01-monorepo-and-tooling.md",
-  "modificationNote": "基于 spec 实现，具体交互方式参考原项目"
+  "sourceSpec": "spec-09-message-rendering-markdown-tools.md",
+  "modificationNote": ""
 }
 ```
 
 **字段说明**：
+- `id`: 唯一标识符，格式 `类型-功能名`（如 `ui-chat-send-message`）
 - `category`: `functional` | `quality` | `style`
-- `sourceSpec`: 该 feature 对应的 spec 文档（控制复刻的具体行为）
-- `modificationNote`: 相对于 spec 的实现说明（如有特殊调整需求）
-- `steps`: 验证步骤，每步必须可执行、可截图验证
+- `description`: 简洁的预期结果描述
+- `steps`: **至少 3 步**，每步必须可截图验证
+- `sourceSpec`: 对应的 spec 文档
+- `modificationNote`: 相对于 spec 的调整（如无则留空）
 
-**重要**：原项目的源码文件已删除，feature 的参考依据是 `docs/spec/*.md` 规格文档，不是 `ai-reference-sources/openclaw`（后者只是网关 backend）。
+**生成后的自检清单**：
+- [ ] 每个 steps 都有明确的操作和验证点？
+- [ ] 每个 feature 都是原子化的（一条只做一件事）？
+- [ ] 覆盖了该 spec 的主要用户流程？
+- [ ] 没有模糊描述（如"验证正常"）？
+- [ ] steps 数量合理（3-8 步）？
 
 ---
 
