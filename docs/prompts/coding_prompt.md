@@ -94,6 +94,7 @@ chmod +x init.sh
 1. 找到所有 `"passes": false` 的条目
 2. 按顺序选择优先级最高的
 3. 理解该条目的：
+   - `id` - 唯一标识符（如 `ui-chat-send-message`）
    - `sourceSpec` - 对应的 spec 文档
    - `modificationNote` - 相对于 spec 的实现方向
    - `steps` - 验证步骤
@@ -153,6 +154,7 @@ cat docs/spec/app_spec.md
 ```
 
 **禁止**：
+- 修改 `id`
 - 修改 `description`
 - 修改 `steps`
 - 修改 `sourceSpec`
