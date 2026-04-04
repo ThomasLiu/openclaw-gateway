@@ -8,10 +8,17 @@
 
 **复刻 openclaw-chat UI** —— 基于 `docs/spec/*.md` 规格文档，尽可能完整地复刻出一个可运行的 openclaw-chat 应用。
 
+**架构说明**：
+- 本项目是 **Next.js 服务**，和 openclaw 运行在同一台电脑上
+- 通过两个渠道和 openclaw 通信：
+  1. **调用 openclaw CLI** - 发送命令给 openclaw
+  2. **连接 openclaw 网关** - WebSocket 连接 `ws://127.0.0.1:18789`
+- 目标是用另一套 UI 来管理 openclaw 的数据和调用 openclaw 的能力
+
 **重要澄清**：
-- `docs/spec/*.md` 是从你自己的 openclaw-chat UI 反向工程出来的规格说明
-- `ai-reference-sources/openclaw` 是配套的网关 backend（不是你要复刻的目标）
-- 你的 UI 需要连接到 `ws://127.0.0.1:18789` 的 openclaw 网关
+- `docs/spec/*.md` 是从你自己之前的 openclaw-chat UI 反向工程出来的规格说明
+- `ai-reference-sources/openclaw` 是 openclaw 网关（不是你要复刻的目标，你的 UI 需要连接它）
+- 本项目（openclaw-gateway）是 Next.js UI，连接 openclaw 网关来控制 openclaw
 
 **控制方式**：通过 `features/*.json` 控制功能方向，每个 feature 的 `modificationNote` 说明相对于 spec 的实现方向。
 
@@ -19,22 +26,19 @@
 
 ---
 
-### 第一步：理解参考项目
+### 第一步：理解 openclaw 网关协议
 
-使用 `/investigate` skill 分析参考项目结构：
+使用 `/investigate` skill 分析 openclaw 的通信协议：
 
 ```
-/investigate ai-reference-sources/openclaw 源码结构
+/investigate ai-reference-sources/openclaw 网关协议
 ```
-
-**注意**：你要复刻的不是 openclaw 本身，而是基于 spec 文档重建你自己的 openclaw-chat UI。
-
-ai-reference-sources/openclaw 是**网关 backend**（端口 18789），你的 UI 需要连接它。
 
 重点关注：
 - `src/gateway/` - Gateway WebSocket 服务（你的 UI 需要连接这个）
-- `src/cli/` - CLI 工具
-- openclaw 的协议和认证机制
+- `src/cli/` - CLI 工具（你的 UI 需要调用这个）
+- openclaw 的 JSON-RPC 协议格式（req/res/evt 帧）
+- 认证机制（token 模式）
 
 ---
 

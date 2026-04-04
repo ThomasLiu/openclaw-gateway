@@ -262,18 +262,22 @@ fi
 
 ---
 
-### openclaw Gateway 集成
+### openclaw 集成方式
 
-当前项目依赖 openclaw gateway 运行在 `ws://127.0.0.1:18789`。
+本项目（openclaw-gateway）是 Next.js UI，和 openclaw 运行在同一台机器上。
+
+**与 openclaw 通信的方式**：
+1. **调用 openclaw CLI** - 通过子进程调用 `openclaw` 命令（如 `openclaw agents list`）
+2. **连接 openclaw 网关** - WebSocket 到 `ws://127.0.0.1:18789`
 
 **Gateway 协议**：
 - WebSocket 连接，使用 JSON 帧（`{type: "req"/"res"/"evt", ...}`）
 - 支持 `agent`、`sessions.send`、`chat.send`、`config.patch` 等方法
 - 认证使用 token 模式
 
-**如果 Gateway 未运行**：
+**如果 openclaw 未运行**：
 - 检查 `lsof -i :18789`
-- 需要先启动 openclaw gateway 才能完整验证功能
+- 需要先启动 openclaw 才能完整验证功能
 
 ---
 
