@@ -6,9 +6,14 @@
 
 ### 核心目标
 
-**复刻 openclaw-chat** —— 基于 `ai-reference-sources/openclaw` 源码，尽可能完整地复刻出一个可运行的 openclaw-chat 应用。
+**复刻 openclaw-chat UI** —— 基于 `docs/spec/*.md` 规格文档，尽可能完整地复刻出一个可运行的 openclaw-chat 应用。
 
-**控制方式**：通过 `features/*.json` 控制功能方向，每个 feature 的 `modificationNote` 说明相对于源码的修改方向。
+**重要澄清**：
+- `docs/spec/*.md` 是从你自己的 openclaw-chat UI 反向工程出来的规格说明
+- `ai-reference-sources/openclaw` 是配套的网关 backend（不是你要复刻的目标）
+- 你的 UI 需要连接到 `ws://127.0.0.1:18789` 的 openclaw 网关
+
+**控制方式**：通过 `features/*.json` 控制功能方向，每个 feature 的 `modificationNote` 说明相对于 spec 的实现方向。
 
 **TDD 驱动**：coding_prompt 每轮必须先验证 passes: true 的功能仍然正常，才能实现 passes: false 的功能。
 
@@ -22,11 +27,14 @@
 /investigate ai-reference-sources/openclaw 源码结构
 ```
 
+**注意**：你要复刻的不是 openclaw 本身，而是基于 spec 文档重建你自己的 openclaw-chat UI。
+
+ai-reference-sources/openclaw 是**网关 backend**（端口 18789），你的 UI 需要连接它。
+
 重点关注：
-- `apps/openclaw-chat/` - 前端应用
-- `src/gateway/` - Gateway WebSocket 服务
+- `src/gateway/` - Gateway WebSocket 服务（你的 UI 需要连接这个）
 - `src/cli/` - CLI 工具
-- 整体目录结构和模块划分
+- openclaw 的协议和认证机制
 
 ---
 
@@ -55,21 +63,18 @@
   "description": "简要说明该条验证的能力或交付物",
   "steps": ["步骤 1：……", "步骤 2：……"],
   "passes": false,
-  "sourceFile": "ai-reference-sources/openclaw/apps/openclaw-chat/src/...",
-  "modificationNote": "参考其实现，但需要针对 TTA 架构调整 XXX"
+  "sourceSpec": "spec-01-monorepo-and-tooling.md",
+  "modificationNote": "基于 spec 实现，具体交互方式参考原项目"
 }
 ```
 
 **字段说明**：
 - `category`: `functional` | `quality` | `style`
-- `sourceFile`: 参考源码中的对应文件路径（帮助 coding_prompt 理解实现参考）
-- `modificationNote`: 相对于源码的修改方向（控制复刻的具体行为）
+- `sourceSpec`: 该 feature 对应的 spec 文档（控制复刻的具体行为）
+- `modificationNote`: 相对于 spec 的实现说明（如有特殊调整需求）
 - `steps`: 验证步骤，每步必须可执行、可截图验证
 
-**对 `modificationNote` 的要求**：
-- 如果功能与源码完全一致：`"与源码一致"`
-- 如果功能需要调整：`"参考源码 XXX，但 YYY 需要改为 ZZZ"`
-- 明确说明哪些地方必须与源码不同
+**重要**：原项目的源码文件已删除，feature 的参考依据是 `docs/spec/*.md` 规格文档，不是 `ai-reference-sources/openclaw`（后者只是网关 backend）。
 
 ---
 
@@ -105,7 +110,7 @@ scripts/                    # 工具脚本
 git add .
 git commit -m "chore: 初始化 openclaw-chat 项目结构
 
-- 基于 ai-reference-sources/openclaw 复刻
+- 基于 docs/spec/*.md 规格文档复刻
 - pnpm + Vitest + ESLint + Prettier 工具链
 - 生成第一批 feature: features/01-monorepo.json, features/02-gateway.json"
 ```
@@ -140,7 +145,7 @@ current_features: features/01-monorepo.json
 ### 重要原则
 
 1. **分批生成**：每批只生成 1-2 个 feature 文件，做完再生成下一批
-2. **源码映射**：每个 feature 必须有 `sourceFile`，让 coding_prompt 知道参考什么
+2. **源码映射**：每个 feature 必须有 `sourceSpec`，让 coding_prompt 知道参考哪个 spec
 3. **修改方向**：`modificationNote` 是控制复刻行为的关键，必须明确
 4. **可验证**：每个 feature 的 `steps` 必须可通过截图验证
 5. **禁止膨胀**：不要一次性生成所有 feature，质量会因上下文压缩而严重下降

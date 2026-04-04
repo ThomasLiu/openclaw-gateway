@@ -6,7 +6,7 @@
 **核心约束**：
 - **TDD 驱动**：passes: false 的功能必须等到 passes: true 验证通过后才能实现
 - **先验证再实现**：每轮必须先验证当前功能正常，再实现新功能
-- **源码参考**：通过 feature 的 `sourceFile` 和 `modificationNote` 理解实现方向
+- **源码参考**：通过 feature 的 `sourceSpec` 和 `modificationNote` 理解实现方向
 
 ---
 
@@ -94,36 +94,35 @@ chmod +x init.sh
 1. 找到所有 `"passes": false` 的条目
 2. 按顺序选择优先级最高的
 3. 理解该条目的：
-   - `sourceFile` - 参考源码路径
-   - `modificationNote` - 相对于源码的修改方向
+   - `sourceSpec` - 对应的 spec 文档
+   - `modificationNote` - 相对于 spec 的实现方向
    - `steps` - 验证步骤
 
 **一次只实现一个功能**（或强相关的一小组），做完再处理下一个。
 
 ---
 
-### Step 5：理解参考源码
+### Step 5：理解 spec 文档
 
-在实现之前，先阅读参考源码：
+在实现之前，先阅读对应的 spec 文档：
 
 ```bash
-# 阅读 sourceFile 指定的文件
-cat ai-reference-sources/openclaw/apps/openclaw-chat/src/...
+# 阅读 sourceSpec 指定的 spec 文件
+cat docs/spec/spec-01-monorepo-and-tooling.md
 
-# 如果有特定方法需要理解
-grep -n "class\|function\|interface" ai-reference-sources/openclaw/...
+# 查看完整的 app_spec.md
+cat docs/spec/app_spec.md
 ```
 
 理解：
-- 它的接口设计
-- 它的工作原理
-- `modificationNote` 要求你做哪些调整
+- spec 描述的功能需求
+- `modificationNote` 要求的实现调整
 
 ---
 
 ### Step 6：实现功能
 
-根据源码参考实现功能：
+根据 spec 文档实现功能：
 
 1. 编写代码（前端和/或后端）
 2. 遵循项目的代码风格（ESLint/Prettier）
@@ -156,7 +155,7 @@ grep -n "class\|function\|interface" ai-reference-sources/openclaw/...
 **禁止**：
 - 修改 `description`
 - 修改 `steps`
-- 修改 `sourceFile`
+- 修改 `sourceSpec`
 - 修改 `modificationNote`
 - 删除条目
 
@@ -169,7 +168,7 @@ git add .
 git commit -m "feat: 实现 [功能名称] - 验证通过
 
 - 功能：xxx
-- 参考源码：ai-reference-sources/openclaw/xxx
+- 基于 spec：docs/spec/xxx.md
 - 修改方向：xxx
 - 使用 /browse 验证截图：verification/xxx.png
 - 更新 features/xx.json：将 #N 标记为通过"
@@ -218,7 +217,7 @@ fi
 如果 `progress.txt` 中 `current_features` 已更新到下一批次：
 
 1. 阅读下一个 spec 文件（如 `docs/spec/spec-03-*.md`）
-2. 使用 `/investigate` 分析对应的 `ai-reference-sources/openclaw` 源码
+2. 使用 `/investigate` 分析对应的 `docs/spec/*.md` 规格文档
 3. 生成下一个 `features/xx-name.json`（5-15 条）
 4. **重要**：在 `progress.txt` 中设置 `current_features: features/xx-name.json`
 5. 提交新生成的 feature 文件
