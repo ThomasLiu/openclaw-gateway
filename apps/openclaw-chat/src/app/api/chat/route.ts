@@ -10,6 +10,11 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { getOpenClawClient } from "@/lib/openclaw/index";
 import type { GatewayMessage, GatewayMessageContent } from "@/lib/openclaw/index";
+import {
+  listMessages,
+  normalizeSqliteMessageRow,
+  insertMessage,
+} from "@/lib/db/index";
 
 // ─── 类型定义 ────────────────────────────────────────────────────────────────
 
@@ -122,7 +127,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       ? Math.min(1000, Math.max(1, parseInt(limitStr, 10)))
       : 200;
 
-    // 有 sessionKey → 走网关历史
+    // 有 sessionKey → 走网关历史（不写 SQLite）
     if (sessionKey) {
       const client = await getOpenClawClient();
       const history = await client.fetchChatHistory(sessionKey, limit);
@@ -130,8 +135,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ messages, source: "gateway", sessionKey });
     }
 
-    // 无 sessionKey → 暂时返回空数组（SQLite 后续在 spec-05 实现）
-    return NextResponse.json({ messages: [], source: "sqlite" });
+    // 无 sessionKey → 走 SQLite 本地存储
+    const rows = listMessages(agentId, limit);
+    // 转换并反转（SQL 返回 id DESC，需要转成正序）
+    const messages = rows.reverse().map(normalizeSqliteMessageRow);
+    return NextResponse.json({ messages, source: "sqlite" });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: message }, { status: 500 });
@@ -171,6 +179,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     ? skParam
     : `agent:${agentId}:chat:${skParam}`;
 
+  // 是否持久化到本地 SQLite（无 sessionKey 时）
+  const persistSqlite = !sessionKey;
+
   // 创建 SSE 流
   const encoder = new TextEncoder();
   let aborted = false;
@@ -190,6 +201,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       try {
         const client = await getOpenClawClient();
 
+        // SQLite 模式：先写入用户消息
+        if (persistSqlite) {
+          insertMessage({
+            agent_id: agentId,
+            role: "user",
+            content: trimmedText,
+          });
+        }
+
+        // 累积 assistant 回复文本（用于 SQLite 持久化）
+        let assistantText = "";
+
         // 事件处理
         const onDelta = (event: {
           sessionKey: string;
@@ -198,6 +221,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           state: string;
         }) => {
           if (event.sessionKey !== finalSessionKey) return;
+          assistantText += event.text;
           send({ type: "delta", text: event.text, runId: event.runId });
         };
 
@@ -208,6 +232,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         }) => {
           if (event.sessionKey !== finalSessionKey) return;
           activeRunId = null;
+
+          // SQLite 模式：写入 assistant 回复
+          if (persistSqlite && assistantText.trim()) {
+            insertMessage({
+              agent_id: agentId,
+              role: "assistant",
+              content: assistantText,
+            });
+          }
+
           send({ type: "final", runId: event.runId });
           try {
             controller.close();

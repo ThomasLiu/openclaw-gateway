@@ -1,4 +1,4 @@
-current_features: features/02-gateway-api-routes.json
+current_features: features/03-sqlite-local-messages.json
 
 第二批: features/02-gateway-api-routes.json（基于 spec-03 + spec-04）
   - spec-03: /api/chat 流式发送与中止（GET/POST /api/chat, POST /api/chat/abort）
@@ -70,4 +70,19 @@ current_features: features/02-gateway-api-routes.json
   - next.config.ts                              - 移除 turbopack.root（修复 @/ 别名解析）
   - 所有 .ts 内部导入扩展名统一从 .js 改为无扩展名（Turbopack 兼容）
 
-第三批待生成: spec-05 SQLite 本地消息持久化
+第三批实现中: features/03-sqlite-local-messages.json（基于 spec-05）
+  - spec-05: SQLite 本地消息存储（lib/db、getDb、insertMessage、listMessages）
+  - 共 15 个 feature 条目
+  - 12/15 通过
+
+  已通过: db-getdb-singleton, db-database-path-config, db-schema-init,
+    db-insert-message, db-list-messages, db-server-only-import,
+    api-get-chat-sqlite-source, api-get-chat-sqlite-message-format,
+    api-post-chat-no-sessionkey-writes-sqlite, api-post-chat-has-sessionkey-skip-sqlite,
+    api-chat-missing-agentid-returns-400, db-type-definitions
+
+  待通过: api-post-chat-sse-sqlite-persist, db-unit-tests, db-no-client-bundle
+
+Bug 修复（本会话）:
+  - GET /api/agents agents.list 返回格式：修复前期望直接返回数组，
+    修复后正确解析 { defaultId, mainKey, scope, agents: [...] } 格式。
