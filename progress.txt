@@ -2,7 +2,14 @@
 
 ## 当前状态：✅ 全部完成 + 1 个关键 Bug 修复
 
-所有 6 个 spec 批次（共 126 个 feature）已全部实现并验证通过。
+所有 6 个 spec 批次（共 125 个 feature）已全部实现并验证通过。
+- features/01-monorepo.json: 21/21 passes
+- features/02-gateway-api-routes.json: 15/15 passes
+- features/03-sqlite-local-messages.json: 15/15 passes
+- features/04-ui-chat.json: 15/15 passes
+- features/05-advanced-gateway-features.json: 25/25 passes
+- features/06-admin-proxy-session-state.json: 34/34 passes
+
 发现并修复 1 个关键浏览器端 bug（见下方"关键 Bug 修复记录"）。
 
 ## 批次概览
@@ -10,8 +17,8 @@
 ### 第一批: features/01-monorepo.json（基于 spec-01 + spec-02）
 - spec-01: monorepo and tooling（pnpm workspace、scripts、next.config.ts、依赖）
 - spec-02: gateway config and WS client（OpenClawClient、WebSocket 连接池、JSON-RPC 协议）
-- 共 22 个 feature 条目
-- ✅ 22/22 全部通过
+- 共 21 个 feature 条目
+- ✅ 21/21 全部通过
 
 ### 第二批: features/02-gateway-api-routes.json（基于 spec-03 + spec-04）
 - spec-03: /api/chat 流式发送与中止（GET/POST /api/chat, POST /api/chat/abort）
@@ -204,3 +211,20 @@
   该函数依赖 Node.js fs/os 模块，在浏览器中调用失败，导致每次打开应用都显示"网关连接失败"。
   修复：改用 fetch("/api/gateway/status") API 调用，服务端正确读取 ~/.openclaw/openclaw.json。
   截图：verification/01-gateway-fix.png
+
+## 最终验证（2026-04-04）
+
+| 检查项 | 状态 |
+|--------|------|
+| 所有 feature 文件 passes 验证 | ✅ 125/125 全部 passes: true |
+| pnpm test | ✅ 133/133 测试通过 |
+| pnpm typecheck | ✅ 通过（noEmit） |
+| pnpm lint | ✅ 0 errors（16 warnings） |
+| Gateway (ws://localhost:18789) | ✅ 运行中 |
+| Next.js App (http://localhost:3005) | ✅ 运行正常 |
+| /api/gateway/status | ✅ {"ok":true,"connected":true,"latencyMs":6} |
+| /api/agents | ✅ 返回 2 个 agent（main, agent-architect） |
+| /api/gateway/sessions | ✅ 正常返回会话列表 |
+| 浏览器 UI 渲染 | ✅ 三栏布局正常、SSR hydration 正常 |
+
+项目完整！所有 125 个 feature 全部实现并验证通过，无遗留问题。
