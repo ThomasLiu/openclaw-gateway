@@ -18,6 +18,7 @@ import type {
 } from "./chat-types";
 
 import GatewayAlertDialog from "./GatewayAlertDialog";
+import ExecApprovalOverlay from "./ExecApprovalOverlay";
 
 // ============================================================================
 // 子组件 import（避免循环依赖，统一在这里 import）
@@ -640,6 +641,9 @@ export default function ChatApp() {
         message={gatewayAlertMessage}
         onClose={() => setShowGatewayAlert(false)}
       />
+
+      {/* 执行审批弹窗 */}
+      <ExecApprovalOverlay />
     </div>
   );
 }
@@ -762,6 +766,33 @@ function AgentSidebar({
   loadingSessions: boolean;
   openclawAgentArchitectId: string;
 }) {
+  const [agentHovering, setAgentHovering] = useState<string | null>(null);
+
+  /** 导出 Agent */
+  async function handleExportAgent(agentId: string, e: { stopPropagation: () => void }) {
+    e.stopPropagation();
+    try {
+      const resp = await fetch(
+        `/api/agents/${encodeURIComponent(agentId)}/export`
+      );
+      if (!resp.ok) {
+        const data = await resp.json().catch(() => ({}));
+        alert(`导出失败: ${data.error ?? resp.statusText}`);
+        return;
+      }
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `openclaw-agent-${agentId.replace(/[^a-zA-Z0-9_-]/g, "-")}-export.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      alert("导出失败，请重试");
+    }
+  }
   const currentSessions = (currentAgentId ? sessions[currentAgentId] ?? [] : []) as SessionInfo_[];
 
   return (
@@ -775,21 +806,35 @@ function AgentSidebar({
           <div className="text-xs text-zinc-500 px-1 py-2">加载中...</div>
         ) : (
           agents.map((agent) => (
-            <button
+            <div
               key={agent.id}
-              onClick={() => onSelectAgent(agent.id)}
-              className={`w-full text-left px-2 py-1.5 rounded text-sm transition-colors mb-0.5 truncate ${
+              className={`group flex items-center gap-1 px-2 py-1.5 rounded text-sm transition-colors mb-0.5 ${
                 currentAgentId === agent.id
-                  ? "bg-zinc-700 text-zinc-100 selected-item"
-                  : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+                  ? "bg-zinc-700 text-zinc-100"
+                  : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 cursor-pointer"
               }`}
+              onClick={() => onSelectAgent(agent.id)}
+              onMouseEnter={() => setAgentHovering(agent.id)}
+              onMouseLeave={() => setAgentHovering(null)}
               title={agent.label}
             >
-              <span className="truncate block">{agent.label}</span>
+              <span className="truncate flex-1">{agent.label}</span>
               {agent.id === openclawAgentArchitectId && (
-                <span className="text-[10px] text-zinc-500 ml-1">Architect</span>
+                <span className="text-[10px] text-zinc-500 flex-shrink-0">Architect</span>
               )}
-            </button>
+              {/* 导出按钮 */}
+              {agentHovering === agent.id && (
+                <button
+                  onClick={(e) => handleExportAgent(agent.id, e)}
+                  className="flex-shrink-0 p-0.5 rounded text-zinc-400 hover:text-zinc-200 hover:bg-zinc-600 transition-colors"
+                  title="导出 Agent"
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M2 8v2h8V8M6 1v6M3 5l3 3 3-3" />
+                  </svg>
+                </button>
+              )}
+            </div>
           ))
         )}
       </div>

@@ -24,6 +24,21 @@ import type {
 } from "./types";
 import { extractAssistantTextFromGatewayMessage } from "./text-extraction";
 
+// 审批桥接（动态导入避免循环依赖）
+let _broadcastBridge: ((event: ApprovalBridgeEvent) => void) | null = null;
+
+export type ApprovalBridgeEvent =
+  | { event: "exec.approval.requested"; payload: Record<string, unknown> }
+  | { event: "exec.approval.resolved"; payload: Record<string, unknown> }
+  | { event: "plugin.approval.requested"; payload: Record<string, unknown> }
+  | { event: "plugin.approval.resolved"; payload: Record<string, unknown> };
+
+export function setApprovalBridgeBroadcaster(
+  fn: (event: ApprovalBridgeEvent) => void
+): void {
+  _broadcastBridge = fn;
+}
+
 const DEFAULT_REQUEST_TIMEOUT_MS = 60_000;
 const DEFAULT_HANDSHAKE_TIMEOUT_MS = 25_000;
 
@@ -213,6 +228,13 @@ export class OpenClawClient extends EventEmitter {
         event.startsWith("plugin.approval.")
       ) {
         this.emit(event, payload);
+        // 广播给 SSE 审批桥接订阅者
+        if (_broadcastBridge) {
+          _broadcastBridge({
+            event: event as ApprovalBridgeEvent["event"],
+            payload: payload ?? {},
+          });
+        }
       }
     } else if (type === "res") {
       const id = msg.id as string;
@@ -488,6 +510,32 @@ export class OpenClawClient extends EventEmitter {
 
   async cronRemove(id: string): Promise<void> {
     await this.request("cron.remove", { id });
+  }
+
+  // ─── Approval Methods ──────────────────────────────────────────────────────
+
+  /**
+   * 解析 Shell 执行审批
+   * @param id 审批 ID
+   * @param decision 决策：allow-once | allow-always | deny
+   */
+  async execApprovalResolve(
+    id: string,
+    decision: "allow-once" | "allow-always" | "deny"
+  ): Promise<void> {
+    await this.request("exec.approval.resolve", { id, decision });
+  }
+
+  /**
+   * 解析插件执行审批
+   * @param id 审批 ID
+   * @param decision 决策：allow-once | allow-always | deny
+   */
+  async pluginApprovalResolve(
+    id: string,
+    decision: "allow-once" | "allow-always" | "deny"
+  ): Promise<void> {
+    await this.request("plugin.approval.resolve", { id, decision });
   }
 
   // ─── Skills Methods ─────────────────────────────────────────────────────────

@@ -7,12 +7,13 @@ export { getGatewayConfig, normalizeHttpBase, isLocalhostUrl, listAgentsFromOpen
 export type { GatewayAuthConfig, AgentInfo } from "./config";
 
 // Client
-export { OpenClawClient } from "./client";
+export { OpenClawClient, setApprovalBridgeBroadcaster } from "./client";
 export type {
   OpenClawClientEvents,
   ChatDeltaEvent,
   ChatFinalEvent,
   ChatErrorEvent,
+  ApprovalBridgeEvent,
 } from "./client";
 export type { OpenClawClientMethods } from "./types";
 

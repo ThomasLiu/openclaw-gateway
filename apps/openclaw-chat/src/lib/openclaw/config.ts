@@ -23,7 +23,7 @@ export function isLocalhostUrl(url: string): boolean {
 }
 
 /** Read the openclaw.json config file */
-function readOpenClawJson(): Record<string, unknown> | null {
+export function readOpenClawJson(): Record<string, unknown> | null {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { readFileSync } = require("fs") as typeof import("fs");
