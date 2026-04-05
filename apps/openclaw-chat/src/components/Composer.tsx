@@ -1080,7 +1080,7 @@ type SuggestionItem = {
   label: string;
 };
 
-function SlashMenuDetail({ command }: { command: SlashCommand }) {
+function SlashMenuDetail({ command, hideDynamicSuggestions = false }: { command: SlashCommand; hideDynamicSuggestions?: boolean }) {
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [suggestionLabel, setSuggestionLabel] = useState("");
@@ -1208,8 +1208,8 @@ function SlashMenuDetail({ command }: { command: SlashCommand }) {
                 </div>
               )}
 
-              {/* 动态建议 */}
-              {arg.suggestionsKey && (
+              {/* 动态建议 - 当参数建议已显示时隐藏 */}
+              {arg.suggestionsKey && !hideDynamicSuggestions && (
                 <div className="mt-2">
                   <div className="flex items-center gap-1 mb-1">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-zinc-500">
@@ -1286,14 +1286,23 @@ function ArgSuggestionsDropdown({
   suggestionLabel: string;
 }) {
   const [selectedIdx, setSelectedIdx] = useState(0);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // 重置选中索引当建议列表变化时
   useEffect(() => {
     setSelectedIdx(0);
   }, [suggestions]);
 
+  // 当组件挂载或建议列表变化时自动获得焦点
+  useEffect(() => {
+    if (dropdownRef.current) {
+      dropdownRef.current.focus();
+    }
+  }, [suggestions]);
+
   // 键盘导航
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    console.log('ArgSuggestionsDropdown handleKeyDown', e.key);
     if (suggestions.length === 0) return;
 
     switch (e.key) {
@@ -1323,7 +1332,9 @@ function ArgSuggestionsDropdown({
 
   return (
     <div
-      className="border-t border-zinc-700 bg-zinc-800/95 max-h-48 overflow-y-auto"
+      ref={dropdownRef}
+      tabIndex={0}
+      className="border-t border-zinc-700 bg-zinc-800/95 max-h-48 overflow-y-auto focus:outline-none"
       onKeyDown={handleKeyDown}
     >
       {/* 头部 */}
@@ -1429,6 +1440,24 @@ function SlashMenu({
 
   let globalIndex = 0;
 
+  // 当有参数建议时，只显示参数建议下拉，隐藏命令列表和详情面板
+  const showArgSuggestions = argSuggestions.length > 0 || argLoading;
+
+  if (showArgSuggestions) {
+    return (
+      <div className="absolute left-0 right-0 bottom-full mb-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl overflow-hidden z-50 flex flex-col">
+        {/* 参数建议下拉 - 全宽显示 */}
+        <ArgSuggestionsDropdown
+          suggestions={argSuggestions}
+          loading={argLoading}
+          suggestionLabel={suggestionLabel}
+          onSelect={onArgSelect}
+          onClose={() => {}}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="absolute left-0 right-0 bottom-full mb-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl overflow-hidden z-50 flex flex-col">
       <div className="flex">
@@ -1483,15 +1512,6 @@ function SlashMenu({
         {/* 右侧详情面板 */}
         {selectedCommand && <SlashMenuDetail key={selectedCommand.name} command={selectedCommand} />}
       </div>
-
-      {/* 参数建议下拉 - 在命令列表下方 */}
-      <ArgSuggestionsDropdown
-        suggestions={argSuggestions}
-        loading={argLoading}
-        suggestionLabel={suggestionLabel}
-        onSelect={onArgSelect}
-        onClose={() => {}}
-      />
     </div>
   );
 }
@@ -1732,11 +1752,13 @@ export default function Composer({
   // 处理输入变化
   const handleInput = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
+    const cursorPos = e.target.selectionStart ?? 0;
+    console.log('handleInput', { value, cursorPos, draft: draft });
+    
     setDraft(value);
     adjustHeight();
 
     // 检测 slash 命令
-    const cursorPos = e.target.selectionStart ?? 0;
     const textBeforeCursor = value.slice(0, cursorPos);
     const lastSlashIndex = textBeforeCursor.lastIndexOf("/");
 
@@ -1787,8 +1809,11 @@ export default function Composer({
 
   // 处理键盘事件
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Slash 菜单导航
-    if (slashMenuOpen && slashCommands.length > 0) {
+    // 检测是否正在输入参数（draft 包含空格说明在输入参数而非选择命令）
+    const isTypingArg = draft.includes(" ");
+
+    // Slash 菜单导航 - 只有在选择命令时拦截，输入参数时让参数建议面板处理
+    if (slashMenuOpen && slashCommands.length > 0 && !isTypingArg) {
       switch (e.key) {
         case "ArrowDown":
           e.preventDefault();
@@ -1810,6 +1835,22 @@ export default function Composer({
           e.preventDefault();
           selectSlashCommand(slashCommands[slashMenuIndex]);
           return;
+      }
+    }
+
+    // 参数建议键盘导航 - 当 slash 菜单打开且正在输入参数时
+    if (slashMenuOpen && draft.includes(" ")) {
+      // 只拦截 Escape 键，让 ArrowUp/Down/Enter/Tab 事件传递给 ArgSuggestionsDropdown 组件
+      if (e.key === "Escape") {
+        e.preventDefault();
+        // 找到 /command 的位置，清除到 / 为止
+        const lastSlashIndex = draft.lastIndexOf("/");
+        if (lastSlashIndex > -1) {
+          setDraft(draft.slice(0, lastSlashIndex));
+        }
+        setSlashMenuOpen(false);
+        setSlashMenuFilter("");
+        return;
       }
     }
 
@@ -1853,6 +1894,11 @@ export default function Composer({
 
     // 发送消息
     if (e.key === "Enter" && !e.shiftKey) {
+      // 当 slash 菜单打开且正在输入参数时，不触发发送消息，让 ArgSuggestionsDropdown 处理
+      if (slashMenuOpen && draft.includes(" ")) {
+        return;
+      }
+      
       e.preventDefault();
       if (draft.trim() && !disabled && !streaming) {
         // 添加到输入历史

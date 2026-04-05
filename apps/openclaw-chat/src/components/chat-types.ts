@@ -19,6 +19,23 @@ export type ToolResult = {
   content: string;
 };
 
+/** 工具卡片（用于渲染） */
+export type ToolCard = {
+  kind: "call" | "result";
+  name: string;
+  args?: unknown;
+  text?: string;
+};
+
+/** 消息分组（用于 Slack 风格布局） */
+export type MessageGroup = {
+  role: "user" | "assistant" | "tool" | "system";
+  messages: Array<{ message: MessageItem }>;
+  timestamp: number;
+  isStreaming?: boolean;
+  senderLabel?: string;
+};
+
 // ============================================================================
 // 消息使用量类型
 // ============================================================================
@@ -50,10 +67,10 @@ export type MessageImage = {
 // 用户/助手/系统消息
 // ============================================================================
 
-/** 用户/助手/系统消息 */
+/** 用户/助手/系统/工具消息 */
 export type MessageItem = {
   id: string;
-  role: "user" | "assistant" | "system";
+  role: "user" | "assistant" | "system" | "tool";
   content: string;
   timestamp: Date;
   /** 流式追加时的 delta 内容（仅 assistant 角色） */

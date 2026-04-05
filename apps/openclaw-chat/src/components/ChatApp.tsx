@@ -113,7 +113,7 @@ export default function ChatApp() {
   const [streamingDelta, setStreamingDelta] = useState<string | undefined>(undefined);
 
   /** 右侧日志面板是否展开（从 localStorage 恢复） */
-  const [rightPanelOpen, setRightPanelOpen] = useState(false);
+  const [rightPanelOpen, setRightPanelOpen] = useState(true);
 
   /** 右侧日志面板宽度（px），默认 512（256 的两倍），从 localStorage 恢复 */
   const [rightPanelWidth, setRightPanelWidth] = useState(512);
@@ -123,8 +123,9 @@ export default function ChatApp() {
 
   // 从 localStorage 恢复 UI 状态（仅客户端，延迟初始化避免 hydration 不匹配）
   useEffect(() => {
-    const savedOpen = localStorage.getItem("openclaw-right-panel-open");
-    if (savedOpen === "true") setRightPanelOpen(true);
+    // 强制设置为 true，确保日志面板默认打开
+    setRightPanelOpen(true);
+    localStorage.setItem("openclaw-right-panel-open", "true");
     const savedWidth = localStorage.getItem("openclaw-right-panel-width");
     if (savedWidth) setRightPanelWidth(Number(savedWidth));
   }, []);
@@ -547,6 +548,26 @@ export default function ChatApp() {
   }, [currentAgentId, loadingSessions, sessionsMap, currentSessionKey, loadMessages]);
 
   // ---------------------------------------------------------------------------
+  // 刷新消息
+  // ---------------------------------------------------------------------------
+
+  const handleRefresh = useCallback(() => {
+    if (!currentAgentId || !currentSessionKey) return;
+
+    // 重置流式状态
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+    setStreaming(false);
+    setStreamingMessageId(undefined);
+    setStreamingDelta(undefined);
+
+    // 重新加载消息
+    loadMessages(currentAgentId, currentSessionKey);
+  }, [currentAgentId, currentSessionKey, loadMessages]);
+
+  // ---------------------------------------------------------------------------
   // Agent 切换逻辑
   // ---------------------------------------------------------------------------
 
@@ -634,28 +655,8 @@ export default function ChatApp() {
   // 添加 Agent（由 Architect 引导）
   // ---------------------------------------------------------------------------
 
-  /** Architect Agent 引导消息 */
-  const ARCHITECT_GUIDING_MESSAGE = `你好！我是 Agent 设计专家 🏗️，可以帮助你创建和管理新的 Agent。
-
-要创建一个新的 Agent，请告诉我：
-1. 你希望这个 Agent 做什么？（例如：代码审查、数据分析、客服对话等）
-2. 它需要什么工具或能力？
-3. 你想给它起什么名字？
-
-我会帮你设置好工作区文件和初始配置。`;
-
-  /**
-   * 等待 sessions 加载完成
-   * sessionsMap[targetAgentId] 初始为 undefined，加载后会是数组
-   */
-  async function waitForSessionsLoaded(targetAgentId: string, maxAttempts = 30): Promise<void> {
-    for (let i = 0; i < maxAttempts; i++) {
-      const sessions = sessionsMap[targetAgentId];
-      // sessions 存在且为数组（即使是空数组也说明已加载过）
-      if (Array.isArray(sessions)) return;
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-  }
+  /** Architect Agent 引导消息（用户视角，请求 Architect 帮助创建 Agent） */
+  const ARCHITECT_GUIDING_MESSAGE = `你好！我想创建一个新的 Agent，请帮我设计和配置它。`;
 
   /**
    * 添加 Agent - 由 Architect 引导创建
@@ -676,13 +677,16 @@ export default function ChatApp() {
       }
       const { agentId } = (await ensureResp.json()) as { agentId: string };
 
-      // Step 2: 切换到 Architect agent
+      // Step 2: 刷新 agents 列表
+      await getAgentsStore().refresh();
+
+      // Step 3: 切换到 Architect agent
       handleSelectAgent(agentId);
 
-      // Step 3: 等待 sessions 加载
-      await waitForSessionsLoaded(agentId);
+      // Step 4: 等待 sessions 加载
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Step 4: 查找空 session 或创建新的
+      // Step 5: 查找空 session 或创建新的
       const sessions = sessionsMap[agentId] ?? [];
       const emptySession = sessions.find(
         (s: SessionInfo_) => !s.userLastMessage && !s.agentLastMessage
@@ -702,12 +706,12 @@ export default function ChatApp() {
         handleSelectSession(newSessionKey);
       }
 
-      // Step 5: 等待 session 切换完成，然后发送引导消息
+      // Step 6: 等待 session 切换完成，然后发送引导消息
       await new Promise((resolve) => setTimeout(resolve, 300));
       handleSendMessage(ARCHITECT_GUIDING_MESSAGE);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      alert(`添加 Agent 失败: ${msg}`);
+      showError(`添加 Agent 失败: ${msg}`);
     } finally {
       setAddingAgent(false);
     }
@@ -995,6 +999,7 @@ export default function ChatApp() {
           streamingMessageId={streamingMessageId}
           streamingDelta={streamingDelta}
           loadingMessages={loadingMessages}
+          onRefresh={handleRefresh}
         />
 
         {/* 右侧日志面板 */}

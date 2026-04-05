@@ -1,14 +1,15 @@
 "use client";
 
 /**
- * StreamingWaveBar - 流式消息指示器
- * 浅绿色渐变波动动画
+ * StreamingWaveBar - OpenClaw Console 风格流式指示器
+ * 三个跳动的点
  */
 export default function StreamingWaveBar() {
   return (
-    <div
-      className="oc-stream-wave-bar"
-      title="AI 正在生成..."
-    />
+    <div className="chat-streaming-indicator">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
   );
 }

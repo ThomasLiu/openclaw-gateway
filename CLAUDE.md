@@ -45,6 +45,6 @@ cd .claude/skills/gstack && ./setup
 3. 更新 `docs/product-spec.md` 中对应的章节
 4. 提交文档更新
 
-doc-sync prompt 模板：`docs/prompts/doc-sync-prompt.md`
+doc-sync subagent：`.claude/agents/doc-sync/SUBAGENT.md`
 
 

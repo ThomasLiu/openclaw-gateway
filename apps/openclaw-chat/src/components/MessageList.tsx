@@ -1,30 +1,17 @@
 "use client";
 
 /**
- * MessageList - 渲染消息历史
- * 支持流式 delta 更新、Markdown 渲染、Token 计数、成本、JSON 折叠、Tool Cards 等功能
+ * MessageList - OpenClaw Web UI 风格消息列表
+ *
+ * 气泡式布局，用户消息在右，助手消息在左，与 OpenClaw Web UI 一致
  *
  * 参考 OpenClaw 源码：ai-reference-sources/openclaw/ui/src/ui/chat/grouped-render.ts
  */
-import { useCallback, useEffect, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import type { MessageItem, ToolCall } from "./chat-types";
+import { useEffect, useRef, useState, useCallback } from "react";
+import type { MessageItem } from "./chat-types";
 import StreamingWaveBar from "./StreamingWaveBar";
-
-// ============================================================================
-// 常量
-// ============================================================================
-
-/** JSON 自动解析的最大字符数（防止 DoS） */
-const MAX_JSON_AUTOPARSE_CHARS = 20_000;
-
-/** Token 计数格式化 */
-function fmtTokens(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}k`;
-  return String(n);
-}
+import { useRouter } from "next/navigation";
+import "./message-list.css";
 
 // ============================================================================
 // 类型
@@ -36,47 +23,74 @@ type MessageListProps = {
   streamingDelta?: string;
   onDeleteMessage?: (messageId: string) => void;
   onPinMessage?: (messageId: string) => void;
+  showThinking?: boolean;
+  showToolCalls?: boolean;
+  onOpenSidebar?: (content: string) => void;
+};
+
+type MessageGroup = {
+  id: string;
+  role: string;
+  messages: MessageItem[];
+  timestamp: number;
+  isStreaming: boolean;
 };
 
 // ============================================================================
-// 工具函数
+// 消息分组
 // ============================================================================
 
-/**
- * 检测字符串是否为 JSON 对象或数组
- */
-function detectJson(text: string): { parsed: unknown; pretty: string } | null {
-  const t = text.trim();
-  if (t.length > MAX_JSON_AUTOPARSE_CHARS) return null;
-  if ((t.startsWith("{") && t.endsWith("}")) || (t.startsWith("[") && t.endsWith("]"))) {
-    try {
-      const parsed = JSON.parse(t);
-      return { parsed, pretty: JSON.stringify(parsed, null, 2) };
-    } catch {
-      return null;
+function groupMessages(messages: MessageItem[]): MessageGroup[] {
+  const groups: MessageGroup[] = [];
+  let currentGroup: MessageGroup | null = null;
+
+  for (const message of messages) {
+    if (message.isDeleted) continue;
+
+    if (!currentGroup || currentGroup.role !== message.role) {
+      currentGroup = {
+        id: `group:${message.role}:${message.id}`,
+        role: message.role,
+        messages: [message],
+        timestamp: message.timestamp.getTime(),
+        isStreaming: false,
+      };
+      groups.push(currentGroup);
+    } else {
+      currentGroup.messages.push(message);
     }
   }
-  return null;
+
+  return groups;
 }
 
-/**
- * 获取 JSON 摘要标签
- */
-function jsonSummaryLabel(parsed: unknown): string {
-  if (Array.isArray(parsed)) return `Array (${parsed.length} item${parsed.length === 1 ? "" : "s"})`;
-  if (parsed && typeof parsed === "object") {
-    const keys = Object.keys(parsed as Record<string, unknown>);
-    if (keys.length <= 4) return `{ ${keys.join(", ")} }`;
-    return `Object (${keys.length} keys)`;
+// ============================================================================
+// Avatar 图标组件
+// ============================================================================
+
+function AvatarIcon({ role }: { role: string }) {
+  if (role === "user") {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="8" r="4" />
+        <path d="M20 21a8 8 0 1 0-16 0" />
+      </svg>
+    );
   }
-  return "JSON";
-}
 
-/**
- * 提取消息文本（用于 TTS、复制等操作）
- */
-function extractMessageText(message: MessageItem): string {
-  return message.content || "";
+  if (role === "assistant") {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2l2.4 7.2H22l-6 4.8 2.4 7.2L12 16l-6.4 5.2L8 14 2 9.2h7.6z" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53a7.76 7.76 0 0 0 .07-1 7.76 7.76 0 0 0-.07-.97l2.11-1.63a.5.5 0 0 0 .12-.64l-2-3.46a.5.5 0 0 0-.61-.22l-2.49 1a7.15 7.15 0 0 0-1.69-.98l-.38-2.65A.49.49 0 0 0 14 2h-4a.49.49 0 0 0-.49.42l-.38 2.65a7.15 7.15 0 0 0-1.69.98l-2.49-1a.5.5 0 0 0-.61.22l-2 3.46a.49.49 0 0 0 .12.64L4.57 11a7.9 7.9 0 0 0 0 1.94l-2.11 1.69a.49.49 0 0 0-.12.64l2 3.46a.5.5 0 0 0 .61.22l2.49-1c.52.4 1.08.72 1.69.98l.38 2.65c.05.24.26.42.49.42h4c.23 0 .44-.18.49-.42l.38-2.65a7.15 7.15 0 0 0 1.69-.98l2.49 1a.5.5 0 0 0 .61-.22l2-3.46a.49.49 0 0 0-.12-.64z" />
+      </svg>
+    );
 }
 
 // ============================================================================
@@ -125,259 +139,133 @@ function stopTts() {
   }
 }
 
-function isTtsSpeaking(): boolean {
-  return isSpeaking;
+// ============================================================================
+// JSON 检测
+// ============================================================================
+
+const MAX_JSON_AUTOPARSE_CHARS = 20000;
+
+function detectJson(text: string): { parsed: unknown; pretty: string } | null {
+  const t = text.trim();
+  if (t.length > MAX_JSON_AUTOPARSE_CHARS) return null;
+  if ((t.startsWith("{") && t.endsWith("}")) || (t.startsWith("[") && t.endsWith("]"))) {
+    try {
+      const parsed = JSON.parse(t);
+      return { parsed, pretty: JSON.stringify(parsed, null, 2) };
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
 // ============================================================================
-// 消息元数据组件
-// ============================================================================
-
-function MessageMeta({
-  usage,
-  cost,
-  contextPercent,
-  model,
-}: {
-  usage?: { input?: number; output?: number; cacheRead?: number; cacheWrite?: number };
-  cost?: { total?: number };
-  contextPercent?: number;
-  model?: string;
-}) {
-  const parts: React.ReactNode[] = [];
-
-  // Token counts: ↑input ↓output
-  if (usage?.input) {
-    parts.push(<span key="input" className="msg-meta__tokens">↑{fmtTokens(usage.input)}</span>);
-  }
-  if (usage?.output) {
-    parts.push(<span key="output" className="msg-meta__tokens">↓{fmtTokens(usage.output)}</span>);
-  }
-
-  // Cache: R/W
-  if (usage?.cacheRead) {
-    parts.push(<span key="cacheR" className="msg-meta__cache">R{fmtTokens(usage.cacheRead)}</span>);
-  }
-  if (usage?.cacheWrite) {
-    parts.push(<span key="cacheW" className="msg-meta__cache">W{fmtTokens(usage.cacheWrite)}</span>);
-  }
-
-  // Cost
-  if (cost?.total && cost.total > 0) {
-    parts.push(<span key="cost" className="msg-meta__cost">${cost.total.toFixed(4)}</span>);
-  }
-
-  // Context %
-  if (contextPercent !== undefined && contextPercent > 0) {
-    const cls = contextPercent >= 90
-      ? "msg-meta__ctx msg-meta__ctx--danger"
-      : contextPercent >= 75
-        ? "msg-meta__ctx msg-meta__ctx--warn"
-        : "msg-meta__ctx";
-    parts.push(<span key="ctx" className={cls}>{contextPercent}% ctx</span>);
-  }
-
-  // Model (short name - strip provider prefix)
-  if (model) {
-    const shortModel = model.includes("/") ? model.split("/").pop()! : model;
-    parts.push(<span key="model" className="msg-meta__model">{shortModel}</span>);
-  }
-
-  if (parts.length === 0) return null;
-
-  return <span className="msg-meta">{parts}</span>;
-}
-
-// ============================================================================
-// JSON 折叠组件
-// ============================================================================
-
-function JsonCollapsible({ json }: { json: { parsed: unknown; pretty: string } }) {
-  const label = jsonSummaryLabel(json.parsed);
-
-  return (
-    <details className="chat-json-collapse">
-      <summary className="chat-json-summary">
-        <span className="chat-json-badge">JSON</span>
-        <span className="chat-json-label">{label}</span>
-      </summary>
-      <pre className="chat-json-content"><code>{json.pretty}</code></pre>
-    </details>
-  );
-}
-
-// ============================================================================
-// Tool Cards 折叠组件
-// ============================================================================
-
-function ToolCardsCollapsible({ toolCalls }: { toolCalls: ToolCall[] }) {
-  const calls = toolCalls;
-  const totalTools = calls.length;
-  const toolNames = [...new Set(calls.map((c) => c.name))];
-  const summaryLabel = toolNames.length <= 3
-    ? toolNames.join(", ")
-    : `${toolNames.slice(0, 2).join(", ")} +${toolNames.length - 2} more`;
-
-  return (
-    <details className="chat-tools-collapse">
-      <summary className="chat-tools-summary">
-        <span className="chat-tools-summary__icon">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-          </svg>
-        </span>
-        <span className="chat-tools-summary__count">{totalTools} tool{totalTools === 1 ? "" : "s"}</span>
-        <span className="chat-tools-summary__names">{summaryLabel}</span>
-      </summary>
-      <div className="chat-tools-collapse__body">
-        {calls.map((call) => (
-          <div key={call.id} className="tool-card">
-            <div className="tool-card__header">
-              <span className="tool-card__name">{call.name}</span>
-            </div>
-            <div className="tool-card__content">
-              <pre><code>{JSON.stringify(call.input, null, 2)}</code></pre>
-            </div>
-          </div>
-        ))}
-      </div>
-    </details>
-  );
-}
-
-// ============================================================================
-// 图片消息组件
-// ============================================================================
-
-function MessageImages({ images }: { images: { url: string; alt?: string }[] }) {
-  const [previewImage, setPreviewImage] = useState<{ url: string; alt?: string } | null>(null);
-
-  return (
-    <>
-      <div className="chat-message-images">
-        {images.map((img, idx) => (
-          <img
-            key={idx}
-            src={img.url}
-            alt={img.alt ?? "Attached image"}
-            className="chat-message-image"
-            onClick={() => setPreviewImage(img)}
-          />
-        ))}
-      </div>
-      {previewImage && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center"
-          onClick={() => setPreviewImage(null)}
-        >
-          <img
-            src={previewImage.url}
-            alt={previewImage.alt ?? ""}
-            className="max-w-[90vw] max-h-[90vh] object-contain"
-          />
-          <button
-            className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:text-zinc-200"
-            onClick={() => setPreviewImage(null)}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-      )}
-    </>
-  );
-}
-
-// ============================================================================
-// 思考内容组件
+// 思考内容
 // ============================================================================
 
 function ThinkingBlock({ thinking }: { thinking: string }) {
+  const [expanded, setExpanded] = useState(false);
+
   return (
-    <details className="chat-thinking">
-      <summary className="chat-thinking__summary">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-amber-500/70">
-          <path d="M12 2a10 10 0 100 20A10 10 0 0012 2z"/>
-          <path d="M12 8v4l3 3"/>
-        </svg>
-        <span>思考过程</span>
-      </summary>
-      <div className="chat-thinking__content">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{thinking}</ReactMarkdown>
+    <div className="chat-thinking">
+      <div className="chat-thinking__header" onClick={() => setExpanded(!expanded)}>
+        <span className={`chat-thinking__toggle ${expanded ? "chat-thinking__toggle--expanded" : ""}`}>
+          ▼
+        </span>
+        <span className="chat-thinking__label">思考过程</span>
       </div>
-    </details>
+      {expanded && (
+        <div className="chat-thinking__content">
+          {thinking.split("\n").map((line, i) => (
+            <p key={i}>{line}</p>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
 // ============================================================================
-// 消息操作栏组件
+// 消息操作按钮
 // ============================================================================
 
 function MessageActions({
-  message,
+  messageId,
+  content,
   onDelete,
-  onPin,
-  onCopyAsMarkdown,
-  onSpeak,
   onOpenSidebar,
-  canSpeak,
+  role,
 }: {
-  message: MessageItem;
-  onDelete?: () => void;
-  onPin?: () => void;
-  onCopyAsMarkdown?: () => void;
-  onSpeak?: () => void;
-  onOpenSidebar?: () => void;
-  canSpeak?: boolean;
+  messageId: string;
+  content: string;
+  onDelete?: (id: string) => void;
+  onOpenSidebar?: (content: string) => void;
+  role: string;
 }) {
   const [showConfirm, setShowConfirm] = useState(false);
+  const [ttsActive, setTtsActive] = useState(false);
+
+  const handleTts = () => {
+    if (ttsActive) {
+      stopTts();
+      setTtsActive(false);
+    } else {
+      speakText(content, () => setTtsActive(false), () => setTtsActive(false));
+      setTtsActive(true);
+    }
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(content).then(() => {
+      // 可以添加复制成功的反馈
+    });
+  };
+
+  const handleExpand = () => {
+    if (onOpenSidebar && content) {
+      onOpenSidebar(content);
+    }
+  };
+
+  const canExpand = role === "assistant" && onOpenSidebar && content;
+  const canCopy = role === "assistant" && content;
 
   return (
-    <div className="chat-bubble-actions">
-      {/* 在侧边栏打开 */}
-      {onOpenSidebar && (
+    <span className="chat-bubble-actions">
+      {canExpand && (
         <button
-          className="chat-action-btn"
-          title="Open in canvas"
-          onClick={onOpenSidebar}
+          className="chat-expand-btn"
+          onClick={handleExpand}
+          title="在侧边栏中打开"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <rect x="3" y="3" width="18" height="18" rx="2" />
-            <path d="M9 3v18" />
+            <line x1="15" y1="3" x2="15" y2="21" />
+            <line x1="21" y1="15" x2="3" y2="15" />
           </svg>
         </button>
       )}
 
-      {/* 复制为 Markdown */}
-      {onCopyAsMarkdown && (
+      {canCopy && (
         <button
-          className="chat-action-btn"
-          title="Copy as Markdown"
-          onClick={onCopyAsMarkdown}
+          className="chat-copy-btn"
+          onClick={handleCopy}
+          title="复制为 Markdown"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <rect x="9" y="9" width="13" height="13" rx="2" />
             <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
           </svg>
         </button>
       )}
 
-      {/* TTS 朗读 */}
-      {canSpeak && onSpeak && (
+      {isTtsSupported() && role === "assistant" && (
         <button
-          className={`chat-action-btn ${isTtsSpeaking() ? "chat-action-btn--active" : ""}`}
-          title={isTtsSpeaking() ? "Stop speaking" : "Read aloud"}
-          onClick={() => {
-            if (isTtsSpeaking()) {
-              stopTts();
-            } else {
-              onSpeak();
-            }
-          }}
+          className={`chat-tts-btn ${ttsActive ? "chat-tts-btn--active" : ""}`}
+          onClick={handleTts}
+          title={ttsActive ? "停止朗读" : "朗读"}
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
             <path d="M15.54 8.46a5 5 0 010 7.07" />
             <path d="M19.07 4.93a10 10 0 010 14.14" />
@@ -385,237 +273,371 @@ function MessageActions({
         </button>
       )}
 
-      {/* 固定消息 */}
-      {onPin && (
-        <button
-          className={`chat-action-btn ${message.isPinned ? "chat-action-btn--active" : ""}`}
-          title={message.isPinned ? "Unpin" : "Pin to top"}
-          onClick={onPin}
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M12 17v5" />
-            <path d="M9 10.76a2 2 0 01-1.11 1.79l-1.78.9A2 2 0 005 15.24V17h14v-1.76a2 2 0 00-1.11-1.79l-1.78-.9A2 2 0 0115 10.76V6a2 2 0 00-2-2h-2a2 2 0 00-2 2v4.76z" />
-          </svg>
-        </button>
-      )}
-
-      {/* 删除按钮 */}
       {onDelete && (
-        <div className="chat-delete-wrap">
+        <span className="chat-delete-wrap">
           <button
-            className="chat-action-btn chat-action-btn--danger"
-            title="Delete"
+            className="chat-group-delete"
             onClick={() => setShowConfirm(true)}
+            title="删除"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <polyline points="3 6 5 6 21 6" />
               <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
             </svg>
           </button>
-
           {showConfirm && (
-            <div className="chat-delete-confirm">
-              <p className="chat-delete-confirm__text">Delete this message?</p>
+            <div className={`chat-delete-confirm chat-delete-confirm--${role === "user" ? "left" : "right"}`}>
+              <p className="chat-delete-confirm__text">删除此消息？</p>
+              <div className="chat-delete-confirm__remember">
+                <input type="checkbox" className="chat-delete-confirm__check" />
+                <span>不再询问</span>
+              </div>
               <div className="chat-delete-confirm__actions">
-                <button onClick={() => setShowConfirm(false)}>Cancel</button>
-                <button onClick={() => { onDelete(); setShowConfirm(false); }}>Delete</button>
+                <button className="chat-delete-confirm__cancel" onClick={() => setShowConfirm(false)}>取消</button>
+                <button className="chat-delete-confirm__yes" onClick={() => { onDelete(messageId); setShowConfirm(false); }}>删除</button>
               </div>
             </div>
           )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ============================================================================
-// 消息气泡组件
-// ============================================================================
-
-function MessageBubble({
-  message,
-  isStreaming,
-  displayContent,
-  onDelete,
-  onPin,
-  onCopyAsMarkdown,
-  onOpenSidebar,
-}: {
-  message: MessageItem;
-  isStreaming: boolean;
-  displayContent: string;
-  onDelete?: (messageId: string) => void;
-  onPin?: (messageId: string) => void;
-  onCopyAsMarkdown?: (messageId: string) => void;
-  onOpenSidebar?: (messageId: string, content: string) => void;
-}) {
-  const timeStr = message.timestamp.toLocaleTimeString("zh-CN", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  // 检测 JSON
-  const jsonResult = !isStreaming && displayContent ? detectJson(displayContent) : null;
-
-  // 是否有操作按钮
-  const hasActions = message.role === "assistant" || message.role === "user";
-
-  if (message.role === "system") {
-    return (
-      <div className="message-system text-center py-1 text-xs">
-        {displayContent}
-      </div>
-    );
-  }
-
-  if (message.role === "user") {
-    return (
-      <div className="flex justify-end">
-        <div className="max-w-[70%]">
-          <div className="message-user px-3 py-2 text-sm leading-relaxed">
-            {displayContent}
-          </div>
-          <div className="text-[10px] text-zinc-600 mt-0.5 text-right flex items-center justify-end gap-2">
-            {timeStr}
-            {hasActions && (
-              <MessageActions
-                message={message}
-                onDelete={onDelete ? () => onDelete(message.id) : undefined}
-                onPin={onPin ? () => onPin(message.id) : undefined}
-                onCopyAsMarkdown={onCopyAsMarkdown ? () => onCopyAsMarkdown(message.id) : undefined}
-                onSpeak={onOpenSidebar ? () => speakText(displayContent) : undefined}
-                canSpeak={isTtsSupported()}
-              />
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // assistant
-  return (
-    <div className="flex flex-col gap-1">
-      {/* 助手消息头：模型信息 + 元数据 */}
-      <div className="flex items-center gap-2 px-1 flex-wrap">
-        <div className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
-        {message.meta?.model && (
-          <span className="text-[11px] text-zinc-500">{message.meta.model}</span>
-        )}
-        {isStreaming && (
-          <span className="text-[11px] text-zinc-600 animate-pulse">生成中...</span>
-        )}
-        {message.meta?.durationMs !== undefined && !isStreaming && (
-          <span className="text-[11px] text-zinc-600">
-            {(message.meta.durationMs / 1000).toFixed(1)}s
-          </span>
-        )}
-        {/* 消息使用量元数据 */}
-        <MessageMeta
-          usage={message.usage}
-          cost={message.cost}
-          contextPercent={message.contextPercent}
-          model={message.meta?.model}
-        />
-      </div>
-
-      <div className="flex gap-2">
-        {/* 头像区 */}
-        <div className="flex-shrink-0 w-7 h-7 rounded-full bg-zinc-800 flex items-center justify-center mt-1">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-zinc-500">
-            <path d="M12 2a10 10 0 100 20A10 10 0 0012 2z"/>
-            <path d="M12 8v4l3 3"/>
-          </svg>
-        </div>
-
-        {/* 消息内容 */}
-        <div className="flex-1 min-w-0">
-          <div className="message-assistant px-3 py-2.5 text-sm leading-relaxed text-zinc-100">
-            {/* 操作按钮 */}
-            {hasActions && (
-              <MessageActions
-                message={message}
-                onDelete={onDelete ? () => onDelete(message.id) : undefined}
-                onPin={onPin ? () => onPin(message.id) : undefined}
-                onCopyAsMarkdown={onCopyAsMarkdown ? () => onCopyAsMarkdown(message.id) : undefined}
-                onSpeak={onOpenSidebar ? () => speakText(displayContent) : undefined}
-                onOpenSidebar={onOpenSidebar ? () => onOpenSidebar(message.id, displayContent) : undefined}
-                canSpeak={isTtsSupported()}
-              />
-            )}
-
-            {/* 图片消息 */}
-            {message.images && message.images.length > 0 && (
-              <MessageImages images={message.images} />
-            )}
-
-            {/* 思考内容 */}
-            {message.thinking && <ThinkingBlock thinking={message.thinking} />}
-
-            {/* 工具调用卡片 */}
-            {message.toolCalls && message.toolCalls.length > 0 && (
-              <ToolCardsCollapsible toolCalls={message.toolCalls} />
-            )}
-
-            {/* 消息内容 */}
-            <div className="prose prose-invert max-w-none">
-              {jsonResult ? (
-                <JsonCollapsible json={jsonResult} />
-              ) : (
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    pre: ({ children }) => <pre>{children}</pre>,
-                    code: ({ children, className }) => {
-                      const isBlock = className?.includes("language-");
-                      return isBlock ? (
-                        <code className={className}>{children}</code>
-                      ) : (
-                        <code className="not-prose bg-zinc-800 px-1 py-0.5 rounded text-xs text-zinc-300">
-                          {children}
-                        </code>
-                      );
-                    },
-                  }}
-                >
-                  {displayContent || (isStreaming ? "" : "（无内容）")}
-                </ReactMarkdown>
-              )}
-            </div>
-          </div>
-          <div className="text-[10px] text-zinc-600 mt-0.5 pl-1">{timeStr}</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ============================================================================
-// 搜索高亮组件
-// ============================================================================
-
-function HighlightedText({ text, query }: { text: string; query: string }) {
-  if (!query.trim()) {
-    return <span>{text}</span>;
-  }
-
-  const parts = text.split(new RegExp(`(${escapeRegex(query)})`, "gi"));
-
-  return (
-    <span>
-      {parts.map((part, i) =>
-        part.toLowerCase() === query.toLowerCase() ? (
-          <mark key={i} className="search-highlight">{part}</mark>
-        ) : (
-          <span key={i}>{part}</span>
-        )
+        </span>
       )}
     </span>
   );
 }
 
-function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+// ============================================================================
+// 工具调用显示
+// ============================================================================
+
+function ToolCallsDisplay({ toolCalls }: { toolCalls: Array<{ id: string; name: string; input: Record<string, unknown> }> }) {
+  if (!toolCalls || toolCalls.length === 0) return null;
+
+  const toolNames = [...new Set(toolCalls.map((c) => c.name))];
+  const summaryLabel = toolNames.length <= 3 ? toolNames.join(", ") : `${toolNames.slice(0, 2).join(", ")} +${toolNames.length - 2} 更多`;
+
+  return (
+    <details className="chat-tools-collapse">
+      <summary className="chat-tools-summary">
+        <span className="chat-tools-summary__icon">⚡</span>
+        <span className="chat-tools-summary__count">{toolCalls.length} 个工具</span>
+        <span className="chat-tools-summary__names">{summaryLabel}</span>
+      </summary>
+      <div className="chat-tools-collapse__body">
+        {toolCalls.map((tool) => (
+          <div key={tool.id} className="chat-tool-card">
+            <div className="chat-tool-card__header">
+              <span className="chat-tool-card__name">{tool.name}</span>
+            </div>
+            <div className="chat-tool-card__body">
+              <pre className="chat-tool-card__input">{JSON.stringify(tool.input, null, 2)}</pre>
+            </div>
+          </div>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+// ============================================================================
+// 阅读指示器
+// ============================================================================
+
+function ReadingIndicator() {
+  return (
+    <div className="chat-group assistant">
+      <div className="chat-avatar assistant">
+        <AvatarIcon role="assistant" />
+      </div>
+      <div className="chat-group-messages">
+        <div className="chat-bubble chat-reading-indicator">
+          <span className="chat-reading-indicator__dots">
+            <span></span><span></span><span></span>
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// 消息组渲染
+// ============================================================================
+
+// ============================================================================// 元数据提取和显示// ============================================================================type GroupMeta = {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite: number;
+  cost: number;
+  model: string | null;
+  contextPercent: number | null;
+};
+
+function extractGroupMeta(group: MessageGroup): GroupMeta | null {
+  let input = 0;
+  let output = 0;
+  let cacheRead = 0;
+  let cacheWrite = 0;
+  let cost = 0;
+  let model: string | null = null;
+  let hasUsage = false;
+
+  for (const message of group.messages) {
+    if (message.role !== "assistant") {
+      continue;
+    }
+    if (message.usage) {
+      hasUsage = true;
+      input += message.usage.input || 0;
+      output += message.usage.output || 0;
+      cacheRead += message.usage.cacheRead || 0;
+      cacheWrite += message.usage.cacheWrite || 0;
+    }
+    if (message.cost?.total) {
+      cost += message.cost.total;
+    }
+    if (message.meta?.model) {
+      model = message.meta.model;
+    }
+  }
+
+  if (!hasUsage && !model) {
+    return null;
+  }
+
+  const contextPercent = null; // 暂时不计算上下文百分比
+
+  return { input, output, cacheRead, cacheWrite, cost, model, contextPercent };
+}
+
+function fmtTokens(n: number): string {
+  if (n >= 1_000_000) {
+    return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  }
+  if (n >= 1_000) {
+    return `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}k`;
+  }
+  return String(n);
+}
+
+function renderMessageMeta(meta: GroupMeta | null) {
+  if (!meta) {
+    return null;
+  }
+
+  const parts: React.ReactNode[] = [];
+
+  // Token counts: ↑input ↓output
+  if (meta.input) {
+    parts.push(<span key="input" className="msg-meta__tokens">↑{fmtTokens(meta.input)}</span>);
+  }
+  if (meta.output) {
+    parts.push(<span key="output" className="msg-meta__tokens">↓{fmtTokens(meta.output)}</span>);
+  }
+
+  // Cache: R/W
+  if (meta.cacheRead) {
+    parts.push(<span key="cacheRead" className="msg-meta__cache">R{fmtTokens(meta.cacheRead)}</span>);
+  }
+  if (meta.cacheWrite) {
+    parts.push(<span key="cacheWrite" className="msg-meta__cache">W{fmtTokens(meta.cacheWrite)}</span>);
+  }
+
+  // Cost
+  if (meta.cost > 0) {
+    parts.push(<span key="cost" className="msg-meta__cost">${meta.cost.toFixed(4)}</span>);
+  }
+
+  // Context %
+  if (meta.contextPercent !== null) {
+    const pct = meta.contextPercent;
+    const cls = pct >= 90 ? "msg-meta__ctx msg-meta__ctx--danger" : pct >= 75 ? "msg-meta__ctx msg-meta__ctx--warn" : "msg-meta__ctx";
+    parts.push(<span key="context" className={cls}>{pct}% ctx</span>);
+  }
+
+  // Model
+  if (meta.model) {
+    // Shorten model name: strip provider prefix if present
+    const shortModel = meta.model.includes("/") ? meta.model.split("/").pop()! : meta.model;
+    parts.push(<span key="model" className="msg-meta__model">{shortModel}</span>);
+  }
+
+  if (parts.length === 0) {
+    return null;
+  }
+
+  return <span className="msg-meta">{parts}</span>;
+}
+
+// ============================================================================// 消息组渲染// ============================================================================function MessageGroupComponent({
+  group,
+  isStreaming,
+  showThinking,
+  showToolCalls,
+  onDelete,
+  onOpenSidebar,
+}: {
+  group: MessageGroup;
+  isStreaming: boolean;
+  showThinking: boolean;
+  showToolCalls: boolean;
+  onDelete?: (id: string) => void;
+  onOpenSidebar?: (content: string) => void;
+}) {
+  const roleLabel = group.role === "user" ? "You" : group.role === "assistant" ? "Assistant" : group.role === "tool" ? "Tool" : group.role;
+  const roleClass = group.role === "user" ? "user" : group.role === "assistant" ? "assistant" : group.role === "tool" ? "tool" : "other";
+  const timestamp = new Date(group.timestamp).toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  // Extract metadata from messages
+  const meta = extractGroupMeta(group);
+
+  return (
+    <div className={`chat-group ${roleClass}`}>
+      <div className={`chat-avatar ${roleClass}`}>
+        <AvatarIcon role={group.role} />
+      </div>
+
+      <div className="chat-group-messages">
+        {group.messages.map((message, index) => {
+          const isLastMessage = index === group.messages.length - 1;
+          const currentStreaming = isStreaming && isLastMessage;
+
+          const jsonResult = !currentStreaming && message.content ? detectJson(message.content) : null;
+
+          let contentDisplay: React.ReactNode = null;
+
+          if (message.content) {
+            if (jsonResult) {
+              contentDisplay = (
+                <details className="chat-json-collapse">
+                  <summary className="chat-json-summary">
+                    <span className="chat-json-badge">JSON</span>
+                    <span className="chat-json-label">
+                      {Array.isArray(jsonResult.parsed) 
+                        ? `Array (${(jsonResult.parsed as any[]).length} items)` 
+                        : typeof jsonResult.parsed === "object" && jsonResult.parsed !== null
+                          ? `Object (${Object.keys(jsonResult.parsed).length} keys)`
+                          : "JSON"
+                      }
+                    </span>
+                  </summary>
+                  <pre className="chat-json-content"><code>{jsonResult.pretty}</code></pre>
+                </details>
+              );
+            } else {
+              const parts = message.content.split(/(```[\s\S]*?```|`[^`]+`)/g);
+              contentDisplay = parts.map((part, i) => {
+                if (part.startsWith("```") && part.endsWith("```")) {
+                  const code = part.slice(3, -3).replace(/^\w*\n/, "");
+                  return (
+                    <pre key={i} className="chat-code-block">
+                      <code>{code}</code>
+                      <button 
+                        className="code-block-copy" 
+                        data-code={code}
+                        onClick={(e) => {
+                          const btn = e.currentTarget;
+                          const code = btn.getAttribute("data-code") || "";
+                          navigator.clipboard.writeText(code).then(() => {
+                            btn.classList.add("copied");
+                            setTimeout(() => btn.classList.remove("copied"), 1500);
+                          });
+                        }}
+                      >
+                        复制
+                      </button>
+                    </pre>
+                  );
+                }
+                if (part.startsWith("`") && part.endsWith("`")) {
+                  return <code key={i} className="chat-inline-code">{part.slice(1, -1)}</code>;
+                }
+                return <span key={i}>{part}</span>;
+              });
+            }
+          }
+
+          return (
+            <div key={message.id} className={`chat-bubble ${currentStreaming ? "streaming" : "fade-in"}`}>
+              <MessageActions
+                messageId={message.id}
+                content={message.content || ""}
+                onDelete={onDelete}
+                onOpenSidebar={onOpenSidebar}
+                role={message.role}
+              />
+
+              {showThinking && message.thinking && (
+                <ThinkingBlock thinking={message.thinking} />
+              )}
+
+              {showToolCalls && message.toolCalls && message.toolCalls.length > 0 && (
+                <ToolCallsDisplay toolCalls={message.toolCalls} onOpenSidebar={onOpenSidebar} />
+              )}
+
+              {contentDisplay && (
+                <div className="chat-text">
+                  {contentDisplay}
+                </div>
+              )}
+
+              {currentStreaming && (
+                <div className="chat-streaming-indicator">
+                  <span></span><span></span><span></span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        <div className="chat-group-footer">
+          <span className="chat-sender-name">{roleLabel}</span>
+          <span className="chat-group-timestamp">{timestamp}</span>
+          {renderMessageMeta(meta)}
+          {group.role === "assistant" && isTtsSupported() && (
+            <button
+              className={`chat-tts-btn ${isSpeaking ? "chat-tts-btn--active" : ""}`}
+              onClick={() => {
+                const text = group.messages.map(m => m.content || "").join("\n\n");
+                if (isSpeaking) {
+                  stopTts();
+                } else {
+                  speakText(text);
+                }
+              }}
+              title={isSpeaking ? "Stop speaking" : "Read aloud"}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <path d="M15.54 8.46a5 5 0 010 7.07" />
+                <path d="M19.07 4.93a10 10 0 010 14.14" />
+              </svg>
+            </button>
+          )}
+          {onDelete && (
+            <span className="chat-delete-wrap">
+              <button
+                className="chat-group-delete"
+                onClick={() => {
+                  if (window.confirm("Delete this message?")) {
+                    onDelete(group.messages[0].id);
+                  }
+                }}
+                title="Delete"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                </svg>
+              </button>
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ============================================================================
@@ -628,213 +650,85 @@ export default function MessageList({
   streamingDelta,
   onDeleteMessage,
   onPinMessage,
-}: MessageListProps & {
-  onDeleteMessage?: (messageId: string) => void;
-  onPinMessage?: (messageId: string) => void;
-}) {
+  showThinking = true,
+  showToolCalls = true,
+  onOpenSidebar,
+}: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
-  const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [showNewMessages, setShowNewMessages] = useState(false);
+  const [autoScrollMode, setAutoScrollMode] = useState(true);
 
-  // 搜索状态
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<{ messageId: string; index: number }[]>([]);
-  const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
+  const handleChatScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
+    const target = event.currentTarget;
+    const { scrollTop, scrollHeight, clientHeight } = target;
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+    
+    if (isNearBottom && !autoScrollMode) {
+      setAutoScrollMode(true);
+      setShowNewMessages(false);
+    } else if (!isNearBottom && autoScrollMode) {
+      setAutoScrollMode(false);
+    }
+  }, [autoScrollMode]);
 
-  // 自动滚动到底部（最新消息）
-  useEffect(() => {
+  const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, streamingDelta]);
-
-  // Cmd+F 快捷键打开搜索
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === "f") {
-        e.preventDefault();
-        setSearchOpen((prev) => !prev);
-      }
-      if (e.key === "Escape" && searchOpen) {
-        setSearchOpen(false);
-        setSearchQuery("");
-        setSearchResults([]);
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [searchOpen]);
-
-  // 搜索输入聚焦
-  useEffect(() => {
-    if (searchOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  }, [searchOpen]);
-
-  // 搜索逻辑
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
-    const results: { messageId: string; index: number }[] = [];
-    messages.forEach((msg) => {
-      if (msg.isDeleted) return;
-      const content = msg.content.toLowerCase();
-      const query = searchQuery.toLowerCase();
-      let index = 0;
-      while ((index = content.indexOf(query, index)) !== -1) {
-        results.push({ messageId: msg.id, index });
-        index += query.length;
-      }
-    });
-
-    setSearchResults(results);
-    setCurrentSearchIndex(0);
-
-    // 滚动到第一个结果
-    if (results.length > 0) {
-      const firstResult = results[0];
-      const element = messageRefs.current.get(firstResult.messageId);
-      element?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }, [searchQuery, messages]);
-
-  // 导航到上一个/下一个搜索结果
-  const goToPrevSearch = useCallback(() => {
-    if (searchResults.length === 0) return;
-    const newIndex = (currentSearchIndex - 1 + searchResults.length) % searchResults.length;
-    setCurrentSearchIndex(newIndex);
-    const result = searchResults[newIndex];
-    const element = messageRefs.current.get(result.messageId);
-    element?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [searchResults, currentSearchIndex]);
-
-  const goToNextSearch = useCallback(() => {
-    if (searchResults.length === 0) return;
-    const newIndex = (currentSearchIndex + 1) % searchResults.length;
-    setCurrentSearchIndex(newIndex);
-    const result = searchResults[newIndex];
-    const element = messageRefs.current.get(result.messageId);
-    element?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [searchResults, currentSearchIndex]);
-
-  // 复制为 Markdown 回调
-  const handleCopyAsMarkdown = useCallback((messageId: string) => {
-    const msg = messages.find((m) => m.id === messageId);
-    if (msg) {
-      const markdown = `**${msg.role === "user" ? "User" : "Assistant"}** (${msg.timestamp.toLocaleString()}):\n\n${msg.content}`;
-      navigator.clipboard.writeText(markdown).then(() => {
-        // 可选：显示 toast 提示
-      });
-    }
-  }, [messages]);
-
-  // 在侧边栏打开回调
-  const handleOpenSidebar = useCallback((messageId: string, content: string) => {
-    // TODO: 实现侧边栏打开功能
-    console.log("Open in sidebar:", messageId, content);
+    setShowNewMessages(false);
+    setAutoScrollMode(true);
   }, []);
 
+  useEffect(() => {
+    if (autoScrollMode) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    } else {
+      setShowNewMessages(true);
+    }
+  }, [messages, streamingDelta, autoScrollMode]);
+
+  const handleDelete = useCallback(
+    (messageId: string) => {
+      onDeleteMessage?.(messageId);
+    },
+    [onDeleteMessage]
+  );
+
+  const groups = groupMessages(messages);
+
   return (
-    <div className="flex flex-col gap-3 px-4 py-4 pb-0">
-      {/* 搜索栏 */}
-      {searchOpen && (
-        <div className="search-bar">
-          <div className="search-bar__input-wrap">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="search-bar__icon">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              ref={searchInputRef}
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  if (e.shiftKey) {
-                    goToPrevSearch();
-                  } else {
-                    goToNextSearch();
-                  }
-                }
-              }}
-              placeholder="搜索消息内容..."
-              className="search-bar__input"
-            />
-            {searchResults.length > 0 && (
-              <span className="search-bar__count">
-                {currentSearchIndex + 1}/{searchResults.length}
-              </span>
-            )}
-          </div>
-          <div className="search-bar__nav">
-            <button onClick={goToPrevSearch} title="上一个 (Shift+Enter)" className="search-bar__nav-btn">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="18 15 12 9 6 15" />
-              </svg>
-            </button>
-            <button onClick={goToNextSearch} title="下一个 (Enter)" className="search-bar__nav-btn">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </button>
-          </div>
-          <button onClick={() => { setSearchOpen(false); setSearchQuery(""); setSearchResults([]); }} className="search-bar__close">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-      )}
-
-      {messages.map((message) => {
-        const isStreaming = message.id === streamingMessageId;
-        const displayContent = isStreaming && streamingDelta !== undefined
-          ? streamingDelta
-          : message.content;
-
-        // 跳过已删除的消息
-        if (message.isDeleted) return null;
-
-        // 检查是否是搜索结果
-        const isSearchResult = searchResults.some((r) => r.messageId === message.id);
-        const isCurrentSearchResult = searchResults[currentSearchIndex]?.messageId === message.id;
-
-        return (
-          <div
-            key={message.id}
-            ref={(el) => {
-              if (el) messageRefs.current.set(message.id, el);
-            }}
-            className={isSearchResult && !isCurrentSearchResult ? "search-result" : isCurrentSearchResult ? "search-result search-result--active" : ""}
-          >
-            <MessageBubble
-              message={message}
+    <div className="chat-thread" onScroll={handleChatScroll}>
+      <div className="chat-thread-inner">
+        {groups.map((group) => {
+          const isStreaming = group.messages.some(msg => msg.id === streamingMessageId);
+          
+          return (
+            <MessageGroupComponent
+              key={group.id}
+              group={group}
               isStreaming={isStreaming}
-              displayContent={searchQuery && displayContent ? displayContent : displayContent}
-              onDelete={onDeleteMessage}
-              onPin={onPinMessage}
-              onCopyAsMarkdown={handleCopyAsMarkdown}
-              onOpenSidebar={handleOpenSidebar}
+              showThinking={showThinking}
+              showToolCalls={showToolCalls}
+              onDelete={handleDelete}
+              onOpenSidebar={onOpenSidebar}
             />
-          </div>
-        );
-      })}
+          );
+        })}
 
-      {/* 流式波浪条（最后一条是 assistant 且正在流式时） */}
-      {streamingMessageId && streamingDelta !== undefined && (
-        <div className="flex items-center gap-2 px-2 pt-1 pb-2">
+        {streamingMessageId && !streamingDelta && (
+          <ReadingIndicator />
+        )}
+
+        {streamingMessageId && streamingDelta !== undefined && (
           <StreamingWaveBar />
-        </div>
-      )}
+        )}
 
-      {/* 滚动锚点 */}
-      <div ref={bottomRef} />
+        <div ref={bottomRef} />
+      </div>
+
+      {showNewMessages && (
+        <button className="chat-new-messages" onClick={scrollToBottom}>
+          ↓ 新消息
+        </button>
+      )}
     </div>
   );
 }

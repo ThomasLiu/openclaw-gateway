@@ -2,11 +2,17 @@
 
 /**
  * ChatPanel - 主聊天面板
- * 包含消息列表区（MessageList）和输入框（Composer）
+ * 包含消息列表区（MessageList）、工具栏（ChatControls）和输入框（Composer）
  */
+import { useState } from "react";
 import type { ChatPanelProps } from "./chat-types";
 import MessageList from "./MessageList";
 import Composer from "./Composer";
+import ChatControls from "./ChatControls";
+
+// ============================================================================
+// ChatPanel 主组件
+// ============================================================================
 
 export default function ChatPanel({
   agentId,
@@ -20,11 +26,39 @@ export default function ChatPanel({
   streamingMessageId,
   streamingDelta,
   loadingMessages,
+  showThinking = true,
+  onToggleThinking,
+  showToolCalls = true,
+  onToggleToolCalls,
+  hideCron = true,
+  onToggleHideCron,
+  onRefresh,
 }: ChatPanelProps & {
   streamingMessageId?: string;
   streamingDelta?: string;
   loadingMessages?: boolean;
+  showThinking?: boolean;
+  onToggleThinking?: () => void;
+  showToolCalls?: boolean;
+  onToggleToolCalls?: () => void;
+  hideCron?: boolean;
+  onToggleHideCron?: () => void;
+  onRefresh?: () => void;
 }) {
+  // 内部状态管理（当 callback 未传入时使用）
+  const [_showThinking, _setShowThinking] = useState(showThinking);
+  const [_showToolCalls, _setShowToolCalls] = useState(showToolCalls);
+  const [_hideCron, _setHideCron] = useState(hideCron);
+
+  // 实际使用的值（外部传入优先，否则用内部状态）
+  const effectiveShowThinking = onToggleThinking ? showThinking : _showThinking;
+  const effectiveShowToolCalls = onToggleToolCalls ? showToolCalls : _showToolCalls;
+  const effectiveHideCron = onToggleHideCron ? hideCron : _hideCron;
+
+  const handleToggleThinking = onToggleThinking ?? (() => _setShowThinking((v) => !v));
+  const handleToggleToolCalls = onToggleToolCalls ?? (() => _setShowToolCalls((v) => !v));
+  const handleToggleHideCron = onToggleHideCron ?? (() => _setHideCron((v) => !v));
+
   // 无会话时显示空状态
   if (!sessionKey) {
     return (
@@ -49,6 +83,19 @@ export default function ChatPanel({
 
   return (
     <main className="flex-1 flex flex-col min-w-0 bg-zinc-950 overflow-hidden">
+      {/* ChatControls 工具栏 */}
+      <ChatControls
+        chatLoading={loadingMessages}
+        connected={!!sessionKey}
+        showThinking={effectiveShowThinking}
+        showToolCalls={effectiveShowToolCalls}
+        hideCron={effectiveHideCron}
+        onRefresh={onRefresh}
+        onToggleThinking={handleToggleThinking}
+        onToggleToolCalls={handleToggleToolCalls}
+        onToggleHideCron={handleToggleHideCron}
+      />
+
       {/* 消息列表 */}
       <div className="flex-1 min-h-0 overflow-y-auto">
         {loadingMessages ? (
@@ -76,6 +123,8 @@ export default function ChatPanel({
             streamingDelta={streamingDelta}
             onDeleteMessage={onDeleteMessage}
             onPinMessage={onPinMessage}
+            showThinking={effectiveShowThinking}
+            showToolCalls={effectiveShowToolCalls}
           />
         )}
       </div>
