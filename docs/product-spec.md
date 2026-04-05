@@ -24,17 +24,22 @@
 
 | 功能 | 描述 | 核心文件 |
 |------|------|----------|
+| Slack 风格布局 | 用户消息靠右，助手消息靠左，带头像图标；连续相同角色消息合并为一组 | `src/components/MessageGroup.tsx` |
 | 发送消息（流式） | POST `/api/chat` 通过 SSE 建立流式会话，AI 回复以增量 delta 实时推送 | `src/app/api/chat/route.ts` |
 | 加载消息历史 | GET `/api/chat` 支持网关会话和本地 SQLite 降级，最多 200 条 | `src/app/api/chat/route.ts` |
-| Markdown 渲染 | 使用 `react-markdown` + `remark-gfm` 渲染助手消息，支持 GFM 表格、代码块高亮 | `src/components/MessageList.tsx` |
+| Markdown 渲染 | 使用 `react-markdown` + `remark-gfm` 渲染助手消息，支持 GFM 表格、代码块高亮 | `src/components/MessageGroup.tsx` |
+| 流式脉冲动画 | 消息生成中时，气泡边框显示脉冲动画效果 | `src/components/MessageGroup.tsx` |
+| 新消息淡入 | 新消息使用 fade-in 动画效果 | `src/components/MessageGroup.tsx` |
+| 头像图标 | 根据角色显示不同头像：用户（圆形人脸）、助手（星形）、工具（扳手） | `src/components/MessageGroup.tsx` |
+| 消息 Footer | 显示发送者名称、时间戳（HH:mm）、元数据（Token/成本/模型） | `src/components/MessageGroup.tsx` |
 | 流式波浪动画 | 消息生成中时，底部显示浅绿色渐变波动动画条 | `src/components/StreamingWaveBar.tsx` |
-| 消息时间戳 | 每条消息显示 `HH:mm` 时间戳；助手消息额外显示模型名称和生成耗时 | `src/components/MessageList.tsx` |
-| 元数据显示 | 助手消息显示 Token 计数（↑input ↓output）、缓存 R/W、成本、上下文百分比、模型名称 | `src/components/MessageList.tsx` |
-| JSON 折叠 | 自动检测 JSON 对象/数组并折叠显示（最大 20k 字符） | `src/components/MessageList.tsx` |
-| Tool Cards | 可折叠的工具调用卡片，显示工具名称和输入参数 | `src/components/MessageList.tsx` |
-| 思考内容 | 折叠显示 AI 推理过程（reasoning） | `src/components/MessageList.tsx` |
-| 图片消息 | 消息中的图片缩略图展示，点击可放大预览 | `src/components/MessageList.tsx` |
-| 消息操作按钮 | 删除、Pin 置顶、TTS 朗读、复制为 Markdown、在侧边栏打开 | `src/components/MessageList.tsx` |
+| 元数据显示 | 助手消息显示 Token 计数（↑input ↓output）、缓存 R/W、成本、上下文百分比、模型名称 | `src/components/MessageGroup.tsx` |
+| JSON 折叠 | 自动检测 JSON 对象/数组并折叠显示（最大 20k 字符），显示键数量标签 | `src/components/JsonCollapsible.tsx` |
+| Tool Cards | 可折叠的工具调用卡片，显示工具名称和输入参数，支持点击展开详情 | `src/components/ToolCard.tsx` |
+| 思考内容 | 折叠显示 AI 推理过程（reasoning），默认收起 | `src/components/ThinkingBlock.tsx` |
+| 图片消息 | 消息中的图片缩略图展示，点击可放大预览 | `src/components/MessageGroup.tsx` |
+| 消息操作按钮 | 悬停显示：Open in canvas、复制为 Markdown、TTS 朗读、Pin 置顶、删除 | `src/components/MessageActions.tsx` |
+| 删除确认 | 删除消息时弹出确认框，支持"Don't ask again"选项（localStorage 记忆） | `src/components/MessageActions.tsx` |
 | 消息搜索 | Cmd+F 快捷键搜索，高亮匹配文本，支持上下导航 | `src/components/MessageList.tsx` |
 | 流式中止 | POST `/api/chat/abort` 通过 `chat.abort` RPC 中止正在生成的响应 | `src/app/api/chat/abort/route.ts` |
 | 聊天工具栏 | 消息列表上方工具栏，包含刷新、思考切换、工具调用切换、定时任务会话切换 | `src/components/ChatControls.tsx` |
