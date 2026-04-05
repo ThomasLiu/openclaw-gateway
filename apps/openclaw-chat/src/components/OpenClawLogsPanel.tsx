@@ -20,7 +20,13 @@ const LOG_COLORS: Record<LogEntry["level"], string> = {
   error: "text-red-400",
 };
 
-export default function OpenClawLogsPanel({ onClose }: { onClose: () => void }) {
+export default function OpenClawLogsPanel({
+  width,
+  onClose,
+}: {
+  width: number;
+  onClose: () => void;
+}) {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [autoScroll, setAutoScroll] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -96,7 +102,10 @@ export default function OpenClawLogsPanel({ onClose }: { onClose: () => void }) 
   const filteredLogs = filter === "all" ? logs : logs.filter((l) => l.level === filter);
 
   return (
-    <aside className="w-64 flex-shrink-0 border-l border-zinc-800 flex flex-col bg-zinc-950 overflow-hidden">
+    <aside
+      className="flex-shrink-0 border-l border-zinc-800 flex flex-col bg-zinc-950 overflow-hidden"
+      style={{ width }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-2 py-2 border-b border-zinc-800 flex-shrink-0">
         <span className="text-xs text-zinc-400 font-medium">网关日志</span>
@@ -113,27 +122,6 @@ export default function OpenClawLogsPanel({ onClose }: { onClose: () => void }) 
             <option value="error">错误</option>
           </select>
 
-          {/* 清空按钮 */}
-          <button
-            onClick={() => setLogs([])}
-            className="p-1 rounded hover:bg-zinc-800 text-zinc-500 transition-colors"
-            title="清空日志"
-          >
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
-              <path d="M1 1l8 8M9 1L1 9" stroke="currentColor" strokeWidth="1.5" fill="none" />
-            </svg>
-          </button>
-
-          {/* 关闭按钮 */}
-          <button
-            onClick={onClose}
-            className="p-1 rounded hover:bg-zinc-800 text-zinc-500 transition-colors"
-            title="关闭日志面板"
-          >
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
-              <path d="M1 1l8 8M9 1L1 9" stroke="currentColor" strokeWidth="1.5" fill="none" />
-            </svg>
-          </button>
         </div>
       </div>
 

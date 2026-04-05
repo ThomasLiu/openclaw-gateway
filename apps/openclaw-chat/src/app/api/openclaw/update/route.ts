@@ -5,17 +5,22 @@
  *
  * Body: { action: 'check' | 'install' }
  *
- * 返回 { available, currentVersion?, latestVersion? }
+ * action=check: 返回 { available, currentVersion?, latestVersion? }
+ * action=install: 返回 SSE 流式输出，包含 CLI 更新日志
  *
- * 网关 update RPC 不存在时优雅降级
+ * 网关 update RPC 不存在时优雅降级到 CLI
  *
  * runtime = "nodejs"
+ * dynamic = "force-dynamic"
  */
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { getOpenClawClient } from "@/lib/openclaw/index";
+import { spawn } from "child_process";
+import { getOpenClawCliPath } from "@/config/openclaw-cli-actions";
 
 type UpdateInfo = {
   available: boolean;
@@ -42,20 +47,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
+  // install 使用 SSE 流式输出
+  if (action === "install") {
+    return handleInstallUpdate();
+  }
+
+  // check 返回 JSON
   try {
     const client = await getOpenClawClient();
-
-    if (action === "check") {
-      const info = await checkForUpdates(client);
-      return NextResponse.json(info);
-    } else {
-      const info = await triggerUpdate(client);
-      return NextResponse.json(info);
-    }
+    const info = await checkForUpdates(client);
+    return NextResponse.json(info);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
 
-    // 网关不支持 update RPC
     if (
       message.includes("not found") ||
       message.includes("method") ||
@@ -96,21 +100,84 @@ async function checkForUpdates(client: Awaited<ReturnType<typeof getOpenClawClie
   }
 }
 
-async function triggerUpdate(client: Awaited<ReturnType<typeof getOpenClawClient>>): Promise<UpdateInfo> {
-  try {
-    const resp = (await client.request("update.install")) as {
-      success?: boolean;
-      message?: string;
-    };
+/** SSE 流式更新安装 */
+function handleInstallUpdate(): NextResponse {
+  const cliPath = getOpenClawCliPath();
+  const encoder = new TextEncoder();
 
-    return {
-      available: true,
-      message: resp?.message ?? "Update triggered",
-    };
-  } catch {
-    return {
-      available: false,
-      message: "Unable to trigger update",
-    };
-  }
+  const stream = new ReadableStream({
+    start(controller) {
+      let killed = false;
+
+      // 尝试 openclaw update，如果失败则尝试 openclaw self-update
+      const proc = spawn(cliPath, ["update"], {
+        timeout: 300_000,
+      });
+
+      proc.on("error", (err) => {
+        if (killed) return;
+        killed = true;
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", text: err.message })}\n\n`));
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done", exitCode: -1 })}\n\n`));
+          controller.close();
+        } catch {
+          // Stream closed
+        }
+      });
+
+      proc.on("close", (code) => {
+        if (killed) return;
+        killed = true;
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done", exitCode: code ?? 0 })}\n\n`));
+          controller.close();
+        } catch {
+          // Stream closed
+        }
+      });
+
+      proc.stdout.on("data", (data) => {
+        if (killed) return;
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "stdout", text: data.toString() })}\n\n`));
+        } catch {
+          // Stream closed
+        }
+      });
+
+      proc.stderr.on("data", (data) => {
+        if (killed) return;
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "stderr", text: data.toString() })}\n\n`));
+        } catch {
+          // Stream closed
+        }
+      });
+
+      // 5 分钟超时
+      setTimeout(() => {
+        if (!killed) {
+          killed = true;
+          proc.kill();
+          try {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", text: "Update timed out after 5 minutes" })}\n\n`));
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done", exitCode: 124 })}\n\n`));
+            controller.close();
+          } catch {
+            // Stream closed
+          }
+        }
+      }, 300_000);
+    },
+  });
+
+  return new NextResponse(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    },
+  });
 }

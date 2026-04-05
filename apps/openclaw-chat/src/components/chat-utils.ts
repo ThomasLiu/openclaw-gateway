@@ -12,3 +12,6 @@ export function sessionKeyStorageKey(agentId: string): string {
 export function sessionKeyBelongsToAgent(sessionKey: string, agentId: string): boolean {
   return sessionKey.startsWith(`${agentId}:`);
 }
+
+/** localStorage key：当前选中的 agentId */
+export const currentAgentIdStorageKey = "openclaw-chat.currentAgentId";
