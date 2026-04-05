@@ -6,7 +6,7 @@
  * 目标目录：ai-reference-sources/<name>
  */
 
-import { readFileSync, existsSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
 
@@ -14,6 +14,50 @@ const SCRIPT_DIR = new URL(".", import.meta.url).pathname;
 const ROOT_DIR = join(SCRIPT_DIR, "..");
 const MANIFEST_PATH = join(ROOT_DIR, "ai-reference-sources.manifest.json");
 const REFERENCE_DIR = join(ROOT_DIR, "ai-reference-sources");
+
+function getGitRemoteUrl(repoDir) {
+  try {
+    const configPath = join(repoDir, ".git", "config");
+    if (!existsSync(configPath)) return null;
+    const content = readFileSync(configPath, "utf-8");
+    const match = content.match(/\[remote "origin"\][\s\S]*?url\s*=\s*(.+)/i);
+    return match ? match[1].trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+function ensureManifest() {
+  if (existsSync(MANIFEST_PATH)) return;
+
+  let entries;
+  try {
+    entries = readdirSync(REFERENCE_DIR, { withFileTypes: true });
+  } catch {
+    return; // 目录不存在，什么都不做
+  }
+
+  const repos = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const repoDir = join(REFERENCE_DIR, entry.name);
+    const remoteUrl = getGitRemoteUrl(repoDir);
+    repos.push({
+      name: entry.name,
+      path: `ai-reference-sources/${entry.name}`,
+      remoteUrl: remoteUrl ?? null,
+    });
+  }
+
+  const manifest = {
+    version: "1.0.0",
+    description: "AI 参考源码清单 - 记录 ai-reference-sources/ 中各子仓库的来源",
+    repositories: repos,
+  };
+
+  writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2), "utf-8");
+  console.log(`✅ 自动生成 manifest，包含 ${repos.length} 个仓库`);
+}
 
 function runGit(repoDir, remoteUrl, name) {
   const exists = existsSync(join(repoDir, ".git"));
@@ -47,12 +91,14 @@ function runGit(repoDir, remoteUrl, name) {
 }
 
 async function main() {
+  // 自动维护 manifest：检查是否存在，不存在则扫描目录生成
+  ensureManifest();
+
   let manifest;
   try {
     manifest = JSON.parse(readFileSync(MANIFEST_PATH, "utf-8"));
   } catch {
     console.error("❌ 无法加载 ai-reference-sources.manifest.json");
-    console.error("   请先运行: node scripts/generate-ai-reference-sources-manifest.mjs");
     process.exit(1);
   }
 

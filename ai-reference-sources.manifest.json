@@ -3,6 +3,11 @@
   "description": "AI 参考源码清单 - 记录 ai-reference-sources/ 中各子仓库的来源",
   "repositories": [
     {
+      "name": "OpenClaw-Chat-Gateway",
+      "path": "ai-reference-sources/OpenClaw-Chat-Gateway",
+      "remoteUrl": "git@github.com:liandu2024/OpenClaw-Chat-Gateway.git"
+    },
+    {
       "name": "claude-autonomous-coding",
       "path": "ai-reference-sources/claude-autonomous-coding",
       "remoteUrl": "git@github.com:ThomasLiu/claude-autonomous-coding.git"
