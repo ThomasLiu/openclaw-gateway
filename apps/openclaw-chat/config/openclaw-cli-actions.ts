@@ -19,6 +19,7 @@ export const ALLOWED_CLI_ACTIONS = new Set<string>([
   "logs tail",
   "config",
   "config get",
+  "config set",
   "config show",
   "models",
   "models list",
@@ -28,6 +29,8 @@ export const ALLOWED_CLI_ACTIONS = new Set<string>([
   "sessions",
   "sessions list",
   "sessions show",
+  "update",
+  "self-update",
 ]);
 
 /**
