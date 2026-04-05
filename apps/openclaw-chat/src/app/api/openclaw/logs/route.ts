@@ -105,10 +105,9 @@ export async function GET() {
         return;
       }
 
-      // 初始拉取（最近 100 条）
+      // 初始拉取（40 条）
       try {
-        // logs.tail 返回 { lines: string[], cursor, size, ... } 不是 entries
-        const result = await (client as any).logsTail({ cursor, limit: 100 });
+        const result = await (client as any).logsTail({ cursor, limit: 40 });
         const lines: string[] = result?.entries ?? result?.lines ?? [];
         for (const raw of lines) {
           const parsed = parseLogLine(raw);
@@ -136,7 +135,7 @@ export async function GET() {
           return;
         }
         try {
-          const result = await (client as any).logsTail({ cursor, limit: 100 });
+          const result = await (client as any).logsTail({ cursor, limit: 40 });
           const lines: string[] = result?.entries ?? result?.lines ?? [];
           for (const raw of lines) {
             const parsed = parseLogLine(raw);

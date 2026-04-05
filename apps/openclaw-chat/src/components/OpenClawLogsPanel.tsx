@@ -2,13 +2,12 @@
 
 /**
  * OpenClawLogsPanel - 右侧日志面板
- * 动态导入（ssr: false），可折叠
- * 显示网关实时日志流
  *
- * 渲染策略：
- * - 日志顺序：最老在上，最新在下
- * - 底部自动滚动时：DOM 只有最新 40 条
- * - 向上滚动查看历史时：分页加载
+ * 设计原则：
+ * - autoScrollMode: 自动滚动模式（底部）/ manualMode: 手动模式（用户已滚动）
+ * - 切换时机：用户滚动到顶部(且不在底部)时进入 manualMode
+ * - 切换回 autoScrollMode：用户滚动到底部时
+ * - SSE 收到新日志时：autoScrollMode → scrollIntoView；manualMode → pending++
  */
 import { useEffect, useRef, useState, useCallback } from "react";
 
@@ -35,21 +34,27 @@ const PAGE_SIZE = 40;
 const MAX_TOTAL_LOGS = 500;
 const STORAGE_KEY = "openclaw-logs-levels";
 
+type LoadState = "loading" | "done" | "loading-more" | "exhausted";
+
 export default function OpenClawLogsPanel({
   width,
+  onClose,
 }: {
   width: number;
   onClose: () => void;
 }) {
-  // 多选标签状态
   const [selectedLevels, setSelectedLevels] = useState<Set<LogEntry["level"]>>(() => {
     if (typeof window === "undefined") return new Set(["info", "warn", "error"]);
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const arr = JSON.parse(stored) as string[];
-        const valid = arr.filter((l) => ["info", "warn", "error"].includes(l)) as LogEntry["level"][];
-        return valid.length > 0 ? new Set(valid) : new Set(["info", "warn", "error"]);
+        const valid = arr.filter((l) =>
+          ["info", "warn", "error"].includes(l)
+        ) as LogEntry["level"][];
+        return valid.length > 0
+          ? new Set(valid)
+          : new Set(["info", "warn", "error"]);
       }
     } catch {}
     return new Set(["info", "warn", "error"]);
@@ -57,22 +62,32 @@ export default function OpenClawLogsPanel({
 
   const [textFilter, setTextFilter] = useState("");
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  // 是否固定在底部（自动滚动模式）
-  const [pinnedToBottom, setPinnedToBottom] = useState(true);
-  // DOM 渲染范围的起始索引
+
+  // autoScrollMode=true: 自动滚动; autoScrollMode=false: 手动模式
+  const [autoScrollMode, setAutoScrollMode] = useState(true);
+  // 同步 ref，避免 SSE 回调读到 stale 闭包值
+  const autoScrollModeRef = useRef(true);
+
+  // manualMode 时的 DOM 起始索引
   const [domStartIndex, setDomStartIndex] = useState(0);
+
+  // manualMode 时新到的日志数
   const [pendingCount, setPendingCount] = useState(0);
+
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+
+  // Refs
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const counterRef = useRef(0);
-  // Refs 追踪最新状态（避免闭包问题）
-  const pinnedRef = useRef(true);
-  pinnedRef.current = pinnedToBottom;
   const pendingCountRef = useRef(0);
-  pendingCountRef.current = pendingCount;
-  const logsRef = useRef<LogEntry[]>([]);
   const isScrollingRef = useRef(false);
   const isMountedRef = useRef(false);
+
+  // 同步 pendingCountRef
+  useEffect(() => {
+    pendingCountRef.current = pendingCount;
+  }, [pendingCount]);
 
   const persistLevels = useCallback((levels: Set<LogEntry["level"]>) => {
     try {
@@ -85,7 +100,7 @@ export default function OpenClawLogsPanel({
       setSelectedLevels((prev) => {
         const next = new Set(prev);
         if (next.has(level)) {
-          if (next.size === 1) return prev; // 至少保留一个
+          if (next.size === 1) return prev;
           next.delete(level);
         } else {
           next.add(level);
@@ -97,23 +112,24 @@ export default function OpenClawLogsPanel({
     [persistLevels]
   );
 
-  // 过滤后的日志（最老 → 最新）
-  const filteredLogs = logs
-    .filter((l) => {
-      if (!selectedLevels.has(l.level)) return false;
-      if (textFilter && !l.message.toLowerCase().includes(textFilter.toLowerCase()))
-        return false;
-      return true;
-    })
-    .slice(0, MAX_TOTAL_LOGS);
+  // 过滤后的完整列表
+  const filteredLogs = logs.filter((l) => {
+    if (!selectedLevels.has(l.level)) return false;
+    if (
+      textFilter &&
+      !l.message.toLowerCase().includes(textFilter.toLowerCase())
+    )
+      return false;
+    return true;
+  });
 
-  // 当前 DOM 渲染的日志
-  const visibleLogs = pinnedToBottom
+  // DOM 渲染的切片
+  const visibleLogs = autoScrollMode
     ? filteredLogs.slice(-PAGE_SIZE)
     : filteredLogs.slice(domStartIndex, domStartIndex + PAGE_SIZE);
 
-  const atOldest = !pinnedToBottom && domStartIndex === 0;
-  const hasNewer = !pinnedToBottom && domStartIndex + PAGE_SIZE < filteredLogs.length;
+  const atOldest = !autoScrollMode && domStartIndex === 0;
+  const hasNewer = !autoScrollMode && domStartIndex + PAGE_SIZE < filteredLogs.length;
 
   // SSE 连接
   useEffect(() => {
@@ -135,17 +151,22 @@ export default function OpenClawLogsPanel({
 
           setLogs((prev) => {
             const next = [...prev, entry];
-            return next.length > MAX_TOTAL_LOGS ? next.slice(-MAX_TOTAL_LOGS) : next;
+            return next.length > MAX_TOTAL_LOGS
+              ? next.slice(-MAX_TOTAL_LOGS)
+              : next;
           });
 
-          if (pinnedRef.current) {
-            requestAnimationFrame(() => {
+          // 等 DOM 更新后再判断滚动位置（用 ref 避免闭包 stale）
+          requestAnimationFrame(() => {
+            const el = containerRef.current;
+            if (!el) return;
+            if (autoScrollModeRef.current) {
               bottomRef.current?.scrollIntoView({ behavior: "auto" });
-            });
-          } else {
-            pendingCountRef.current += 1;
-            setPendingCount(pendingCountRef.current);
-          }
+            } else {
+              pendingCountRef.current += 1;
+              setPendingCount(pendingCountRef.current);
+            }
+          });
         } catch {}
       };
 
@@ -160,7 +181,7 @@ export default function OpenClawLogsPanel({
     return () => {
       es?.close();
     };
-  }, []);
+  }, [autoScrollMode]);
 
   // 滚动处理
   const handleScroll = useCallback(() => {
@@ -168,51 +189,58 @@ export default function OpenClawLogsPanel({
 
     const el = containerRef.current;
     if (!el) return;
+
     const { scrollTop, scrollHeight, clientHeight } = el;
     const distToBottom = scrollHeight - scrollTop - clientHeight;
     const atBottom = distToBottom < 8;
     const atTop = scrollTop < 8;
 
-    if (pinnedRef.current && atBottom) {
-      // 已经在底部，无需操作
+    // 已在底部且是自动模式：忽略
+    if (autoScrollMode && atBottom) {
       return;
     }
 
-    if (pinnedRef.current && atTop) {
-      // 从底部往上滚：切换到历史浏览模式
+    // 从底部往上滚：切换到手动模式
+    if (autoScrollMode && atTop && !atBottom) {
       isScrollingRef.current = true;
+      autoScrollModeRef.current = false;
+      setAutoScrollMode(false);
       const start = Math.max(0, filteredLogs.length - PAGE_SIZE);
       setDomStartIndex(start);
-      setPinnedToBottom(false);
       setPendingCount(0);
       pendingCountRef.current = 0;
+      setLoadState("done");
       requestAnimationFrame(() => {
         isScrollingRef.current = false;
       });
       return;
     }
 
-    if (!pinnedRef.current) {
+    // 手动模式
+    if (!autoScrollMode) {
       if (atTop && domStartIndex > 0) {
         // 滚动到顶部：加载更老的一页
         isScrollingRef.current = true;
         const nextStart = Math.max(0, domStartIndex - PAGE_SIZE);
         const prevHeight = el.scrollHeight;
-
+        setLoadState("loading-more");
         setDomStartIndex(nextStart);
-
         requestAnimationFrame(() => {
           isScrollingRef.current = false;
           el.scrollTop = el.scrollHeight - prevHeight;
+          setLoadState("done");
         });
       } else if (atBottom) {
+        // 滚动到底部：回到自动模式
         if (domStartIndex + PAGE_SIZE >= filteredLogs.length) {
-          // 已全部加载：回到底部固定模式
-          setPinnedToBottom(true);
+          // 已全部加载
+          autoScrollModeRef.current = true;
+          setAutoScrollMode(true);
           setPendingCount(0);
           pendingCountRef.current = 0;
+          setLoadState("exhausted");
         } else {
-          // 还有更新的日志：加载下一页
+          // 加载更新的日志（往新方向翻页）
           isScrollingRef.current = true;
           setDomStartIndex((prev) => prev + PAGE_SIZE);
           requestAnimationFrame(() => {
@@ -221,10 +249,11 @@ export default function OpenClawLogsPanel({
         }
       }
     }
-  }, [pinnedToBottom, domStartIndex, filteredLogs.length]);
+  }, [autoScrollMode, domStartIndex, filteredLogs.length]);
 
   const scrollToBottom = useCallback(() => {
-    setPinnedToBottom(true);
+    autoScrollModeRef.current = true;
+    setAutoScrollMode(true);
     setPendingCount(0);
     pendingCountRef.current = 0;
     setDomStartIndex(Math.max(0, filteredLogs.length - PAGE_SIZE));
@@ -233,11 +262,12 @@ export default function OpenClawLogsPanel({
     });
   }, [filteredLogs.length]);
 
-  // 首次挂载时固定到底部
+  // 首次挂载
   useEffect(() => {
     if (!isMountedRef.current && filteredLogs.length > 0) {
       isMountedRef.current = true;
       setDomStartIndex(Math.max(0, filteredLogs.length - PAGE_SIZE));
+      setLoadState("done");
       requestAnimationFrame(() => {
         bottomRef.current?.scrollIntoView({ behavior: "auto" });
       });
@@ -255,18 +285,18 @@ export default function OpenClawLogsPanel({
         <div className="flex items-center gap-1 px-2 pt-2">
           {LEVEL_TAGS.map((tag) => {
             const selected = selectedLevels.has(tag.value);
-            const activeColor =
-              tag.value === "error"
-                ? "bg-red-500/20 text-red-400 border-red-500/50"
-                : tag.value === "warn"
-                  ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/50"
-                  : "bg-blue-500/20 text-blue-400 border-blue-500/50";
             return (
               <button
                 key={tag.value}
                 onClick={() => toggleLevel(tag.value)}
                 className={`px-2 py-0.5 rounded text-[10px] border transition-colors ${
-                  selected ? activeColor : "bg-zinc-800 text-zinc-500 border-zinc-700 hover:text-zinc-300"
+                  selected
+                    ? tag.value === "error"
+                      ? "bg-red-500/20 text-red-400 border-red-500/50"
+                      : tag.value === "warn"
+                        ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/50"
+                        : "bg-blue-500/20 text-blue-400 border-blue-500/50"
+                    : "bg-zinc-800 text-zinc-500 border-zinc-700 hover:text-zinc-300"
                 }`}
               >
                 {tag.label}
@@ -293,24 +323,29 @@ export default function OpenClawLogsPanel({
         className="flex-1 min-h-0 overflow-y-auto font-mono text-[11px] px-2 py-1"
       >
         {filteredLogs.length === 0 ? (
-          <div className="text-zinc-600 py-4 text-center">暂无日志</div>
+          <div className="text-zinc-600 py-4 text-center">
+            {loadState === "loading" ? "加载中..." : "暂无日志"}
+          </div>
         ) : (
           <>
             {/* 顶部提示 */}
-            {!pinnedToBottom && (
+            {!autoScrollMode && (
               <div className="text-zinc-600 py-1 text-center text-[10px] sticky top-0 bg-zinc-950 z-10">
-                {atOldest
-                  ? "已加载全部历史日志"
-                  : hasNewer
-                    ? "↑ 滚动到顶部加载更老的日志"
-                    : "已加载全部日志"}
+                {loadState === "loading-more" ? (
+                  "加载中..."
+                ) : atOldest ? (
+                  "已加载全部历史日志"
+                ) : hasNewer ? (
+                  "↑ 滚动到顶部加载更老的日志"
+                ) : (
+                  "已加载全部日志"
+                )}
               </div>
             )}
             {visibleLogs.map((entry) => (
               <div
                 key={entry.id}
                 className="flex gap-1.5 items-start py-0.5"
-                style={{ contain: "content" }}
               >
                 <span className="text-zinc-600 flex-shrink-0 select-none w-14">
                   {entry.timestamp.toLocaleTimeString("zh-CN", {
@@ -328,7 +363,11 @@ export default function OpenClawLogsPanel({
                         : "text-blue-500"
                   }`}
                 >
-                  {entry.level === "error" ? "✕" : entry.level === "warn" ? "!" : "i"}
+                  {entry.level === "error"
+                    ? "✕"
+                    : entry.level === "warn"
+                      ? "!"
+                      : "i"}
                 </span>
                 <span className={`flex-1 break-all ${LOG_COLORS[entry.level]}`}>
                   {entry.message}
@@ -340,7 +379,7 @@ export default function OpenClawLogsPanel({
         <div ref={bottomRef} />
       </div>
 
-      {/* 底部状态栏 + 新日志提示 */}
+      {/* 底部状态栏 + 新日志浮窗 */}
       <div className="flex-shrink-0 relative">
         {pendingCount > 0 && (
           <button
@@ -352,11 +391,11 @@ export default function OpenClawLogsPanel({
         )}
         <div className="px-2 py-1 border-t border-zinc-800 flex items-center justify-between">
           <span className="text-[10px] text-zinc-600">
-            {pinnedToBottom
+            {autoScrollMode
               ? `${Math.min(PAGE_SIZE, filteredLogs.length)} 条可见`
               : `${Math.min(domStartIndex + PAGE_SIZE, filteredLogs.length)} / ${filteredLogs.length} 条`}
           </span>
-          {pinnedToBottom ? (
+          {autoScrollMode ? (
             <span className="text-[10px] text-zinc-500">自动滚动</span>
           ) : (
             <span className="text-[10px] text-zinc-600">已暂停</span>
