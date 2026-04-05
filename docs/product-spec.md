@@ -37,6 +37,7 @@
 | 消息操作按钮 | 删除、Pin 置顶、TTS 朗读、复制为 Markdown、在侧边栏打开 | `src/components/MessageList.tsx` |
 | 消息搜索 | Cmd+F 快捷键搜索，高亮匹配文本，支持上下导航 | `src/components/MessageList.tsx` |
 | 流式中止 | POST `/api/chat/abort` 通过 `chat.abort` RPC 中止正在生成的响应 | `src/app/api/chat/abort/route.ts` |
+| 聊天工具栏 | 消息列表上方工具栏，包含刷新、思考切换、工具调用切换、定时任务会话切换 | `src/components/ChatControls.tsx` |
 
 #### 1.2 会话管理
 
