@@ -58,6 +58,7 @@
 | 快捷键发送 | Enter 发送，Shift+Enter 换行；发送后自动清空 | `src/components/Composer.tsx` |
 | 发送/停止切换 | 流式传输中按钮变为红色"停止"图标 | `src/components/Composer.tsx` |
 | 斜杠命令面板 | 输入 `/` 触发命令面板，左侧显示分类列表，右侧显示选中命令的详细说明、参数选项和示例 | `src/components/Composer.tsx` |
+| 斜杠命令参数建议 | GET `/api/openclaw/argument-suggestions?key=<key>` 获取动态参数建议值（如运行中的 agent ID） | `src/app/api/openclaw/argument-suggestions/route.ts` |
 | 输入历史 | ArrowUp/Down 快捷键浏览历史输入（最多保留 50 条） | `src/components/Composer.tsx` |
 
 ---
@@ -130,7 +131,7 @@
 |------|------|----------|
 | 网关连接探测 | GET `/api/gateway/status` WebSocket 探测（5秒超时）+ CLI 降级 | `src/app/api/gateway/status/route.ts` |
 | 实时网关日志 | GET `/api/openclaw/logs` SSE 每 3 秒轮询 `logs.tail`，最多保留 500 条 | `src/app/api/openclaw/logs/route.ts` |
-| 网关日志面板 | 右侧可折叠面板，自动滚动（滚动时暂停），连接断开 3 秒重连 | `src/components/OpenClawLogsPanel.tsx` |
+| 网关日志面板 | 右侧可折叠面板，多选标签过滤（info/warn/error）、文本过滤、分页浏览（仅渲染40条）、自动滚动（滚动时暂停）、pendingCount 浮窗、连接断开 3 秒重连 | `src/components/OpenClawLogsPanel.tsx` |
 | 网关告警弹窗 | 连接失败时显示红色告警对话框 | `src/components/GatewayAlertDialog.tsx` |
 
 #### 4.4 技能管理
