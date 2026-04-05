@@ -26,6 +26,16 @@ export type AgentInfo = {
   description?: string;
   /** Architect agent 特殊标记 */
   isArchitect?: boolean;
+  /** 该 Agent 的最后会话摘要 */
+  lastSession?: {
+    preview: string;
+    updatedAt: string;
+    relativeTime: string;
+  };
+  /** 该 Agent 是否有正在运行的 session */
+  isWorking: boolean;
+  /** 该 Agent 的未读消息数 */
+  unreadCount: number;
 };
 
 /** 会话信息 */
@@ -40,6 +50,10 @@ export type SessionInfo_ = {
   createdAt?: Date;
   /** 是否为定时任务会话 */
   isCronSession?: boolean;
+  /** 用户最后一条消息 */
+  userLastMessage?: string;
+  /** Agent 最后一条消息 */
+  agentLastMessage?: string;
 };
 
 /** 连接状态 */
