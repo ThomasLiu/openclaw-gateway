@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "MiniMax": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "minimax-coding-plan-mcp",
+        "-y"
+      ],
+      "env": {
+        "MINIMAX_API_RESOURCE_MODE": "local",
+        "MINIMAX_API_MCP_BASE_PATH": "/Users/thomas/Projects/openclaw-chat/.minimax-mcp"
+      }
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@executeautomation/playwright-mcp-server"]
+    }
+  }
+}
