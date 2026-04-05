@@ -58,8 +58,8 @@
 | 多行文本输入 | textarea 自动高度扩展（最大 200px），最小 44px | `src/components/Composer.tsx` |
 | 快捷键发送 | Enter 发送，Shift+Enter 换行；发送后自动清空 | `src/components/Composer.tsx` |
 | 发送/停止切换 | 流式传输中按钮变为红色"停止"图标 | `src/components/Composer.tsx` |
-| 斜杠命令面板 | 输入 `/` 触发命令面板，左侧显示分类列表，右侧显示选中命令的详细说明、参数选项和示例 | `src/components/Composer.tsx` |
-| 斜杠命令参数建议 | GET `/api/openclaw/argument-suggestions?key=<key>` 获取动态参数建议值（如运行中的 agent ID） | `src/app/api/openclaw/argument-suggestions/route.ts` |
+| 斜杠命令面板 | 输入 `/` 触发命令面板，左侧显示分类列表，右侧显示选中命令的详细说明；命令列表下方显示参数建议下拉列表（动态建议或静态选项） | `src/components/Composer.tsx` |
+| 斜杠命令参数建议 | 当用户在 slash 命令后输入参数时，显示参数建议下拉列表；支持动态建议（API 获取：running-agents/sessions/models/providers/skills）和静态选项；支持键盘导航（↑↓ Enter Esc） | `src/components/Composer.tsx` |
 | 输入历史 | ArrowUp/Down 快捷键浏览历史输入（最多保留 50 条） | `src/components/Composer.tsx` |
 
 #### 1.4 会话工具栏
@@ -249,6 +249,7 @@
 | `/api/openclaw/default-model` | GET/POST | 默认模型读写 |
 | `/api/openclaw/subagent-policy/patch` | POST | 子代理策略更新 |
 | `/api/openclaw/mcp-servers/remove` | POST | 移除 MCP 服务 |
+| `/api/openclaw/argument-suggestions` | GET | 获取斜杠命令参数的动态建议值（running-agents/sessions/models/providers/skills） |
 | `/api/agent-architect/status` | GET | Architect Agent 就绪检查 |
 | `/api/agent-architect/ensure` | POST | 确保 Architect Agent 存在 |
 | `/api/agent/workspace/[agentId]/file` | GET/PUT | 工作区文件读写 |
