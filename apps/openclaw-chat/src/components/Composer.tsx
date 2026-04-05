@@ -26,6 +26,8 @@ type ArgSpec = {
   options?: ArgOption[];
   description?: string;
   descriptionZh?: string;
+  /** 动态建议的 API 端点（可选） */
+  suggestionsKey?: string;
 };
 
 /** Slash 命令定义 */
@@ -328,7 +330,7 @@ const SLASH_COMMANDS: SlashCommand[] = [
     acceptsArgs: true,
     detail: "Terminate a running sub-agent by its ID. Use /subagents list to find running agent IDs.",
     detailZh: "通过 ID 终止运行中的子代理。使用 /subagents list 查找运行中的代理 ID。",
-    args: [{ hint: "<agent-id>", description: "ID of the agent to terminate", descriptionZh: "要终止的代理 ID" }],
+    args: [{ hint: "<agent-id>", description: "ID of the agent to terminate", descriptionZh: "要终止的代理 ID", suggestionsKey: "running-agents" }],
   },
   {
     name: "steer",
@@ -338,7 +340,7 @@ const SLASH_COMMANDS: SlashCommand[] = [
     acceptsArgs: true,
     detail: "Send steering instructions to a running sub-agent to guide its behavior without interrupting its task.",
     detailZh: "向运行中的子代理发送引导指令，在不中断其任务的情况下指导其行为。",
-    args: [{ hint: "<agent-id> <message>", description: "Agent ID and steering message", descriptionZh: "代理 ID 和引导消息" }],
+    args: [{ hint: "<agent-id> <message>", description: "Agent ID and steering message", descriptionZh: "代理 ID 和引导消息", suggestionsKey: "running-agents" }],
   },
   {
     name: "tell",
@@ -1073,7 +1075,41 @@ function getSlashCommandCompletions(filter: string): SlashCommand[] {
 // SlashMenuDetail 子组件 - 右侧详情面板
 // ============================================================================
 
+type SuggestionItem = {
+  id: string;
+  label: string;
+};
+
 function SlashMenuDetail({ command }: { command: SlashCommand }) {
+  const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // 获取动态建议
+  useEffect(() => {
+    const argWithSuggestions = command.args?.find((arg) => arg.suggestionsKey);
+    if (!argWithSuggestions?.suggestionsKey) {
+      setSuggestions([]);
+      return;
+    }
+
+    setLoading(true);
+    const key = argWithSuggestions.suggestionsKey;
+
+    fetch(`/api/openclaw/argument-suggestions?key=${encodeURIComponent(key)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.agents) {
+          setSuggestions(data.agents);
+        } else if (data.sessions) {
+          setSuggestions(data.sessions);
+        } else {
+          setSuggestions([]);
+        }
+      })
+      .catch(() => setSuggestions([]))
+      .finally(() => setLoading(false));
+  }, [command]);
+
   return (
     <div className="flex flex-col w-80 h-80 border-l border-zinc-700 bg-zinc-850 overflow-y-auto">
       {/* 头部 */}
@@ -1123,7 +1159,7 @@ function SlashMenuDetail({ command }: { command: SlashCommand }) {
                 <p className="text-xs text-zinc-500 italic">{arg.description}</p>
               )}
 
-              {/* 参数选项 */}
+              {/* 参数选项 - 静态选项 */}
               {arg.options && arg.options.length > 0 && (
                 <div className="mt-2 space-y-1">
                   {arg.options.map((opt) => (
@@ -1143,6 +1179,38 @@ function SlashMenuDetail({ command }: { command: SlashCommand }) {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* 动态建议 */}
+              {arg.suggestionsKey && (
+                <div className="mt-2">
+                  <div className="flex items-center gap-1 mb-1">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-zinc-500">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 16v-4M12 8h.01" />
+                    </svg>
+                    <span className="text-xs text-zinc-500">可选值</span>
+                  </div>
+                  {loading ? (
+                    <div className="text-xs text-zinc-500 py-1">加载中...</div>
+                  ) : suggestions.length > 0 ? (
+                    <div className="space-y-1">
+                      {suggestions.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center gap-2 py-1 px-2 bg-zinc-800/50 rounded cursor-pointer hover:bg-zinc-700/50 transition-colors"
+                        >
+                          <code className="px-1.5 py-0.5 bg-zinc-700 text-emerald-400 text-xs rounded font-mono whitespace-nowrap">
+                            {item.id}
+                          </code>
+                          <span className="text-xs text-zinc-400 truncate">{item.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-zinc-500 py-1">暂无可用选项</div>
+                  )}
                 </div>
               )}
             </div>

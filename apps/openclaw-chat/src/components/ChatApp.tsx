@@ -113,20 +113,21 @@ export default function ChatApp() {
   const [streamingDelta, setStreamingDelta] = useState<string | undefined>(undefined);
 
   /** 右侧日志面板是否展开（从 localStorage 恢复） */
-  const [rightPanelOpen, setRightPanelOpen] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("openclaw-right-panel-open") === "true";
-  });
+  const [rightPanelOpen, setRightPanelOpen] = useState(false);
 
   /** 右侧日志面板宽度（px），默认 512（256 的两倍），从 localStorage 恢复 */
-  const [rightPanelWidth, setRightPanelWidth] = useState(() => {
-    if (typeof window === "undefined") return 512;
-    const saved = localStorage.getItem("openclaw-right-panel-width");
-    return saved ? Number(saved) : 512;
-  });
+  const [rightPanelWidth, setRightPanelWidth] = useState(512);
 
   /** 是否正在拖动调整宽度 */
   const [isResizing, setIsResizing] = useState(false);
+
+  // 从 localStorage 恢复 UI 状态（仅客户端，延迟初始化避免 hydration 不匹配）
+  useEffect(() => {
+    const savedOpen = localStorage.getItem("openclaw-right-panel-open");
+    if (savedOpen === "true") setRightPanelOpen(true);
+    const savedWidth = localStorage.getItem("openclaw-right-panel-width");
+    if (savedWidth) setRightPanelWidth(Number(savedWidth));
+  }, []);
 
   /** 左侧 Agent 侧栏是否收起 */
   const [agentSidebarCollapsed, setAgentSidebarCollapsed] = useState(false);
