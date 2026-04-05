@@ -563,15 +563,15 @@ export class OpenClawClient extends EventEmitter {
     cursor?: number;
     limit?: number;
     maxBytes?: number;
-  }): Promise<{ entries: LogEntry[]; cursor: number }> {
+  }): Promise<{ lines: string[]; cursor: number }> {
     const params: Record<string, unknown> = {};
     if (opts?.cursor !== undefined) params.cursor = opts.cursor;
     if (opts?.limit !== undefined) params.limit = opts.limit;
     if (opts?.maxBytes !== undefined) params.maxBytes = opts.maxBytes;
-    return (await this.request<{ entries: LogEntry[]; cursor: number }>(
+    return (await this.request<{ lines: string[]; cursor: number }>(
       "logs.tail",
       params
-    )) as { entries: LogEntry[]; cursor: number };
+    )) as { lines: string[]; cursor: number };
   }
 }
 

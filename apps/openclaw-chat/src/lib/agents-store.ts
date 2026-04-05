@@ -17,6 +17,7 @@
 
 import type { AgentInfo } from "@/components/chat-types";
 import { readUnreadSnapshot } from "./session-unread-snapshot";
+import { getAgentCache, setAgentCache } from "./agent-cache";
 
 export type AgentsStoreState = {
   agents: AgentInfo[];
@@ -40,10 +41,23 @@ class AgentsStore {
   private subscribers = new Set<Subscriber>();
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
   private refreshPromise: Promise<void> | null = null;
+  private initializedFromCache = false;
 
   constructor() {
     // 延迟初始化，等 React 挂载后再开始刷新
     if (typeof window !== "undefined") {
+      // 先从缓存读取数据，立即通知订阅者（避免白屏）
+      const cached = getAgentCache();
+      if (cached.agents.length > 0) {
+        this.state = {
+          agents: cached.agents,
+          loading: false,
+          error: null,
+          lastUpdated: new Date(cached.updatedAt),
+        };
+        this.initializedFromCache = true;
+        this.notify();
+      }
       setTimeout(() => this.startAutoRefresh(), 1000);
     }
   }
@@ -210,6 +224,8 @@ class AgentsStore {
         error: null,
         lastUpdated: new Date(),
       };
+      // 保存到 localStorage 缓存
+      setAgentCache(agentInfos);
     } catch (err) {
       const error = err instanceof Error ? err.message : String(err);
       // 刷新失败时保留旧数据，只更新 error

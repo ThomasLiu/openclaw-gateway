@@ -21,7 +21,9 @@ import GatewayAlertDialog from "./GatewayAlertDialog";
 import ExecApprovalOverlay from "./ExecApprovalOverlay";
 import UpdateDialog from "./UpdateDialog";
 import AgentConfigModal from "./AgentConfigModal";
+import ToastContainer, { showError } from "./Toast";
 import { getAgentsStore } from "@/lib/agents-store";
+import { getSessionCache, setSessionCache } from "@/lib/session-cache";
 
 // ============================================================================
 // 子组件 import（避免循环依赖，统一在这里 import）
@@ -85,8 +87,11 @@ export default function ChatApp() {
   /** 当前选中的 agentId */
   const [currentAgentId, setCurrentAgentId] = useState<string | undefined>(undefined);
 
-  /** 所有 agent 的会话列表：Record<agentId, SessionInfo_[]> */
-  const [sessionsMap, setSessionsMap] = useState<Record<string, SessionInfo_[]>>({});
+  /** 所有 agent 的会话列表：Record<agentId, SessionInfo_[]>（从 localStorage 缓存初始化） */
+  const [sessionsMap, setSessionsMap] = useState<Record<string, SessionInfo_[]>>(() => {
+    if (typeof window === "undefined") return {};
+    return getSessionCache().sessionsMap;
+  });
 
   /** 当前会话 key */
   const [currentSessionKey, setCurrentSessionKey] = useState<string | undefined>(
@@ -153,6 +158,9 @@ export default function ChatApp() {
 
   /** Agent 配置弹窗状态 */
   const [showAgentConfig, setShowAgentConfig] = useState(false);
+
+  /** 添加 Agent（Architect）状态 */
+  const [addingAgent, setAddingAgent] = useState(false);
 
   // ---------------------------------------------------------------------------
   // Refs
@@ -417,10 +425,17 @@ export default function ChatApp() {
 
   const loadSessions = useCallback(
     async (agentId: string) => {
+      // 忽略非当前 agent 的响应（防止竞态）
+      if (agentId !== currentAgentId) return;
+
       setLoadingSessions(true);
       try {
         const resp = await fetch(`/api/gateway/sessions?agentId=${encodeURIComponent(agentId)}`);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+        // 再次检查：响应到达时 agentId 是否仍匹配
+        if (agentId !== currentAgentId) return;
+
         const data = await resp.json();
         const sessions: SessionInfo_[] = (data.sessions ?? []).map(
           (s: { key: string; displayName?: string; derivedTitle?: string; updatedAt?: string | number; preview?: string; lastMessagePreview?: string; userLastMessage?: string; agentLastMessage?: string }) => ({
@@ -433,21 +448,50 @@ export default function ChatApp() {
             agentLastMessage: s.agentLastMessage,
           })
         );
-        setSessionsMap((prev) => ({ ...prev, [agentId]: sessions }));
+
+        // 检查 API 返回的数据是否有效：如果所有 session 的 userLastMessage 都是空的，
+        // 说明可能 enrichment 失败了，保留现有缓存数据
+        const hasValidData = sessions.length === 0 || sessions.some((s) => s.userLastMessage);
+
+        setSessionsMap((prev) => {
+          // 如果 API 数据无效，保留现有数据
+          if (!hasValidData && prev[agentId] !== undefined) {
+            return prev;
+          }
+          const next = { ...prev, [agentId]: sessions };
+          // 更新 localStorage 缓存
+          setSessionCache(next);
+          return next;
+        });
       } catch {
-        setSessionsMap((prev) => ({ ...prev, [agentId]: [] }));
+        // API 失败时保留现有数据，不覆盖为空数组
+        setSessionsMap((prev) => {
+          if (prev[agentId] !== undefined) {
+            return prev; // 保留现有数据
+          }
+          return { ...prev, [agentId]: [] };
+        });
       } finally {
-        setLoadingSessions(false);
+        if (agentId === currentAgentId) {
+          setLoadingSessions(false);
+        }
       }
     },
-    []
+    [currentAgentId]
   );
 
   // 自动加载 sessions（当 currentAgentId 变化时触发，包括初始自动选择）
   useEffect(() => {
-    if (currentAgentId) {
-      loadSessions(currentAgentId);
+    if (!currentAgentId) return;
+
+    // 保留旧会话数据（避免切换时闪烁），先显示已有的会话
+    const existingSessions = sessionsMap[currentAgentId];
+    if (!existingSessions) {
+      // 首次加载该 Agent：先初始化空数组，避免 undefined 导致白屏
+      setSessionsMap((prev) => ({ ...prev, [currentAgentId]: [] }));
     }
+
+    loadSessions(currentAgentId);
   }, [currentAgentId, loadSessions]);
 
   // ---------------------------------------------------------------------------
@@ -570,13 +614,101 @@ export default function ChatApp() {
         preview: "暂无消息",
         relativeTime: "刚刚",
       };
-      setSessionsMap((prev) => ({
-        ...prev,
-        [currentAgentId]: [newSession, ...(prev[currentAgentId] ?? [])],
-      }));
+      setSessionsMap((prev) => {
+        const next = {
+          ...prev,
+          [currentAgentId]: [newSession, ...(prev[currentAgentId] ?? [])],
+        };
+        // 更新 localStorage 缓存
+        setSessionCache(next);
+        return next;
+      });
       handleSelectSession(newSession.key);
     } catch {
       // 创建失败，静默忽略
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // 添加 Agent（由 Architect 引导）
+  // ---------------------------------------------------------------------------
+
+  /** Architect Agent 引导消息 */
+  const ARCHITECT_GUIDING_MESSAGE = `你好！我是 Agent 设计专家 🏗️，可以帮助你创建和管理新的 Agent。
+
+要创建一个新的 Agent，请告诉我：
+1. 你希望这个 Agent 做什么？（例如：代码审查、数据分析、客服对话等）
+2. 它需要什么工具或能力？
+3. 你想给它起什么名字？
+
+我会帮你设置好工作区文件和初始配置。`;
+
+  /**
+   * 等待 sessions 加载完成
+   * sessionsMap[targetAgentId] 初始为 undefined，加载后会是数组
+   */
+  async function waitForSessionsLoaded(targetAgentId: string, maxAttempts = 30): Promise<void> {
+    for (let i = 0; i < maxAttempts; i++) {
+      const sessions = sessionsMap[targetAgentId];
+      // sessions 存在且为数组（即使是空数组也说明已加载过）
+      if (Array.isArray(sessions)) return;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  }
+
+  /**
+   * 添加 Agent - 由 Architect 引导创建
+   */
+  async function handleAddAgent() {
+    if (addingAgent) return;
+    setAddingAgent(true);
+
+    try {
+      // Step 1: 确保 Architect agent 存在（幂等）
+      const ensureResp = await fetch("/api/agent-architect/ensure", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!ensureResp.ok) {
+        const data = await ensureResp.json().catch(() => ({}));
+        throw new Error(data.error ?? `HTTP ${ensureResp.status}`);
+      }
+      const { agentId } = (await ensureResp.json()) as { agentId: string };
+
+      // Step 2: 切换到 Architect agent
+      handleSelectAgent(agentId);
+
+      // Step 3: 等待 sessions 加载
+      await waitForSessionsLoaded(agentId);
+
+      // Step 4: 查找空 session 或创建新的
+      const sessions = sessionsMap[agentId] ?? [];
+      const emptySession = sessions.find(
+        (s: SessionInfo_) => !s.userLastMessage && !s.agentLastMessage
+      );
+
+      if (emptySession) {
+        handleSelectSession(emptySession.key);
+      } else {
+        // 创建新 session
+        const createResp = await fetch("/api/gateway/sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agentId }),
+        });
+        if (!createResp.ok) throw new Error("Failed to create session");
+        const { key: newSessionKey } = (await createResp.json()) as { key: string };
+        handleSelectSession(newSessionKey);
+      }
+
+      // Step 5: 等待 session 切换完成，然后发送引导消息
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      handleSendMessage(ARCHITECT_GUIDING_MESSAGE);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`添加 Agent 失败: ${msg}`);
+    } finally {
+      setAddingAgent(false);
     }
   }
 
@@ -585,6 +717,12 @@ export default function ChatApp() {
   // ---------------------------------------------------------------------------
 
   async function handleDeleteAgent(agentId: string): Promise<boolean> {
+    // 停止当前 SSE
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+
     try {
       const resp = await fetch(`/api/agents/${encodeURIComponent(agentId)}`, {
         method: "DELETE",
@@ -593,8 +731,14 @@ export default function ChatApp() {
         const data = await resp.json().catch(() => ({}));
         throw new Error(data.error ?? `HTTP ${resp.status}`);
       }
+
+      // 清除 client singleton（删除 agent 后 gateway 可能已断开连接）
+      const { clearOpenClawClient } = await import("@/lib/openclaw/pool");
+      clearOpenClawClient();
+
       // 刷新 agents 列表
       getAgentsStore().refresh();
+
       // 如果删除的是当前选中的 agent，切换到第一个
       if (currentAgentId === agentId) {
         const remaining = agents.filter((a) => a.id !== agentId);
@@ -607,7 +751,7 @@ export default function ChatApp() {
       return true;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      alert(`删除 Agent 失败: ${msg}`);
+      showError(`删除 Agent 失败: ${msg}`);
       return false;
     }
   }
@@ -626,7 +770,12 @@ export default function ChatApp() {
       });
       const sessions = sessionsMap[currentAgentId] ?? [];
       const updated = sessions.filter((s) => s.key !== sessionKey);
-      setSessionsMap((prev) => ({ ...prev, [currentAgentId]: updated }));
+      setSessionsMap((prev) => {
+        const next = { ...prev, [currentAgentId]: updated };
+        // 更新 localStorage 缓存
+        setSessionCache(next);
+        return next;
+      });
 
       // 如果删除的是当前会话，切换到第一个
       if (currentSessionKey === sessionKey) {
@@ -829,6 +978,8 @@ export default function ChatApp() {
             loadingSessions={loadingSessions}
             openclawAgentArchitectId={OPENCLAW_AGENT_ARCHITECT_ID}
             onOpenConfig={() => setShowAgentConfig(true)}
+            onAddAgent={handleAddAgent}
+            addingAgent={addingAgent}
           />
         )}
 
@@ -892,6 +1043,9 @@ export default function ChatApp() {
           getAgentsStore().refresh();
         }}
       />
+
+      {/* Toast 通知 */}
+      <ToastContainer />
     </div>
   );
 }
@@ -1035,6 +1189,8 @@ function AgentSidebar({
   loadingSessions,
   openclawAgentArchitectId,
   onOpenConfig,
+  onAddAgent,
+  addingAgent,
 }: {
   agents: AgentInfo[];
   currentAgentId?: string;
@@ -1049,6 +1205,8 @@ function AgentSidebar({
   loadingSessions: boolean;
   openclawAgentArchitectId: string;
   onOpenConfig: () => void;
+  onAddAgent: () => void;
+  addingAgent: boolean;
 }) {
   const [agentHovering, setAgentHovering] = useState<string | null>(null);
   const [sessionHovering, setSessionHovering] = useState<string | null>(null);
@@ -1107,15 +1265,35 @@ function AgentSidebar({
       <div className="flex-shrink-0 px-2 py-2 border-b border-zinc-800">
         <div className="flex items-center justify-between px-1 mb-1.5">
           <span className="text-xs text-zinc-500 uppercase tracking-wider">Agent</span>
-          <button
-            onClick={onOpenConfig}
-            className="p-0.5 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700 transition-colors"
-            title="Agent 配置"
-          >
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-              <path d="M10.5 5.25a1 1 0 01-.3.7l-.9.9a.5.5 0 01-.7 0l-.7-.7a.5.5 0 010-.7l.9-.9a1 1 0 010-1.4l.4-.4a.5.5 0 01.7 0l.4.4a.5.5 0 010 .7zM5.25 7.5l-.7-.7L3.4 8l.7.7-.7.7 1.15 1.15.7-.7.7.7 1.15-1.15-.7-.7.7-.7-1.15-1.15-.7.7-.7-.7-1.15 1.15.7.7-.7.7 1.15 1.15z"/>
-            </svg>
-          </button>
+          <div className="flex items-center gap-0.5">
+            {/* 添加 Agent 按钮 */}
+            <button
+              onClick={onAddAgent}
+              disabled={addingAgent}
+              className={`p-0.5 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700 transition-colors ${addingAgent ? "opacity-50 cursor-not-allowed" : ""}`}
+              title="添加 Agent（由 Agent 设计专家引导）"
+            >
+              {addingAgent ? (
+                <svg width="12" height="12" viewBox="0 0 12 12" className="animate-spin">
+                  <circle cx="6" cy="6" r="4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeDasharray="12" strokeDashoffset="4" />
+                </svg>
+              ) : (
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M6 1v10M1 6h10" strokeLinecap="round" />
+                </svg>
+              )}
+            </button>
+            {/* 配置按钮 */}
+            <button
+              onClick={onOpenConfig}
+              className="p-0.5 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700 transition-colors"
+              title="Agent 配置"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                <path d="M10.5 5.25a1 1 0 01-.3.7l-.9.9a.5.5 0 01-.7 0l-.7-.7a.5.5 0 010-.7l.9-.9a1 1 0 010-1.4l.4-.4a.5.5 0 01.7 0l.4.4a.5.5 0 010 .7zM5.25 7.5l-.7-.7L3.4 8l.7.7-.7.7 1.15 1.15.7-.7.7.7 1.15-1.15-.7-.7.7-.7-1.15-1.15-.7.7-.7-.7-1.15 1.15.7.7-.7.7 1.15 1.15z"/>
+              </svg>
+            </button>
+          </div>
         </div>
         {loadingAgents ? (
           <div className="text-xs text-zinc-500 px-1 py-2">加载中...</div>
@@ -1375,7 +1553,7 @@ function AgentCard({
             </svg>
           </button>
           {/* 删除按钮 */}
-          {!isOpenclawArchitect && (
+          {(
             <button
               onClick={(e) => {
                 e.stopPropagation();
