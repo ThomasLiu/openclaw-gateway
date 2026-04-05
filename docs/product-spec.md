@@ -61,6 +61,16 @@
 | 斜杠命令参数建议 | GET `/api/openclaw/argument-suggestions?key=<key>` 获取动态参数建议值（如运行中的 agent ID） | `src/app/api/openclaw/argument-suggestions/route.ts` |
 | 输入历史 | ArrowUp/Down 快捷键浏览历史输入（最多保留 50 条） | `src/components/Composer.tsx` |
 
+#### 1.4 会话工具栏
+
+| 功能 | 描述 | 核心文件 |
+|------|------|----------|
+| 会话工具栏 | 5 按钮工具栏：重置/重启、模型/思维模式、工具/设置、聚焦/截图、历史记录 | `src/components/SessionToolbar.tsx` |
+| Gateway 重启 | 通过 restart sentinel + SIGUSR1 触发 gateway 平滑重启 | `src/lib/openclaw/restart.ts` |
+| 思维模式切换 | 切换 session 的 thinking 级别（off/low/medium/high） | `src/app/api/openclaw/session-toolbar/route.ts` |
+| 节点操作 | 拍照、最新照片、屏幕录制、获取位置、设备状态等节点控制 | `src/app/api/openclaw/session-toolbar/route.ts` |
+| 会话历史查看 | 下拉菜单展示最近会话消息 | `src/components/SessionToolbar.tsx` |
+
 ---
 
 ### 2. Agent 管理
@@ -198,6 +208,13 @@
 | 导出脱敏 | 导出时将敏感字段替换为 `[REDACTED]` | `src/lib/openclaw/agent-export/redact-secrets-for-export.ts` |
 | 配置脱敏 | `sanitizeConfig` 递归遍历配置对象脱敏敏感字段 | `src/app/api/openclaw/config/route.ts` |
 
+#### 5.4 工具库
+
+| 功能 | 描述 | 核心文件 |
+|------|------|----------|
+| Gateway 重启 | 写入 restart sentinel + SIGUSR1 触发 gateway 平滑重启 | `src/lib/openclaw/restart.ts` |
+| 连接池 | WebSocket 单例连接池管理 | `src/lib/openclaw/pool.ts` |
+
 ---
 
 ## API 路由总表
@@ -225,6 +242,7 @@
 | `/api/openclaw/skills/install` | POST | 安装技能 |
 | `/api/openclaw/skills/session` | GET/POST | 会话级技能管理 |
 | `/api/openclaw/skills/dev-tool-presence` | GET | 开发工具存在性探测 |
+| `/api/openclaw/session-toolbar` | GET/POST | 会话工具栏（重启/思维模式/节点操作/历史） |
 | `/api/openclaw/agent-request-diagnostics` | GET/POST | Agent 请求诊断 |
 | `/api/openclaw/agent-request-logs` | GET | Agent 请求 JSONL 日志 |
 | `/api/openclaw/default-model` | GET/POST | 默认模型读写 |
