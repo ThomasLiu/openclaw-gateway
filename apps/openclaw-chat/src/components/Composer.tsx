@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ComposerProps, ChatAttachment } from "./chat-types";
 
 // ============================================================================
@@ -113,7 +113,7 @@ const SLASH_COMMANDS: SlashCommand[] = [
     acceptsArgs: true,
     detail: "Display available models or switch to a different AI model. Shows model capabilities and pricing if no argument provided.",
     detailZh: "显示可用模型或切换到不同的 AI 模型。无参数时显示模型能力和价格。",
-    args: [{ hint: "[model-name]", description: "Name of the model to switch to", descriptionZh: "要切换的模型名称" }],
+    args: [{ hint: "[model-name]", description: "Name of the model to switch to", descriptionZh: "要切换的模型名称", suggestionsKey: "models" }],
   },
   {
     name: "models",
@@ -123,7 +123,7 @@ const SLASH_COMMANDS: SlashCommand[] = [
     acceptsArgs: true,
     detail: "List all available model providers and their available models. Shows pricing, capabilities, and current status.",
     detailZh: "列出所有可用的模型提供商及其模型。显示价格、功能和当前状态。",
-    args: [{ hint: "[provider]", description: "Filter by specific provider", descriptionZh: "按特定提供商筛选" }],
+    args: [{ hint: "[provider]", description: "Filter by specific provider", descriptionZh: "按特定提供商筛选", suggestionsKey: "providers" }],
   },
   {
     name: "think",
@@ -350,7 +350,7 @@ const SLASH_COMMANDS: SlashCommand[] = [
     acceptsArgs: true,
     detail: "Alias for /steer command.",
     detailZh: "/steer 命令的别名。",
-    args: [{ hint: "<agent-id> <message>", description: "Agent ID and message", descriptionZh: "代理 ID 和消息" }],
+    args: [{ hint: "<agent-id> <message>", description: "Agent ID and message", descriptionZh: "代理 ID 和消息", suggestionsKey: "running-agents" }],
   },
   {
     name: "focus",
@@ -360,7 +360,7 @@ const SLASH_COMMANDS: SlashCommand[] = [
     acceptsArgs: true,
     detail: "Bind the current session to a specific target entity, enabling context-aware responses.",
     detailZh: "将会话绑定到特定目标实体，启用上下文感知响应。",
-    args: [{ hint: "<target>", description: "Target to bind session to", descriptionZh: "要绑定会话的目标" }],
+    args: [{ hint: "<target>", description: "Target to bind session to", descriptionZh: "要绑定会话的目标", suggestionsKey: "sessions" }],
   },
   {
     name: "unfocus",
@@ -496,7 +496,7 @@ const SLASH_COMMANDS: SlashCommand[] = [
     acceptsArgs: true,
     detail: "Run a specific skill by name with optional input parameters. Skills are reusable prompt templates or workflows.",
     detailZh: "按名称运行特定技能，带可选的输入参数。技能是可复用的提示模板或工作流程。",
-    args: [{ hint: "name [input]", description: "Skill name and optional input", descriptionZh: "技能名称和可选输入" }],
+    args: [{ hint: "name [input]", description: "Skill name and optional input", descriptionZh: "技能名称和可选输入", suggestionsKey: "skills" }],
   },
   {
     name: "restart",
@@ -1083,6 +1083,7 @@ type SuggestionItem = {
 function SlashMenuDetail({ command }: { command: SlashCommand }) {
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [suggestionLabel, setSuggestionLabel] = useState("");
 
   // 获取动态建议
   useEffect(() => {
@@ -1095,6 +1096,24 @@ function SlashMenuDetail({ command }: { command: SlashCommand }) {
     setLoading(true);
     const key = argWithSuggestions.suggestionsKey;
 
+    // 根据 key 设置标签
+    switch (key) {
+      case "running-agents":
+        setSuggestionLabel("运行中的 Agent");
+        break;
+      case "sessions":
+        setSuggestionLabel("会话列表");
+        break;
+      case "models":
+        setSuggestionLabel("可用模型");
+        break;
+      case "skills":
+        setSuggestionLabel("可用技能");
+        break;
+      default:
+        setSuggestionLabel("可选值");
+    }
+
     fetch(`/api/openclaw/argument-suggestions?key=${encodeURIComponent(key)}`)
       .then((res) => res.json())
       .then((data) => {
@@ -1102,6 +1121,13 @@ function SlashMenuDetail({ command }: { command: SlashCommand }) {
           setSuggestions(data.agents);
         } else if (data.sessions) {
           setSuggestions(data.sessions);
+        } else if (data.models) {
+          setSuggestions(data.models.map((m: { id: string; name?: string; provider?: string }) => ({
+            id: m.id,
+            label: m.provider ? `${m.name || m.id} (${m.provider})` : (m.name || m.id),
+          })));
+        } else if (data.skills) {
+          setSuggestions(data.skills);
         } else {
           setSuggestions([]);
         }
@@ -1190,7 +1216,7 @@ function SlashMenuDetail({ command }: { command: SlashCommand }) {
                       <circle cx="12" cy="12" r="10" />
                       <path d="M12 16v-4M12 8h.01" />
                     </svg>
-                    <span className="text-xs text-zinc-500">可选值</span>
+                    <span className="text-xs text-zinc-500">{suggestionLabel}</span>
                   </div>
                   {loading ? (
                     <div className="text-xs text-zinc-500 py-1">加载中...</div>
@@ -1238,6 +1264,112 @@ function SlashMenuDetail({ command }: { command: SlashCommand }) {
 }
 
 // ============================================================================
+// ArgSuggestionsDropdown 子组件 - 参数建议下拉
+// ============================================================================
+
+type ArgSuggestionItem = {
+  id: string;
+  label: string;
+};
+
+function ArgSuggestionsDropdown({
+  suggestions,
+  loading,
+  onSelect,
+  onClose,
+  suggestionLabel,
+}: {
+  suggestions: ArgSuggestionItem[];
+  loading: boolean;
+  onSelect: (value: string) => void;
+  onClose: () => void;
+  suggestionLabel: string;
+}) {
+  const [selectedIdx, setSelectedIdx] = useState(0);
+
+  // 重置选中索引当建议列表变化时
+  useEffect(() => {
+    setSelectedIdx(0);
+  }, [suggestions]);
+
+  // 键盘导航
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (suggestions.length === 0) return;
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        setSelectedIdx((i) => (i + 1) % suggestions.length);
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        setSelectedIdx((i) => (i - 1 + suggestions.length) % suggestions.length);
+        break;
+      case "Enter":
+      case "Tab":
+        e.preventDefault();
+        if (suggestions[selectedIdx]) {
+          onSelect(suggestions[selectedIdx].id);
+        }
+        break;
+      case "Escape":
+        e.preventDefault();
+        onClose();
+        break;
+    }
+  };
+
+  if (suggestions.length === 0 && !loading) return null;
+
+  return (
+    <div
+      className="border-t border-zinc-700 bg-zinc-800/95 max-h-48 overflow-y-auto"
+      onKeyDown={handleKeyDown}
+    >
+      {/* 头部 */}
+      <div className="px-3 py-1.5 text-xs text-zinc-500 bg-zinc-800/80 border-b border-zinc-700/50 flex items-center justify-between">
+        <span>{suggestionLabel}</span>
+        <button
+          onClick={onClose}
+          className="px-1 py-0.5 bg-zinc-700 rounded hover:bg-zinc-600 transition-colors"
+        >
+          <kbd className="text-zinc-400">Esc</kbd>
+        </button>
+      </div>
+
+      {/* 建议列表 */}
+      {loading ? (
+        <div className="px-3 py-2 text-xs text-zinc-500">加载中...</div>
+      ) : (
+        suggestions.map((item, idx) => (
+          <div
+            key={item.id}
+            className={`px-3 py-2 cursor-pointer transition-colors flex items-center gap-2 ${
+              idx === selectedIdx
+                ? "bg-zinc-700 text-zinc-100"
+                : "text-zinc-400 hover:bg-zinc-700/50 hover:text-zinc-200"
+            }`}
+            onClick={() => onSelect(item.id)}
+            onMouseEnter={() => setSelectedIdx(idx)}
+          >
+            <code className="px-1.5 py-0.5 bg-zinc-900 text-emerald-400 text-xs rounded font-mono whitespace-nowrap">
+              {item.id}
+            </code>
+            <span className="text-sm truncate">{item.label}</span>
+          </div>
+        ))
+      )}
+
+      {/* 底部提示 */}
+      <div className="px-3 py-1 bg-zinc-800/80 border-t border-zinc-700/50 text-xs text-zinc-500">
+        <kbd className="px-1 py-0.5 bg-zinc-700 rounded text-zinc-400">↑↓</kbd> 导航{" "}
+        <kbd className="px-1 py-0.5 bg-zinc-700 rounded text-zinc-400">Enter</kbd> 选择
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
 // SlashMenu 子组件
 // ============================================================================
 
@@ -1246,12 +1378,42 @@ function SlashMenu({
   selectedIndex,
   onSelect,
   onHover,
+  inputValue,
+  cursorPosition,
+  onArgSelect,
 }: {
   commands: SlashCommand[];
   selectedIndex: number;
   onSelect: (cmd: SlashCommand) => void;
   onHover: (index: number) => void;
+  inputValue: string;
+  cursorPosition: number;
+  onArgSelect: (argValue: string) => void;
 }) {
+  // 列表容器的 ref
+  const listContainerRef = useRef<HTMLDivElement>(null);
+  // 选中项的 ref 映射
+  const itemRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+
+  // 滚动选中项到可视区域
+  useEffect(() => {
+    const item = itemRefs.current.get(selectedIndex);
+    if (item && listContainerRef.current) {
+      const container = listContainerRef.current;
+      const itemTop = item.offsetTop;
+      const itemHeight = item.offsetHeight;
+      const containerHeight = container.clientHeight;
+      const containerScrollTop = container.scrollTop;
+
+      // 如果项不在可视区域内，则滚动
+      if (itemTop < containerScrollTop) {
+        container.scrollTop = itemTop;
+      } else if (itemTop + itemHeight > containerScrollTop + containerHeight) {
+        container.scrollTop = itemTop - containerHeight + itemHeight;
+      }
+    }
+  }, [selectedIndex]);
+
   // 按分类分组
   const grouped = commands.reduce<Record<string, SlashCommand[]>>((acc, cmd) => {
     if (!acc[cmd.category]) acc[cmd.category] = [];
@@ -1261,58 +1423,219 @@ function SlashMenu({
 
   const selectedCommand = commands[selectedIndex];
 
+  // 计算当前参数位置和正在输入的参数值
+  const { currentArgIndex, currentArgValue, argSuggestions, argLoading, suggestionLabel } =
+    useArgSuggestions(selectedCommand, inputValue, cursorPosition);
+
   let globalIndex = 0;
 
   return (
-    <div className="absolute left-0 right-0 bottom-full mb-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl overflow-hidden z-50 flex">
-      {/* 左侧命令列表 */}
-      <div className="flex-1 min-w-0 h-80 overflow-y-auto">
-        {Object.entries(grouped).map(([category, cmds]) => (
-          <div key={category}>
-            <div className="px-3 py-1.5 text-xs text-zinc-500 bg-zinc-800/80 sticky top-0">
-              {CATEGORY_LABELS[category] || category}
-            </div>
-            {cmds.map((cmd) => {
-              const idx = globalIndex++;
-              return (
-                <div
-                  key={cmd.name}
-                  className={`px-3 py-2 flex items-center gap-2 cursor-pointer transition-colors ${
-                    idx === selectedIndex
-                      ? "bg-zinc-700 text-zinc-100"
-                      : "text-zinc-400 hover:bg-zinc-700/50 hover:text-zinc-200"
-                  }`}
-                  onClick={() => onSelect(cmd)}
-                  onMouseEnter={() => onHover(idx)}
-                >
-                  <span className="w-5 h-5 flex items-center justify-center text-zinc-500">
-                    {COMMAND_ICONS[cmd.icon] || COMMAND_ICONS.book}
-                  </span>
-                  <span className="flex-1 text-sm truncate">
-                    /{cmd.name}
-                    {cmd.args?.[0]?.hint && (
-                      <span className="text-zinc-500 font-normal"> {cmd.args[0].hint}</span>
+    <div className="absolute left-0 right-0 bottom-full mb-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl overflow-hidden z-50 flex flex-col">
+      <div className="flex">
+        {/* 左侧命令列表 */}
+        <div ref={listContainerRef} className="flex-1 min-w-0 h-80 overflow-y-auto">
+          {Object.entries(grouped).map(([category, cmds]) => (
+            <div key={category}>
+              <div className="px-3 py-1.5 text-xs text-zinc-500 bg-zinc-800/80 sticky top-0">
+                {CATEGORY_LABELS[category] || category}
+              </div>
+              {cmds.map((cmd) => {
+                const idx = globalIndex++;
+                return (
+                  <div
+                    key={cmd.name}
+                    ref={(el) => {
+                      if (el) itemRefs.current.set(idx, el);
+                      else itemRefs.current.delete(idx);
+                    }}
+                    className={`px-3 py-2 flex items-center gap-2 cursor-pointer transition-colors ${
+                      idx === selectedIndex
+                        ? "bg-zinc-700 text-zinc-100"
+                        : "text-zinc-400 hover:bg-zinc-700/50 hover:text-zinc-200"
+                    }`}
+                    onClick={() => onSelect(cmd)}
+                    onMouseEnter={() => onHover(idx)}
+                  >
+                    <span className="w-5 h-5 flex items-center justify-center text-zinc-500">
+                      {COMMAND_ICONS[cmd.icon] || COMMAND_ICONS.book}
+                    </span>
+                    <span className="flex-1 text-sm truncate">
+                      /{cmd.name}
+                      {cmd.args?.[0]?.hint && (
+                        <span className="text-zinc-500 font-normal"> {cmd.args[0].hint}</span>
+                      )}
+                    </span>
+                    {!cmd.args?.[0]?.hint && (
+                      <span className="text-xs text-zinc-500 truncate">{cmd.description}</span>
                     )}
-                  </span>
-                  {!cmd.args?.[0]?.hint && (
-                    <span className="text-xs text-zinc-500 truncate">{cmd.description}</span>
-                  )}
-                </div>
-              );
-            })}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+          <div className="px-3 py-1.5 bg-zinc-800/80 border-t border-zinc-700 text-xs text-zinc-500">
+            <kbd className="px-1 py-0.5 bg-zinc-700 rounded text-zinc-400">↑↓</kbd> 导航{" "}
+            <kbd className="px-1 py-0.5 bg-zinc-700 rounded text-zinc-400">Enter</kbd> 选择{" "}
+            <kbd className="px-1 py-0.5 bg-zinc-700 rounded text-zinc-400">Esc</kbd> 关闭
           </div>
-        ))}
-        <div className="px-3 py-1.5 bg-zinc-800/80 border-t border-zinc-700 text-xs text-zinc-500">
-          <kbd className="px-1 py-0.5 bg-zinc-700 rounded text-zinc-400">↑↓</kbd> 导航{" "}
-          <kbd className="px-1 py-0.5 bg-zinc-700 rounded text-zinc-400">Enter</kbd> 选择{" "}
-          <kbd className="px-1 py-0.5 bg-zinc-700 rounded text-zinc-400">Esc</kbd> 关闭
         </div>
+
+        {/* 右侧详情面板 */}
+        {selectedCommand && <SlashMenuDetail key={selectedCommand.name} command={selectedCommand} />}
       </div>
 
-      {/* 右侧详情面板 */}
-      {selectedCommand && <SlashMenuDetail key={selectedCommand.name} command={selectedCommand} />}
+      {/* 参数建议下拉 - 在命令列表下方 */}
+      <ArgSuggestionsDropdown
+        suggestions={argSuggestions}
+        loading={argLoading}
+        suggestionLabel={suggestionLabel}
+        onSelect={onArgSelect}
+        onClose={() => {}}
+      />
     </div>
   );
+}
+
+// ============================================================================
+// useArgSuggestions hook - 管理参数建议状态
+// ============================================================================
+
+function useArgSuggestions(
+  selectedCommand: SlashCommand | undefined,
+  inputValue: string,
+  cursorPosition: number
+) {
+  const [argSuggestions, setArgSuggestions] = useState<ArgSuggestionItem[]>([]);
+  const [argLoading, setArgLoading] = useState(false);
+  const [suggestionLabel, setSuggestionLabel] = useState("");
+
+  // 解析当前参数位置
+  const { currentArgIndex, currentArgValue } = useMemo(() => {
+    if (!selectedCommand) return { currentArgIndex: -1, currentArgValue: "" };
+
+    // 找到 /command 的位置
+    const textBeforeCursor = inputValue.slice(0, cursorPosition);
+    const lastSlashIndex = textBeforeCursor.lastIndexOf("/");
+
+    if (lastSlashIndex === -1) return { currentArgIndex: -1, currentArgValue: "" };
+
+    // 提取命令名称和参数部分
+    const afterSlash = textBeforeCursor.slice(lastSlashIndex + 1);
+    const spaceIndex = afterSlash.indexOf(" ");
+
+    // 如果没有空格，说明正在输入命令名
+    if (spaceIndex === -1) return { currentArgIndex: -1, currentArgValue: "" };
+
+    // 提取参数部分
+    const argsPart = afterSlash.slice(spaceIndex + 1);
+    const args = argsPart.split(/\s+/);
+
+    return {
+      currentArgIndex: args.length - 1, // 0-based index of current argument
+      currentArgValue: args[args.length - 1] || "",
+    };
+  }, [selectedCommand, inputValue, cursorPosition]);
+
+  // 获取参数建议
+  useEffect(() => {
+    if (!selectedCommand || currentArgIndex < 0) {
+      setArgSuggestions([]);
+      setArgLoading(false);
+      return;
+    }
+
+    // 获取当前参数的 ArgSpec
+    const argSpec = selectedCommand.args?.[currentArgIndex];
+    if (!argSpec) {
+      setArgSuggestions([]);
+      return;
+    }
+
+    // 如果参数已经有值，过滤建议
+    const suggestionsKey = argSpec.suggestionsKey;
+    const staticOptions = argSpec.options;
+
+    if (!suggestionsKey && !staticOptions) {
+      setArgSuggestions([]);
+      return;
+    }
+
+    // 如果有静态选项，直接使用
+    if (staticOptions && staticOptions.length > 0) {
+      const filtered = currentArgValue
+        ? staticOptions.filter(
+            (opt) =>
+              opt.value.toLowerCase().includes(currentArgValue.toLowerCase()) ||
+              (opt.descriptionZh || opt.description).toLowerCase().includes(currentArgValue.toLowerCase())
+          )
+        : staticOptions;
+
+      setArgSuggestions(
+        filtered.map((opt) => ({
+          id: opt.value,
+          label: opt.descriptionZh || opt.description,
+        }))
+      );
+      setSuggestionLabel("可选值");
+      setArgLoading(false);
+      return;
+    }
+
+    // 获取动态建议
+    setArgLoading(true);
+
+    // 设置标签
+    switch (suggestionsKey) {
+      case "running-agents":
+        setSuggestionLabel("运行中的 Agent");
+        break;
+      case "sessions":
+        setSuggestionLabel("会话列表");
+        break;
+      case "models":
+        setSuggestionLabel("可用模型");
+        break;
+      case "skills":
+        setSuggestionLabel("可用技能");
+        break;
+      default:
+        setSuggestionLabel("可选值");
+    }
+
+    fetch(`/api/openclaw/argument-suggestions?key=${encodeURIComponent(suggestionsKey!)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        let items: ArgSuggestionItem[] = [];
+
+        if (data.agents) {
+          items = data.agents;
+        } else if (data.sessions) {
+          items = data.sessions;
+        } else if (data.models) {
+          items = data.models.map((m: { id: string; name?: string; provider?: string }) => ({
+            id: m.id,
+            label: m.provider ? `${m.name || m.id} (${m.provider})` : (m.name || m.id),
+          }));
+        } else if (data.skills) {
+          items = data.skills;
+        }
+
+        // 如果当前参数已有输入，过滤建议
+        if (currentArgValue) {
+          items = items.filter(
+            (item) =>
+              item.id.toLowerCase().includes(currentArgValue.toLowerCase()) ||
+              item.label.toLowerCase().includes(currentArgValue.toLowerCase())
+          );
+        }
+
+        setArgSuggestions(items);
+      })
+      .catch(() => setArgSuggestions([]))
+      .finally(() => setArgLoading(false));
+  }, [selectedCommand, currentArgIndex, currentArgValue]);
+
+  return { currentArgIndex, currentArgValue, argSuggestions, argLoading, suggestionLabel };
 }
 
 // ============================================================================
@@ -1418,14 +1741,43 @@ export default function Composer({
     const lastSlashIndex = textBeforeCursor.lastIndexOf("/");
 
     if (lastSlashIndex !== -1) {
+      // 检查 slash 是否是命令的开始（前面是空格或字符串开头）
+      const charBeforeSlash = lastSlashIndex > 0 ? textBeforeCursor[lastSlashIndex - 1] : ' ';
+      if (charBeforeSlash !== ' ' && lastSlashIndex !== 0) {
+        // slash 不在空格后面，可能是 URL 或其他内容，关闭菜单
+        setSlashMenuOpen(false);
+        setSlashMenuFilter("");
+        return;
+      }
+
       const textAfterSlash = textBeforeCursor.slice(lastSlashIndex + 1);
-      // 只有在 slash 后面没有空格时才显示菜单
-      if (!textAfterSlash.includes(" ")) {
-        const filtered = getSlashCommandCompletions(textAfterSlash.toLowerCase());
-        setSlashCommands(filtered);
-        setSlashMenuFilter(textAfterSlash);
-        setSlashMenuOpen(filtered.length > 0);
+      const spaceIndex = textAfterSlash.indexOf(" ");
+
+      // 提取命令名称
+      const commandName = spaceIndex === -1
+        ? textAfterSlash.trim().toLowerCase()
+        : textAfterSlash.slice(0, spaceIndex).trim().toLowerCase();
+
+      // 如果只输入了 /，显示所有命令
+      if (commandName.length === 0) {
+        setSlashCommands(SLASH_COMMANDS);
+        setSlashMenuFilter("");
+        setSlashMenuOpen(true);
         setSlashMenuIndex(0);
+        return;
+      }
+
+      const filtered = getSlashCommandCompletions(commandName);
+      if (filtered.length > 0) {
+        setSlashCommands(filtered);
+        setSlashMenuFilter(commandName);
+        setSlashMenuOpen(true);
+        // 如果有空格（正在输入参数），选中第一个匹配的命令并显示详情
+        if (textAfterSlash.includes(" ")) {
+          setSlashMenuIndex(0);
+        } else {
+          setSlashMenuIndex(0);
+        }
         return;
       }
     }
@@ -1541,6 +1893,44 @@ export default function Composer({
     setTimeout(() => {
       if (textareaRef.current) {
         const newPos = lastSlashIndex + cmd.name.length + 2;
+        textareaRef.current.setSelectionRange(newPos, newPos);
+        textareaRef.current.focus();
+      }
+    }, 0);
+  }, [draft]);
+
+  // 选择参数建议值
+  const handleArgSelect = useCallback((argValue: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const cursorPos = textarea.selectionStart ?? 0;
+    const textBeforeCursor = draft.slice(0, cursorPos);
+    const lastSlashIndex = textBeforeCursor.lastIndexOf("/");
+
+    if (lastSlashIndex === -1) return;
+
+    // 找到命令名称和参数部分的边界
+    const afterSlash = textBeforeCursor.slice(lastSlashIndex + 1);
+    const spaceIndex = afterSlash.indexOf(" ");
+
+    if (spaceIndex === -1) return;
+
+    // 找到参数部分（从命令后的空格开始到光标位置）
+    const argsStart = lastSlashIndex + 1 + spaceIndex + 1; // 跳过 "/command "
+    const textBeforeArg = draft.slice(0, argsStart);
+    const textAfterCursor = draft.slice(cursorPos);
+
+    // 构建新文本："/command value " + 剩余内容
+    const newText = textBeforeArg + argValue + " " + textAfterCursor;
+    setDraft(newText);
+    setSlashMenuOpen(false);
+    setSlashMenuFilter("");
+
+    // 设置光标位置到参数值后面
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const newPos = textBeforeArg.length + argValue.length + 1;
         textareaRef.current.setSelectionRange(newPos, newPos);
         textareaRef.current.focus();
       }
@@ -1689,6 +2079,9 @@ export default function Composer({
           selectedIndex={slashMenuIndex}
           onSelect={selectSlashCommand}
           onHover={setSlashMenuIndex}
+          inputValue={draft}
+          cursorPosition={textareaRef.current?.selectionStart ?? 0}
+          onArgSelect={handleArgSelect}
         />
       )}
 
