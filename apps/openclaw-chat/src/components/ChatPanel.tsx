@@ -15,6 +15,8 @@ export default function ChatPanel({
   streaming,
   onSendMessage,
   onAbort,
+  onDeleteMessage,
+  onPinMessage,
   streamingMessageId,
   streamingDelta,
   loadingMessages,
@@ -72,6 +74,8 @@ export default function ChatPanel({
             messages={messages}
             streamingMessageId={streamingMessageId}
             streamingDelta={streamingDelta}
+            onDeleteMessage={onDeleteMessage}
+            onPinMessage={onPinMessage}
           />
         )}
       </div>

@@ -29,6 +29,13 @@
 | Markdown 渲染 | 使用 `react-markdown` + `remark-gfm` 渲染助手消息，支持 GFM 表格、代码块高亮 | `src/components/MessageList.tsx` |
 | 流式波浪动画 | 消息生成中时，底部显示浅绿色渐变波动动画条 | `src/components/StreamingWaveBar.tsx` |
 | 消息时间戳 | 每条消息显示 `HH:mm` 时间戳；助手消息额外显示模型名称和生成耗时 | `src/components/MessageList.tsx` |
+| 元数据显示 | 助手消息显示 Token 计数（↑input ↓output）、缓存 R/W、成本、上下文百分比、模型名称 | `src/components/MessageList.tsx` |
+| JSON 折叠 | 自动检测 JSON 对象/数组并折叠显示（最大 20k 字符） | `src/components/MessageList.tsx` |
+| Tool Cards | 可折叠的工具调用卡片，显示工具名称和输入参数 | `src/components/MessageList.tsx` |
+| 思考内容 | 折叠显示 AI 推理过程（reasoning） | `src/components/MessageList.tsx` |
+| 图片消息 | 消息中的图片缩略图展示，点击可放大预览 | `src/components/MessageList.tsx` |
+| 消息操作按钮 | 删除、Pin 置顶、TTS 朗读、复制为 Markdown、在侧边栏打开 | `src/components/MessageList.tsx` |
+| 消息搜索 | Cmd+F 快捷键搜索，高亮匹配文本，支持上下导航 | `src/components/MessageList.tsx` |
 | 流式中止 | POST `/api/chat/abort` 通过 `chat.abort` RPC 中止正在生成的响应 | `src/app/api/chat/abort/route.ts` |
 
 #### 1.2 会话管理
@@ -50,6 +57,8 @@
 | 多行文本输入 | textarea 自动高度扩展（最大 200px），最小 44px | `src/components/Composer.tsx` |
 | 快捷键发送 | Enter 发送，Shift+Enter 换行；发送后自动清空 | `src/components/Composer.tsx` |
 | 发送/停止切换 | 流式传输中按钮变为红色"停止"图标 | `src/components/Composer.tsx` |
+| 斜杠命令面板 | 输入 `/` 触发命令面板，左侧显示分类列表，右侧显示选中命令的详细说明、参数选项和示例 | `src/components/Composer.tsx` |
+| 输入历史 | ArrowUp/Down 快捷键浏览历史输入（最多保留 50 条） | `src/components/Composer.tsx` |
 
 ---
 
