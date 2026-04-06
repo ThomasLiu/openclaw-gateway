@@ -1,7 +1,16 @@
 {
-  "permissions": {
-    "allow": [
-      "mcp__playwright__playwright_get_visible_text"
-    ]
-  }
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "context7",
+    "puppeteer",
+    "sequential-thinking",
+    "github",
+    "figma-ai-bridge",
+    "playwright",
+    "memory",
+    "excel",
+    "filesystem",
+    "chrome-devtools",
+    "MiniMax"
+  ]
 }

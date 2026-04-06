@@ -80,7 +80,6 @@ openclaw-gateway/
         e2e/                # Playwright E2E
   docs/spec/                # 功能规格（spec-01..17）
   scripts/                  # 构建与工具脚本
-  feature_list.json          # 功能验收清单（跨会话单一真相源）
 ```
 
 ## 传输分层（不变量）
@@ -88,7 +87,6 @@ openclaw-gateway/
 - **浏览器 → Next.js**: 仅 HTTP/SSE
 - **Next.js (Node) → OpenClaw 网关**: WebSocket JSON-RPC
 
-详情见 `docs/spec/spec-02-gateway-config-ws-client.md`「浏览器边界与传输分层」。
 
 ## ai-reference-sources
 
