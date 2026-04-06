@@ -1,234 +1,304 @@
-import { NextRequest, NextResponse } from 'next/server';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
-import JSZip from 'jszip';
+/**
+ * GET /api/agents/[agentId]/export
+ * 导出 Agent 配置与文件为 ZIP
+ *
+ * 返回：application/zip
+ * Content-Disposition: attachment; filename="openclaw-agent-<id>-export.zip"
+ */
 
-import { loadOpenClawJsonObject } from '@/lib/agent-export/load-openclaw-json';
-import { redactSecretsForExport } from '@/lib/agent-export/redact-secrets-for-export';
-import {
-  enumerateEffectiveSkillDirsForExport,
-} from '@/lib/agent-export/enumerate-effective-skills-for-export';
-import { resolveAgentWorkspaceDir } from '@/lib/openclaw/workspace-path';
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export const runtime = 'nodejs';
+import { NextRequest, NextResponse } from "next/server";
+import archiver from "archiver";
+import path from "node:path";
+import fs from "node:fs/promises";
+import type { Dirent } from "node:fs";
+import { readOpenClawJson } from "@/lib/openclaw/config";
+import { resolveAgentWorkspaceDir, resolveAgentDir } from "@/lib/openclaw/workspace-path";
+import { redactWithSecretsList } from "@/lib/openclaw/agent-export/redact-secrets-for-export";
+import { listEffectiveSkillDirsForExport } from "@/lib/openclaw/agent-export/enumerate-effective-skills-for-export";
 
-interface AgentListEntry {
-  id: string;
-  label?: string;
-  name?: string;
-  model?: Record<string, unknown>;
-  skills?: string[];
-  [key: string]: unknown;
+/** 读取配置（已脱敏） */
+async function loadAgentConfig(agentId: string): Promise<{
+  agentEntry: Record<string, unknown>;
+  fullConfig: Record<string, unknown>;
+  secrets: Array<{ id: string; jsonPath: string; label: string; kind: string; required: boolean }>;
+}> {
+  const config = readOpenClawJson();
+  if (!config) {
+    throw new Error("Cannot read openclaw.json configuration");
+  }
+
+  const agentsList = (config.agents as { list?: Array<Record<string, unknown>> } | undefined)?.list ?? [];
+  const agentEntry = agentsList.find((a) => {
+    const id = (a.id as string | undefined)?.trim().toLowerCase();
+    return id === agentId.trim().toLowerCase();
+  });
+
+  if (!agentEntry) {
+    throw new Error(`Agent '${agentId}' not found in configuration`);
+  }
+
+  // 脱敏完整配置
+  const { redacted, secrets } = redactWithSecretsList(config);
+
+  return {
+    agentEntry: redactWithSecretsList(agentEntry).redacted as Record<string, unknown>,
+    fullConfig: redacted as Record<string, unknown>,
+    secrets,
+  };
 }
 
-interface OpenClawJsonAgents {
-  list?: AgentListEntry[];
-  defaults?: Record<string, unknown>;
-}
-
-/** Recursively add a directory to a JSZip instance */
+/** 递归添加目录到 ZIP */
 async function addDirToZip(
-  zip: JSZip,
-  dirPath: string,
-  zipPrefix: string,
-  excludeDirs: string[] = []
+  archive: archiver.Archiver,
+  sourceDir: string,
+  zipBasePath: string
 ): Promise<void> {
-  if (!fs.existsSync(dirPath)) return;
+  let entries: Dirent[];
+  try {
+    entries = await fs.readdir(sourceDir, { withFileTypes: true });
+  } catch {
+    return; // 目录不存在
+  }
 
-  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
   for (const entry of entries) {
-    if (excludeDirs.includes(entry.name)) continue;
-    const absPath = path.join(dirPath, entry.name);
-    const zipPath = zipPrefix ? `${zipPrefix}/${entry.name}` : entry.name;
+    const srcPath = path.join(sourceDir, entry.name);
+    const zipPath = path.join(zipBasePath, entry.name);
 
     if (entry.isDirectory()) {
-      await addDirToZip(zip, absPath, zipPath, excludeDirs);
-    } else {
-      const content = fs.readFileSync(absPath);
-      zip.file(zipPath, content);
+      // 跳过特定目录
+      if (
+        entry.name === "node_modules" ||
+        entry.name === ".git" ||
+        entry.name === ".next"
+      ) {
+        continue;
+      }
+      archive.directory(srcPath, zipPath);
+    } else if (entry.isFile()) {
+      try {
+        const stat = await fs.stat(srcPath);
+        if (stat.size > 5 * 1024 * 1024) continue; // 跳过 > 5MB 文件
+        archive.file(srcPath, { name: zipPath });
+      } catch {
+        // 忽略
+      }
     }
   }
-}
-
-/** Copy a single file to zip (or skip if it doesn't exist) */
-function addFileToZipIfExists(zip: JSZip, absPath: string, zipPath: string): void {
-  if (fs.existsSync(absPath)) {
-    zip.file(zipPath, fs.readFileSync(absPath));
-  }
-}
-
-/** Extract a sub-slice from a config object */
-function extractSlice(
-  obj: Record<string, unknown> | undefined,
-  keys: string[]
-): Record<string, unknown> {
-  if (!obj) return {};
-  const result: Record<string, unknown> = {};
-  for (const key of keys) {
-    if (key in obj) {
-      result[key] = obj[key];
-    }
-  }
-  return result;
 }
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ agentId: string }> }
-) {
-  const { agentId: rawAgentId } = await params;
-  const agentId = rawAgentId ? decodeURIComponent(rawAgentId) : '';
-
-  if (!agentId) {
-    return NextResponse.json({ error: 'agentId required' }, { status: 400 });
-  }
-
+): Promise<Response> {
   try {
-    const config = loadOpenClawJsonObject();
-    const agentsList = (config.agents as OpenClawJsonAgents | undefined)?.list ?? [];
-    const agentEntry = agentsList.find((a) => a.id === agentId);
+    const { agentId } = await params;
+    const decodedAgentId = decodeURIComponent(agentId);
+    const normalizedId = decodedAgentId.trim().toLowerCase();
 
-    // Fall back to a synthetic "main" agent entry if not found in config
-    const effectiveAgent: AgentListEntry = agentEntry ?? ({ id: agentId } as AgentListEntry);
+    // 加载并脱敏配置
+    let agentConfig: Record<string, unknown>;
+    let fullConfig: Record<string, unknown>;
+    let secrets: Array<{ id: string; jsonPath: string; label: string; kind: string; required: boolean }>;
+    try {
+      ({ agentEntry: agentConfig, fullConfig, secrets } = await loadAgentConfig(normalizedId));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return NextResponse.json({ error: msg }, { status: 404 });
+    }
 
-    // --- Build redacted config slices ---
-    const { redacted: redactedAgent, secrets: agentSecrets } = redactSecretsForExport(
-      effectiveAgent
-    );
-    const { redacted: redactedDefaults, secrets: defaultsSecrets } = redactSecretsForExport(
-      (config.agents as OpenClawJsonAgents | undefined)?.defaults ?? {}
-    );
-    const { redacted: redactedBindings, secrets: bindingsSecrets } = redactSecretsForExport(
-      extractSlice(config as Record<string, unknown>, ['bindings']) as Record<string, unknown>
-    );
-    const { redacted: redactedHooks, secrets: hooksSecrets } = redactSecretsForExport(
-      extractSlice(config as Record<string, unknown>, ['hooks', 'mappings']) as Record<string, unknown>
-    );
-    const { redacted: redactedMcp, secrets: mcpSecrets } = redactSecretsForExport(
-      extractSlice(config as Record<string, unknown>, ['mcp']) as Record<string, unknown>
-    );
-    const { redacted: redactedSkills, secrets: skillsSecrets } = redactSecretsForExport(
-      extractSlice(config as Record<string, unknown>, ['skills']) as Record<string, unknown>
-    );
-    const { redacted: redactedTools, secrets: toolsSecrets } = redactSecretsForExport(
-      extractSlice(config as Record<string, unknown>, ['tools']) as Record<string, unknown>
-    );
-    const { redacted: redactedModels, secrets: modelsSecrets } = redactSecretsForExport(
-      extractSlice(config as Record<string, unknown>, ['models']) as Record<string, unknown>
+    // 解析路径
+    const workspaceDir = await resolveAgentWorkspaceDir(normalizedId);
+    const agentDir = await resolveAgentDir(normalizedId);
+
+    // 收集技能目录
+    const skillDirs = await listEffectiveSkillDirsForExport(
+      { skills: agentConfig.skills as string[] | null | undefined },
+      workspaceDir
     );
 
-    const allSecrets = [
-      ...agentSecrets,
-      ...defaultsSecrets,
-      ...bindingsSecrets,
-      ...hooksSecrets,
-      ...mcpSecrets,
-      ...skillsSecrets,
-      ...toolsSecrets,
-      ...modelsSecrets,
-    ];
+    // 构建 manifest.json
+    const manifest = {
+      formatVersion: "1.0.0",
+      agentId: normalizedId,
+      exportedAt: new Date().toISOString(),
+      workspaceStrategy: "exclude-skills-subfolder",
+      exportedSkills: Object.fromEntries(
+        skillDirs.map((s) => [s.name, s.source])
+      ),
+      pluginPackagedSkillsIncluded: false,
+    };
 
-    // --- Enumerate skill directories ---
-    const workspaceDir = resolveAgentWorkspaceDir(agentId);
-    const bundledSkillsDir =
-      process.env.OPENCLAW_BUNDLED_SKILLS_DIR ??
-      path.join(os.homedir(), '.openclaw', 'skills', 'bundled');
-    const managedSkillsDir = path.join(os.homedir(), '.openclaw', 'skills', 'managed');
+    // 构建 secrets-required.json
+    const secretsRequired = secrets.map((s) => ({
+      id: s.id,
+      jsonPath: s.jsonPath,
+      label: s.label,
+      kind: s.kind,
+      required: s.required,
+    }));
 
-    const skills = enumerateEffectiveSkillDirsForExport({
-      agentSkills: effectiveAgent.skills,
-      bundledSkillsDir,
-      managedSkillsDir,
-      workspaceDir,
-      agentId,
+    // 提取该 agent 的配置切片
+    const agentsDefaults = (fullConfig.agents as { defaults?: Record<string, unknown> } | undefined)?.defaults ?? {};
+    const bindings = (fullConfig.bindings as Array<Record<string, unknown>> | undefined)?.filter(
+      (b) => {
+        const aid = (b.agentId as string | undefined)?.trim().toLowerCase();
+        return aid === normalizedId;
+      }
+    ) ?? [];
+    const hooksMappings = (fullConfig.hooks as { mappings?: Array<Record<string, unknown>> } | undefined)?.mappings?.filter(
+      (h) => {
+        const aid = (h.agentId as string | undefined)?.trim().toLowerCase();
+        return aid === normalizedId;
+      }
+    ) ?? [];
+
+    // 创建 ZIP
+    const chunks: Buffer[] = [];
+    const archive = archiver("zip", { zlib: { level: 9 } });
+
+    archive.on("data", (chunk: Buffer) => chunks.push(chunk));
+    archive.on("error", (err) => {
+      throw err;
     });
 
-    // --- Build zip ---
-    const zip = new JSZip();
-
     // manifest.json
-    zip.file(
-      'manifest.json',
-      JSON.stringify(
-        {
-          formatVersion: '1.0',
-          agentId,
-          exportedAt: new Date().toISOString(),
-          workspaceStrategy: 'exclude-skills-subfolder',
-          exportedSkills: skills.map((s) => ({ name: s.name, source: s.source })),
-          pluginPackagedSkillsIncluded: false,
-        },
-        null,
-        2
-      )
-    );
+    archive.append(JSON.stringify(manifest, null, 2), { name: "manifest.json" });
 
     // secrets-required.json
-    zip.file('secrets-required.json', JSON.stringify(allSecrets, null, 2));
+    archive.append(JSON.stringify(secretsRequired, null, 2), { name: "secrets-required.json" });
 
-    // config/ directory slices
-    zip.file('config/agent-list-entry.json', JSON.stringify(redactedAgent, null, 2));
-    zip.file('config/agents-defaults.json', JSON.stringify(redactedDefaults, null, 2));
-    zip.file('config/bindings.json', JSON.stringify(redactedBindings, null, 2));
-    zip.file('config/hooks-mappings.json', JSON.stringify(redactedHooks, null, 2));
-    zip.file('config/mcp.json', JSON.stringify(redactedMcp, null, 2));
-    zip.file('config/skills-root.json', JSON.stringify(redactedSkills, null, 2));
-    zip.file('config/tools-root.json', JSON.stringify(redactedTools, null, 2));
-    zip.file('config/models.json', JSON.stringify(redactedModels, null, 2));
+    // config/agent-list-entry.json
+    archive.append(
+      JSON.stringify(agentConfig, null, 2),
+      { name: "config/agent-list-entry.json" }
+    );
 
-    // workspace/ (excluding skills/ subdirectory)
-    if (fs.existsSync(workspaceDir)) {
-      await addDirToZip(zip, workspaceDir, 'workspace', ['skills']);
+    // config/agents-defaults.json
+    archive.append(
+      JSON.stringify(agentsDefaults, null, 2),
+      { name: "config/agents-defaults.json" }
+    );
+
+    // config/bindings.json
+    archive.append(
+      JSON.stringify(bindings, null, 2),
+      { name: "config/bindings.json" }
+    );
+
+    // config/hooks-mappings.json
+    archive.append(
+      JSON.stringify(hooksMappings, null, 2),
+      { name: "config/hooks-mappings.json" }
+    );
+
+    // config/mcp.json（全量，已脱敏）
+    if (fullConfig.mcp) {
+      archive.append(
+        JSON.stringify(fullConfig.mcp, null, 2),
+        { name: "config/mcp.json" }
+      );
     }
 
-    // skills/<name>/ directories
-    for (const skill of skills) {
-      await addDirToZip(zip, skill.absPath, `skills/${skill.name}`);
+    // config/skills-root.json
+    if (fullConfig.skills) {
+      archive.append(
+        JSON.stringify(fullConfig.skills, null, 2),
+        { name: "config/skills-root.json" }
+      );
     }
 
-    // agent-dir/
-    const agentDir = path.join(os.homedir(), '.openclaw', 'agents', agentId);
-    if (fs.existsSync(agentDir)) {
-      await addDirToZip(zip, agentDir, 'agent-dir');
+    // config/tools-root.json
+    if (fullConfig.tools) {
+      archive.append(
+        JSON.stringify(fullConfig.tools, null, 2),
+        { name: "config/tools-root.json" }
+      );
     }
 
-    // import.mjs template (copy from lib)
-    // process.cwd() is the Next.js project root (apps/openclaw-chat/)
-    const libAgentExport = path.join(process.cwd(), 'src', 'lib', 'agent-export');
-    const importScriptPath = path.join(libAgentExport, 'import-script.mjs');
-    addFileToZipIfExists(zip, importScriptPath, 'import.mjs');
+    // config/models.json
+    if (fullConfig.models) {
+      archive.append(
+        JSON.stringify(fullConfig.models, null, 2),
+        { name: "config/models.json" }
+      );
+    }
 
-    // import.sh wrapper
-    const importShContent = `#!/usr/bin/env bash
-# Wrapper script — delegates to import.mjs
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-node "$SCRIPT_DIR/import.mjs" "$@"
+    // workspace/ 目录（除 skills/）
+    await addDirToZip(archive, workspaceDir, "workspace");
+
+    // skills/<name>/（白名单过滤后的 workspace 技能）
+    for (const skill of skillDirs) {
+      if (skill.source === "openclaw-workspace" || skill.source === "agents-skills-project") {
+        await addDirToZip(archive, skill.dirPath, `skills/${skill.name}`);
+      }
+    }
+
+    // agent-dir/ 目录
+    await addDirToZip(archive, agentDir, "agent-dir");
+
+    // docs/ 说明文档
+    const docsContent = `# OpenClaw Agent Export
+
+## 导入说明
+
+此 ZIP 包包含 Agent "${normalizedId}" 的配置和文件。
+
+### 包含内容
+
+- \`manifest.json\` — 导出元数据
+- \`secrets-required.json\` — 需要填写的密钥（已用占位符替换）
+- \`config/\` — Agent 配置切片
+- \`workspace/\` — Agent 工作区文件
+- \`skills/\` — Agent 技能目录
+- \`agent-dir/\` — Agent 私有目录
+
+### 导入方式
+
+\`\`\`bash
+node import.mjs --force --secrets-file secrets.json
+\`\`\`
+
+或使用 \`./import.sh\` 交互式导入。
+
+### 密钥说明
+
+运行 \`import.mjs\` 时，需要提供 \`secrets-required.json\` 中列出的密钥值。
+
+\`\`\`json
+[
+  { "id": "secret-0001", "value": "your-api-key-here" }
+]
+\`\`\`
 `;
-    zip.file('import.sh', importShContent);
+    archive.append(docsContent, { name: "docs/IMPORT.md" });
 
-    // docs/
-    const docsDir = path.join(libAgentExport, 'docs');
-    if (fs.existsSync(docsDir)) {
-      await addDirToZip(zip, docsDir, 'docs');
-    }
+    archive.finalize();
 
-    // Generate zip buffer
-    const zipBuffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+    // 等待 archive 完成
+    await new Promise<void>((resolve, reject) => {
+      archive.on("end", resolve);
+      archive.on("error", reject);
+    });
 
-    return new NextResponse(new Uint8Array(zipBuffer), {
+    const zipBuffer = Buffer.concat(chunks);
+
+    const safeId = normalizedId.replace(/[^a-zA-Z0-9_-]/g, "-");
+    const filename = `openclaw-agent-${safeId}-export.zip`;
+
+    return new Response(zipBuffer, {
+      status: 200,
       headers: {
-        'Content-Type': 'application/zip',
-        'Content-Disposition': `attachment; filename="openclaw-agent-${agentId}-export.zip"`,
-        'Cache-Control': 'no-store',
+        "Content-Type": "application/zip",
+        "Content-Disposition": `attachment; filename="${filename}"`,
+        "Cache-Control": "no-store",
+        "Content-Length": zipBuffer.length.toString(),
       },
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    // Return 404 if config not found
-    if (message.includes('not found') || message.includes('ENOENT')) {
-      return NextResponse.json({ error: message }, { status: 404 });
-    }
+    const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

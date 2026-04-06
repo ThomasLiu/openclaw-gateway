@@ -1,340 +1,124 @@
 #!/usr/bin/env node
 /**
- * openclaw-drift.mjs
+ * scripts/openclaw-drift.mjs
  *
- * Detects drift between upstream OpenClaw sources and local integrations.
- * Reads openclaw-integration.manifest.json and uses git to compare changes.
+ * 检测上游 OpenClaw 源码变更，输出对应的本仓库集成点。
  *
- * Usage:
- *   node openclaw-drift.mjs                       # show uncommitted changes
- *   node openclaw-drift.mjs -- --range '<old>..<new>'   # show diff for commit range
- *   node openclaw-drift.mjs -- --status            # explicit status mode
- *
- * Environment:
- *   OPENCLAW_SRC  — override upstreamRoot from manifest
+ * 用法：
+ *   node scripts/openclaw-drift.mjs
+ *   node scripts/openclaw-drift.mjs --range 'HEAD~5..HEAD'
+ *   node scripts/openclaw-drift.mjs --upstream-root /path/to/openclaw
  */
-import { readFileSync, existsSync } from "fs";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
-import { spawnSync } from "child_process";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(__dirname, "..");
-const INTEGRATION_MANIFEST = join(ROOT, "openclaw-integration.manifest.json");
+import { readFileSync } from "node:fs";
+import { join, relative } from "node:path";
+import { execSync } from "node:child_process";
 
-// ─── Argument parsing ──────────────────────────────────────────────────────────
+const SCRIPT_DIR = new URL(".", import.meta.url).pathname;
+const ROOT_DIR = join(SCRIPT_DIR, "..");
 
-function parseArgs(argv) {
-  const result = { mode: "status", range: null };
+// ─── CLI 参数解析 ────────────────────────────────────────────────────────────
 
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
+const args = process.argv.slice(2);
+let upstreamRoot = process.env.OPENCLAW_SRC ?? join(ROOT_DIR, "ai-reference-sources", "openclaw");
+let commitRange = "";
 
-    if (arg === "--range" || arg === "-r") {
-      // Next arg should be the range, strip surrounding quotes if present
-      const raw = argv[i + 1];
-      if (raw === undefined) {
-        console.error("error: --range requires a value");
-        process.exit(1);
-      }
-      result.mode = "range";
-      result.range = raw.replace(/^'(.*)'$/, "$1").replace(/^"(.*)"$/, "$1");
-      i++;
-    } else if (arg.startsWith("--range=") || arg.startsWith("-r=")) {
-      result.mode = "range";
-      result.range = arg.slice(arg.indexOf("=") + 1).replace(/^'(.*)'$/, "$1").replace(/^"(.*)"$/, "$1");
-    } else if (arg === "--status" || arg === "-s") {
-      result.mode = "status";
-    } else if (arg === "--help" || arg === "-h") {
-      printHelp();
-      process.exit(0);
-    }
-  }
-
-  return result;
-}
-
-function printHelp() {
-  console.log(`openclaw-drift.mjs — upstream drift detection
-
-Usage:
-  node openclaw-drift.mjs [options]
-
-Modes (mutually exclusive, status is default):
-  --status, -s         Show uncommitted (dirty) upstream changes (default)
-  --range <spec>, -r <spec>
-                        Show diff for a commit range, e.g. 'v1.0..v2.0'
-
-Options:
-  --help, -h            Show this help message
-
-Environment:
-  OPENCLAW_SRC         Override upstreamRoot from manifest.json
-
-Examples:
-  # Show uncommitted changes
-  node openclaw-drift.mjs
-
-  # Show diff between two tags
-  node openclaw-drift.mjs -- --range 'v1.0..v2.0'
-
-  # Show diff between commits
-  node openclaw-drift.mjs -- --range 'abc123..def456'
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === "--range" && i + 1 < args.length) {
+    commitRange = args[++i];
+  } else if (args[i] === "--upstream-root" && i + 1 < args.length) {
+    upstreamRoot = args[++i];
+  } else if (args[i] === "--help" || args[i] === "-h") {
+    console.log(`用法: node scripts/openclaw-drift.mjs [选项]
+选项:
+  --range <range>     Git commit 范围（默认: HEAD~10..HEAD）
+  --upstream-root <dir>  上游源码根目录（默认: OPENCLAW_SRC 或 ai-reference-sources/openclaw）
+  -h, --help          显示帮助
 `);
-}
-
-// ─── Manifest ─────────────────────────────────────────────────────────────────
-
-function loadManifest() {
-  if (!existsSync(INTEGRATION_MANIFEST)) {
-    console.error("error: openclaw-integration.manifest.json not found.");
-    process.exit(1);
-  }
-  return JSON.parse(readFileSync(INTEGRATION_MANIFEST, "utf-8"));
-}
-
-// ─── Git helpers ───────────────────────────────────────────────────────────────
-
-/**
- * Run a git command in the upstream directory.
- * Returns { status, stdout, stderr }.
- */
-function gitRun(upstreamRoot, args, options = {}) {
-  const result = spawnSync("git", args, {
-    cwd: upstreamRoot,
-    encoding: "utf-8",
-    stdio: ["pipe", "pipe", "pipe"],
-    ...options,
-  });
-  return {
-    status: result.status,
-    stdout: result.stdout ?? "",
-    stderr: result.stderr ?? "",
-  };
-}
-
-/**
- * Extract file paths from a git --name-status line.
- * Line format: <status>\t<path>
- * Status is one of: A(added), M(modified), D(deleted), R(renamed), etc.
- */
-function parseGitNameStatus(output) {
-  const files = [];
-  for (const line of output.trim().split("\n")) {
-    if (!line) continue;
-    const parts = line.split("\t");
-    if (parts.length >= 2) {
-      files.push(parts[1]);
-    }
-  }
-  return files;
-}
-
-// ─── Diff renderer ─────────────────────────────────────────────────────────────
-
-/**
- * Render a unified diff header for a file.
- */
-function renderDiffHeader(filePath, upstreamRoot) {
-  const relPath = filePath.startsWith(upstreamRoot)
-    ? filePath.slice(upstreamRoot.length + 1)
-    : filePath;
-  return [
-    `diff --git a/${relPath} b/${relPath}`,
-    `--- a/${relPath}`,
-    `+++ b/${relPath}`,
-  ].join("\n");
-}
-
-// ─── Core drift logic ──────────────────────────────────────────────────────────
-
-/**
- * Check for uncommitted changes (git status --short).
- */
-async function checkStatus(upstreamRoot, manifest, changedFiles) {
-  const { status, stdout, stderr } = gitRun(upstreamRoot, [
-    "status",
-    "--short",
-  ]);
-
-  if (status !== 0) {
-    console.error("git status failed:", stderr);
-    process.exit(1);
-  }
-
-  const changed = stdout.trim().split("\n").filter(Boolean);
-
-  if (changed.length === 0) {
-    console.log("No upstream changes detected (working tree clean).");
-    return;
-  }
-
-  console.log(`${changed.length} uncommitted file(s) changed in upstream:\n`);
-  for (const line of changed) {
-    console.log(" ", line);
-  }
-
-  // Map to integration points
-  const integrationHits = collectIntegrationHits(changedFiles, manifest.watch);
-
-  if (integrationHits.length > 0) {
-    console.log("\nMapped to local integration points:");
-    for (const hit of integrationHits) {
-      console.log(`\n  upstream: ${hit.upstreamPath}`);
-      console.log(`  → review local:`);
-      for (const local of hit.integrates) {
-        console.log(`    - ${local}`);
-      }
-    }
-  } else {
-    console.log("\nNo mapped integration points for these changes.");
+    process.exit(0);
   }
 }
 
-/**
- * Check for changes in a commit range (git log --name-status --oneline + git diff).
- */
-async function checkRange(upstreamRoot, manifest, rangeSpec) {
-  console.log(`Checking upstream diff for range: ${rangeSpec}\n`);
-
-  // Get list of changed files in range
-  const { status, stdout, stderr } = gitRun(upstreamRoot, [
-    "log",
-    "--name-status",
-    "--oneline",
-    rangeSpec,
-  ]);
-
-  if (status !== 0) {
-    console.error(`git log failed: ${stderr}`);
-    process.exit(1);
-  }
-
-  if (!stdout.trim()) {
-    console.log(`No commits in range '${rangeSpec}' or range is invalid.`);
-    return;
-  }
-
-  const changedFiles = parseGitNameStatus(stdout);
-  const uniqueFiles = [...new Set(changedFiles)];
-
-  if (uniqueFiles.length === 0) {
-    console.log("No files changed in this range.");
-    return;
-  }
-
-  console.log(`${uniqueFiles.length} file(s) changed in range '${rangeSpec}':\n`);
-  for (const f of uniqueFiles) {
-    console.log(" ", f);
-  }
-
-  // Map to integration points
-  const integrationHits = collectIntegrationHits(uniqueFiles, manifest.watch);
-
-  if (integrationHits.length > 0) {
-    console.log("\nMapped to local integration points:");
-    for (const hit of integrationHits) {
-      console.log(`\n  upstream: ${hit.upstreamPath}`);
-      console.log(`  → review local:`);
-      for (const local of hit.integrates) {
-        console.log(`    - ${local}`);
-      }
-    }
-  } else {
-    console.log("\nNo mapped integration points for this range.");
-  }
-
-  // Show diff stats
-  console.log(`\nDiff statistics for range '${rangeSpec}':`);
-  const { status: statStatus, stdout: statOut } = gitRun(upstreamRoot, [
-    "diff",
-    "--stat",
-    rangeSpec,
-  ]);
-  if (statStatus === 0 && statOut.trim()) {
-    for (const line of statOut.trim().split("\n")) {
-      if (line.trim()) console.log(" ", line);
-    }
-  }
-
-  // Prompt to show full diff
-  console.log(
-    `\nTo see full diff output, run:\n  git -C "${upstreamRoot}" diff ${rangeSpec}`
-  );
+if (!commitRange) {
+  // 默认取最近 10 个 commit
+  commitRange = "HEAD~10..HEAD";
 }
 
-/**
- * Collect integration hits for a list of changed upstream files.
- */
-function collectIntegrationHits(changedFiles, watchEntries) {
-  const hits = [];
+// ─── 加载 manifest ──────────────────────────────────────────────────────────
 
-  for (const watch of watchEntries ?? []) {
-    for (const changed of changedFiles) {
-      if (changed === watch.path || changed.endsWith("/" + watch.path) || watch.path.endsWith("/" + changed)) {
-        hits.push({
-          upstreamPath: watch.path,
-          integrates: watch.integrates ?? [],
-        });
-        break; // Only one hit per watch entry
-      }
-    }
-  }
-
-  return hits;
-}
-
-// ─── Main ─────────────────────────────────────────────────────────────────────
-
-async function main() {
-  const args = parseArgs(process.argv.slice(2));
-  const manifest = loadManifest();
-
-  // Allow OPENCLAW_SRC env var to override upstreamRoot
-  const upstreamRoot = process.env.OPENCLAW_SRC
-    ? join(ROOT, process.env.OPENCLAW_SRC)
-    : join(ROOT, manifest.upstreamRoot);
-
-  if (!existsSync(upstreamRoot)) {
-    console.error(`upstreamRoot not found: ${upstreamRoot}`);
-    console.error("Hint: Run 'pnpm pull:ai-reference-sources' to clone upstream sources.");
-    process.exit(1);
-  }
-
-  // Verify upstream is a git repo
-  if (!existsSync(join(upstreamRoot, ".git"))) {
-    console.error(`upstreamRoot is not a git repository: ${upstreamRoot}`);
-    process.exit(1);
-  }
-
-  if (args.mode === "range") {
-    await checkRange(upstreamRoot, manifest, args.range);
-  } else {
-    // Default: status mode — get uncommitted changes
-    const { status, stdout, stderr } = gitRun(upstreamRoot, [
-      "status",
-      "--short",
-    ]);
-
-    if (status !== 0) {
-      console.error("git status failed:", stderr);
-      process.exit(1);
-    }
-
-    const changed = stdout.trim().split("\n").filter(Boolean);
-    const changedFiles = changed
-      .map((line) => {
-        // Format: XY filename  (e.g. " M path/to/file.ts")
-        const match = line.match(/^[A-Z\s]+\s+(.+)$/);
-        return match ? match[1] : null;
-      })
-      .filter(Boolean);
-
-    await checkStatus(upstreamRoot, manifest, changedFiles);
-  }
-}
-
-main().catch((err) => {
-  console.error(err);
+let manifest;
+try {
+  const manifestPath = join(ROOT_DIR, "openclaw-integration.manifest.json");
+  manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
+} catch {
+  console.error("❌ 无法加载 openclaw-integration.manifest.json");
   process.exit(1);
-});
+}
+
+const watchMap = new Map<string, string[]>();
+for (const entry of manifest.watch ?? []) {
+  watchMap.set(entry.path, entry.integrates ?? []);
+}
+
+const normalizedUpstreamRoot = upstreamRoot.replace(/\/$/, "");
+
+// ─── 获取变更文件 ────────────────────────────────────────────────────────────
+
+let changedFiles: string[];
+try {
+  const output = execSync(`git diff ${commitRange} --name-only`, {
+    cwd: normalizedUpstreamRoot,
+    encoding: "utf-8",
+  });
+  changedFiles = output.trim().split("\n").filter(Boolean);
+} catch {
+  console.error(`❌ 无法获取 git diff（upstream root: ${normalizedUpstreamRoot}）`);
+  console.error("请确保 OPENCLAW_SRC 指向有效的 OpenClaw 源码目录");
+  process.exit(1);
+}
+
+if (changedFiles.length === 0) {
+  console.log("✅ 在指定范围内没有上游源码变更");
+  process.exit(0);
+}
+
+// ─── 匹配集成点 ──────────────────────────────────────────────────────────────
+
+const matchedIntegrations = new Map<string, string[]>();
+
+for (const changedFile of changedFiles) {
+  const integrations = watchMap.get(changedFile);
+  if (integrations) {
+    matchedIntegrations.set(changedFile, integrations);
+  }
+}
+
+// ─── 输出报告 ────────────────────────────────────────────────────────────────
+
+console.log(`\n🔍 OpenClaw Drift 检测报告`);
+console.log(`上游目录: ${normalizedUpstreamRoot}`);
+console.log(`Commit 范围: ${commitRange}`);
+console.log(`变更文件数: ${changedFiles.length}`);
+console.log(`\n${"─".repeat(70)}`);
+
+if (matchedIntegrations.size === 0) {
+  console.log("\n✅ 没有检测到与本仓库集成点相关的变更");
+} else {
+  console.log(`\n⚠️  检测到 ${matchedIntegrations.size} 个上游变更涉及本仓库集成点：\n`);
+
+  for (const [upstreamFile, integrations] of matchedIntegrations) {
+    const relPath = relative(normalizedUpstreamRoot, join(normalizedUpstreamRoot, upstreamFile));
+    console.log(`📄 ${relPath}`);
+    for (const integrate of integrations) {
+      console.log(`   → ${integrate}`);
+    }
+    console.log("");
+  }
+
+  console.log("请 review 以上集成点，确保与上游变更保持一致。");
+}
+
+console.log(`\n${"─".repeat(70)}`);
+console.log(`\n💡 运行以下命令查看完整 diff:`);
+console.log(`   cd ${normalizedUpstreamRoot}`);
+console.log(`   git diff ${commitRange}`);

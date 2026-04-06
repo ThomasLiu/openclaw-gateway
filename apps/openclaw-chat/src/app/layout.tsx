@@ -1,16 +1,21 @@
-import type { Metadata } from 'next';
-import type { ReactNode } from 'react';
-import './globals.css';
+import type { Metadata } from "next";
+import type { ReactNode } from "react";
+import "./globals.css";
 
+// eslint-disable-next-line react-refresh/only-export-components -- Next.js App Router layout convention
 export const metadata: Metadata = {
-  title: 'openClaw Chat',
-  description: 'openClaw Gateway Web Chat Interface',
+  title: "OpenClaw Gateway",
+  description: "OpenClaw Gateway Chat Interface",
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   return (
-    <html lang="zh-CN" className="dark">
-      <body className="bg-zinc-950 text-zinc-50 antialiased">{children}</body>
+    <html lang="en">
+      <body>{children}</body>
     </html>
   );
 }

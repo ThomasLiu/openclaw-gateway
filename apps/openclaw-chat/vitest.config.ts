@@ -1,17 +1,24 @@
-/// <reference types="vitest" />
 import { defineConfig } from "vitest/config";
-import { resolve } from "path";
+import react from "@vitejs/plugin-react";
+import path from "path";
 
 export default defineConfig({
+  plugins: [
+    react({
+      // 显式启用 JSX 支持
+      include: "**/*.{jsx,tsx}",
+    }),
+  ],
   test: {
+    environment: "jsdom",
     globals: true,
-    environment: "node",
-    include: ["src/**/*.{test,spec}.{ts,tsx}"],
-    exclude: ["node_modules", "e2e"],
+    include: ["src/**/*.test.ts", "src/**/*.test.tsx", "config/**/*.test.ts"],
+    exclude: ["node_modules", ".next", "e2e"],
+    setupFiles: ["./src/test-setup.ts"],
   },
   resolve: {
     alias: {
-      "@": resolve(__dirname, "./src"),
+      "@": path.resolve(__dirname, "./src"),
     },
   },
 });

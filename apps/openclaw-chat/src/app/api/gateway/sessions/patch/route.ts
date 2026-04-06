@@ -1,28 +1,53 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getOpenClawClient } from '@/lib/openclaw/pool';
+/**
+ * POST /api/gateway/sessions/patch — 修改会话配置（如 model 覆盖）
+ */
 
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
 
-export async function POST(req: NextRequest) {
+import { NextRequest, NextResponse } from "next/server";
+import { getOpenClawClient } from "@/lib/openclaw/index";
+
+type PatchBody = {
+  key?: string;
+  model?: string | null;
+};
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  let body: PatchBody;
   try {
-    const body = await req.json().catch(() => null);
-    if (!body) return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    body = (await request.json()) as PatchBody;
+  } catch {
+    return NextResponse.json(
+      { error: "invalid JSON body" },
+      { status: 400 }
+    );
+  }
 
-    const key: string = body.key?.trim();
-    if (!key) return NextResponse.json({ error: 'key required' }, { status: 400 });
-    if (!('model' in body))
-      return NextResponse.json({ error: 'model key required' }, { status: 400 });
+  const key = (body.key as string | undefined)?.trim();
+  if (!key) {
+    return NextResponse.json(
+      { error: "key is required" },
+      { status: 400 }
+    );
+  }
 
-    const model: string | null = body.model === null ? null : String(body.model);
+  // model 键必须存在（可以为 null）
+  if (!Object.prototype.hasOwnProperty.call(body, "model")) {
+    return NextResponse.json(
+      { error: "model key is required" },
+      { status: 400 }
+    );
+  }
 
+  try {
     const client = await getOpenClawClient();
-    await client.sessionsPatch({ key, model });
-
+    const result = await client.sessionsPatch(key, {
+      model: body.model,
+    });
+    void result; // sessionsPatch 返回 void，网关返回结果忽略
     return NextResponse.json({ ok: true });
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Unknown error' },
-      { status: 500 }
-    );
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

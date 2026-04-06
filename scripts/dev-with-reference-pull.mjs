@@ -1,38 +1,57 @@
 #!/usr/bin/env node
 /**
- * dev-with-reference-pull.mjs
+ * scripts/dev-with-reference-pull.mjs
  *
- * Runs reference source pull in the background, then starts openclaw-chat dev.
+ * 后台异步拉取参考源码（不阻塞），前台启动 openclaw-chat dev。
  */
-import { spawn } from "child_process";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+import { spawn } from "node:child_process";
+import { join } from "node:path";
 
-async function main() {
-  // Pull reference sources asynchronously (don't block dev start)
-  const pullPath = join(__dirname, "pull-ai-reference-sources.mjs");
+const SCRIPT_DIR = new URL(".", import.meta.url).pathname;
+const ROOT_DIR = join(SCRIPT_DIR, "..");
 
-  const pull = spawn("node", [pullPath], {
-    stdio: "inherit",
-    detached: true,
-  });
+// ─── 后台拉取参考源码 ────────────────────────────────────────────────────────
 
-  // Start dev server
-  const dev = spawn("pnpm", ["--filter", "openclaw-chat", "dev"], {
-    stdio: "inherit",
-    cwd: join(__dirname, ".."),
-  });
+console.log("📥 正在后台拉取 AI 参考源码...\n");
 
-  pull.unref();
+const pullProcess = spawn("node", ["scripts/pull-ai-reference-sources.mjs"], {
+  cwd: ROOT_DIR,
+  stdio: ["ignore", "pipe", "pipe"],
+  detached: true,
+});
 
-  dev.on("exit", (code) => {
+pullProcess.stdout?.on("data", (chunk) => {
+  process.stdout.write(`  [pull] ${chunk}`);
+});
+
+pullProcess.stderr?.on("data", (chunk) => {
+  process.stderr.write(`  [pull] ${chunk}`);
+});
+
+pullProcess.on("exit", (code) => {
+  if (code === 0) {
+    console.log("\n✅ 参考源码拉取完成\n");
+  } else {
+    console.warn(`\n⚠️ 参考源码拉取退出（code: ${code}），继续启动 dev...\n`);
+  }
+});
+
+// ─── 前台启动 dev ────────────────────────────────────────────────────────────
+
+setTimeout(() => {
+  console.log("🚀 启动 openclaw-chat dev server...\n");
+
+  const devProcess = spawn(
+    "pnpm",
+    ["--filter", "openclaw-chat", "dev"],
+    {
+      cwd: ROOT_DIR,
+      stdio: "inherit",
+    }
+  );
+
+  devProcess.on("exit", (code) => {
     process.exit(code ?? 0);
   });
-}
-
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+}, 500); // 短暂延迟确保 pull 进程已启动

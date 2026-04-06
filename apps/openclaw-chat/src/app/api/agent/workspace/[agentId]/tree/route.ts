@@ -1,72 +1,47 @@
-import { NextRequest, NextResponse } from 'next/server';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
+/**
+ * GET /api/agent/workspace/[agentId]/tree
+ * 列举工作区目录树
+ *
+ * Query 参数：
+ * - maxDepth: 最大深度（默认 10，上限 20）
+ */
 
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-interface WorkspaceTreeNode {
-  name: string;
-  relPath: string;
-  type: 'file' | 'dir';
-  size?: number;
-  children?: WorkspaceTreeNode[];
-}
+import { NextRequest, NextResponse } from "next/server";
+import { resolveAgentWorkspaceDir } from "@/lib/openclaw/workspace-path";
+import { listWorkspaceTree } from "@/lib/openclaw/workspace-explore";
 
-function listDir(
-  dir: string,
-  rel: string,
-  maxDepth: number,
-  currentDepth: number,
-  skipDirs: Set<string>
-): WorkspaceTreeNode[] {
-  if (currentDepth >= maxDepth) return [];
-
-  const SKIP_NAMES = new Set(['node_modules', '.git', '.next', 'dist', 'build', '__pycache__']);
-
-  let entries: fs.Dirent[];
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ agentId: string }> }
+): Promise<NextResponse> {
   try {
-    entries = fs.readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return [];
-  }
+    const { agentId } = await params;
+    const decodedAgentId = decodeURIComponent(agentId);
 
-  return entries
-    .filter((e) => !SKIP_NAMES.has(e.name) && !e.name.startsWith('.'))
-    .slice(0, 500) // cap per directory
-    .map((entry) => {
-      const entryPath = path.join(dir, entry.name);
-      const entryRel = path.posix.join(rel, entry.name);
-      if (entry.isDirectory()) {
-        const children = listDir(entryPath, entryRel, maxDepth, currentDepth + 1, skipDirs);
-        return { name: entry.name, relPath: entryRel, type: 'dir' as const, children };
-      }
-      const size = (() => {
-        try {
-          return fs.statSync(entryPath).size;
-        } catch {
-          return undefined;
-        }
-      })();
-      return { name: entry.name, relPath: entryRel, type: 'file' as const, size };
+    // 解析 maxDepth 参数
+    const maxDepthStr = req.nextUrl.searchParams.get("maxDepth");
+    const maxDepth = maxDepthStr ? parseInt(maxDepthStr, 10) : 10;
+
+    if (isNaN(maxDepth) || maxDepth < 1) {
+      return NextResponse.json(
+        { error: "maxDepth must be a positive integer" },
+        { status: 400 }
+      );
+    }
+
+    const workspaceDir = await resolveAgentWorkspaceDir(decodedAgentId);
+    const tree = await listWorkspaceTree(workspaceDir, maxDepth);
+
+    return NextResponse.json({
+      workspaceDir,
+      agentId: decodedAgentId,
+      tree,
     });
-}
-
-export async function GET(req: NextRequest, { params }: { params: Promise<{ agentId: string }> }) {
-  const { agentId } = await params;
-  const { searchParams } = req.nextUrl;
-  const maxDepth = Math.min(20, Math.max(1, Number(searchParams.get('maxDepth') ?? '10')));
-
-  const stateDir = process.env.OPENCLAW_STATE_DIR ?? path.join(os.homedir(), '.openclaw', 'agents');
-  const workspaceDir = path.join(stateDir, decodeURIComponent(agentId), 'workspace');
-
-  try {
-    const nodes = listDir(workspaceDir, '.', maxDepth, 0, new Set());
-    return NextResponse.json({ workspaceDir, agentId, tree: nodes });
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Unknown error' },
-      { status: 500 }
-    );
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -1,36 +1,52 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getOpenClawClient } from '@/lib/openclaw/pool';
+/**
+ * POST /api/chat/abort — 中止运行中的聊天
+ *
+ * 运行时：nodejs
+ */
 
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
 
-const THREAD_KEY = 'default';
+import { NextRequest, NextResponse } from "next/server";
+import { getOpenClawClient } from "@/lib/openclaw/index";
 
-function normalizeSessionKey(agentId: string, sk?: string): string {
-  const base = sk?.trim() || THREAD_KEY;
-  if (base.startsWith('agent:')) return base;
-  return `agent:${agentId}:chat:${base}`;
-}
+type AbortBody = {
+  agentId?: string;
+  sessionKey?: string;
+  runId?: string;
+};
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  let body: AbortBody;
   try {
-    const body = await req.json().catch(() => ({}));
-    const agentId: string = body.agentId?.trim();
-    const sessionKeyParam: string | undefined = body.sessionKey?.trim();
-    const runId: string | undefined = body.runId?.trim();
+    body = (await request.json()) as AbortBody;
+  } catch {
+    return NextResponse.json(
+      { error: "invalid JSON body" },
+      { status: 400 }
+    );
+  }
 
-    if (!agentId) {
-      return NextResponse.json({ error: 'agentId required' }, { status: 400 });
-    }
+  const { agentId, sessionKey, runId } = body;
 
-    const skParam = sessionKeyParam || THREAD_KEY;
-    const finalSessionKey = normalizeSessionKey(agentId, skParam);
+  if (!agentId || !agentId.trim()) {
+    return NextResponse.json(
+      { error: "agentId required" },
+      { status: 400 }
+    );
+  }
 
+  // 会话键规范：缺 sessionKey 等价于 default
+  const skParam = sessionKey?.trim() || "default";
+  const finalSessionKey = skParam.startsWith("agent:")
+    ? skParam
+    : `agent:${agentId}:chat:${skParam}`;
+
+  try {
     const client = await getOpenClawClient();
-    await client.abortChat({ sessionKey: finalSessionKey, runId });
-
+    await client.abortChat(finalSessionKey, runId?.trim() || undefined);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: msg }, { status: 500 });
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

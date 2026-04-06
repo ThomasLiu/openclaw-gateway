@@ -1,28 +1,43 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getOpenClawClient } from '@/lib/openclaw/pool';
+/**
+ * POST /api/openclaw/skills/install
+ *
+ * 安装技能
+ *
+ * Body: { skillId: string }
+ *
+ * 返回 202 Accepted（异步安装）
+ *
+ * runtime = "nodejs"
+ */
 
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
 
-export async function POST(req: NextRequest) {
+import { NextRequest, NextResponse } from "next/server";
+import { getOpenClawClient } from "@/lib/openclaw/index";
+
+export async function POST(req: NextRequest): Promise<NextResponse> {
+  let body: unknown;
   try {
-    const body = await req.json().catch(() => null);
-    if (!body) return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
 
-    const name: string = body.name?.trim();
-    if (!name) return NextResponse.json({ error: 'name required' }, { status: 400 });
+  const obj = body as Record<string, unknown>;
 
+  if (typeof obj.skillId !== "string" || obj.skillId.trim() === "") {
+    return NextResponse.json({ error: "skillId is required" }, { status: 400 });
+  }
+
+  const skillId = (obj.skillId as string).trim();
+
+  try {
     const client = await getOpenClawClient();
-    await client.skillsInstall({
-      name,
-      agentId: body.agentId?.trim(),
-      scope: body.scope?.trim(),
-    });
+    await client.skillsInstall(skillId);
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, skillId }, { status: 202 });
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Unknown error' },
-      { status: 500 }
-    );
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

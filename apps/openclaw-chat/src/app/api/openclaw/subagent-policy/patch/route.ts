@@ -1,42 +1,75 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getOpenClawClient } from '@/lib/openclaw/pool';
+/**
+ * POST /api/openclaw/subagent-policy/patch
+ *
+ * 更新子代理策略（merge-patch 模式）
+ *
+ * Body: {
+ *   baseHash: string,       // 网关配置的当前 hash（用于乐观锁）
+ *   kind: 'defaults' | 'tools' | 'agent',
+ *   agentId?: string,      // kind=agent 时必填
+ *   subagents: object | null  // null 表示移除
+ * }
+ *
+ * 409 STALE_HASH: baseHash 不匹配
+ * 400: 参数校验失败
+ *
+ * runtime = "nodejs"
+ */
 
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
 
-export async function POST(req: NextRequest) {
+import { NextRequest, NextResponse } from "next/server";
+import { getOpenClawClient } from "@/lib/openclaw/index";
+import {
+  parseSubagentPolicyPatchBody,
+  buildSubagentPolicyPatch,
+  type SubagentPolicyKind,
+} from "@/lib/subagent-policy";
+
+export async function POST(req: NextRequest): Promise<NextResponse> {
+  let body: unknown;
   try {
-    const body = await req.json().catch(() => null);
-    if (!body) return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
 
-    const baseHash: string = body.baseHash?.trim();
-    if (!baseHash) return NextResponse.json({ error: 'baseHash required' }, { status: 400 });
-
-    const kind: string = body.kind;
-    const agentId: string | undefined = body.agentId?.trim();
-    const subagents: unknown = body.subagents;
-
-    const patch: Record<string, unknown> = {};
-    if (kind === 'defaults') {
-      patch.agents = { defaults: { subagents } };
-    } else if (kind === 'tools') {
-      patch.tools = { subagents };
-    } else if (kind === 'agent') {
-      if (!agentId)
-        return NextResponse.json({ error: 'agentId required for kind=agent' }, { status: 400 });
-      patch.agents = { list: [{ id: agentId, subagents }] };
-    } else {
-      return NextResponse.json({ error: 'Invalid kind' }, { status: 400 });
-    }
-
-    const client = await getOpenClawClient();
-    await client.configPatch({ patch, baseHash });
-
-    return NextResponse.json({ ok: true });
+  // 解析并校验参数
+  let patchArgs: ReturnType<typeof parseSubagentPolicyPatchBody>;
+  try {
+    patchArgs = parseSubagentPolicyPatchBody(body);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
-    if (msg.includes('hash')) {
-      return NextResponse.json({ error: 'STALE_HASH' }, { status: 409 });
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
+
+  try {
+    const client = await getOpenClawClient();
+
+    // 构建 merge-patch 对象
+    const patch = buildSubagentPolicyPatch(
+      patchArgs.kind as SubagentPolicyKind,
+      patchArgs.agentId,
+      patchArgs.subagents
+    );
+
+    // 调用网关 config.patch
+    await client.configPatch(patch, patchArgs.baseHash);
+
+    return NextResponse.json({ ok: true, kind: patchArgs.kind });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+
+    // 检测 baseHash 不匹配（409 STALE_HASH）
+    if (
+      message.includes("STALE_HASH") ||
+      message.includes("hash") ||
+      message.includes("conflict") ||
+      message.toLowerCase().includes("basehash")
+    ) {
+      return NextResponse.json({ error: "STALE_HASH", message }, { status: 409 });
     }
-    return NextResponse.json({ error: msg }, { status: 500 });
+
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

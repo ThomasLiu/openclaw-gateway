@@ -52,3 +52,7 @@ ai-reference-sources/
 .env
 .env.local
 .env.*.local
+.gstack/
+
+
+.trae

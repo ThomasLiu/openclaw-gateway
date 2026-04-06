@@ -1,75 +1,91 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getOpenClawClient } from '@/lib/openclaw/pool';
+/**
+ * GET /api/openclaw/agent-request-logs
+ *
+ * Agent 请求日志列表/内容接口
+ */
 
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-function formatSessionEvent(session: Record<string, unknown>): string {
-  const timestamp = (session.updatedAt ?? session.createdAt ?? new Date().toISOString()) as string;
-  const key = (session.key ?? '') as string;
-  const agentId = (session.agentId ?? '') as string;
-  const model = (session.model ?? 'unknown') as string;
-  const ts = timestamp ? new Date(timestamp).toLocaleTimeString() : '??:??:??';
-  return `[${ts}] ${agentId}/${model} → ${key}`;
+import { NextRequest, NextResponse } from "next/server";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { resolveAgentDir } from "@/lib/openclaw/workspace-path";
+import {
+  extractJsonlEntries,
+  parseJsonlSummary,
+} from "@/lib/openclaw/agent-request-jsonl-summary";
+
+/** Agent 日志目录（从 agentDir 的 logs 子目录） */
+async function getAgentLogsDir(agentId: string): Promise<string> {
+  const agentDir = await resolveAgentDir(agentId);
+  return path.join(agentDir, "logs");
 }
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = req.nextUrl;
-  const agentId = searchParams.get('agentId')?.trim() || undefined;
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const agentId = req.nextUrl.searchParams.get("agentId") ?? "";
+  const logName = req.nextUrl.searchParams.get("log") ?? "";
+  const summaryOnly = req.nextUrl.searchParams.get("summary") === "true";
 
-  const encoder = new TextEncoder();
+  if (!agentId) {
+    return NextResponse.json(
+      { error: "Missing 'agentId' query parameter" },
+      { status: 400 }
+    );
+  }
 
-  const stream = new ReadableStream({
-    async start(controller) {
-      const send = (data: unknown) => {
-        try {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
-        } catch {
-          // ignore enqueue errors
-        }
-      };
+  try {
+    // 尝试列出日志文件
+    const logsDir = await getAgentLogsDir(agentId);
+    let logFiles: string[] = [];
 
-      send({ type: 'status', message: 'Agent 请求日志流已连接' });
+    try {
+      const entries = await fs.readdir(logsDir);
+      logFiles = entries
+        .filter((e) => e.endsWith(".jsonl") || e.endsWith(".log"))
+        .sort()
+        .reverse(); // 最新在前
+    } catch {
+      // 目录不存在
+    }
+
+    if (logName) {
+      // 返回指定日志文件内容
+      const logPath = path.join(logsDir, logName);
+      let content: string;
 
       try {
-        const client = await getOpenClawClient();
-
-        // Send recent sessions as initial batch
-        const sessions = (await client.listSessions({
-          agentId,
-          limit: 20,
-          includeLastMessage: false,
-        })) as Record<string, unknown>[];
-
-        for (const session of sessions.slice(0, 10)) {
-          send({
-            type: 'session',
-            line: formatSessionEvent(session),
-            sessionKey: session.key,
-            agentId: session.agentId,
-            model: session.model,
-            timestamp: session.updatedAt ?? session.createdAt,
-          });
-        }
-
-        if (sessions.length > 10) {
-          send({ type: 'info', message: `共 ${sessions.length} 条会话，显示最近 10 条` });
-        }
+        content = await fs.readFile(logPath, "utf-8");
       } catch (err) {
-        send({
-          type: 'error',
-          message: `加载失败：${err instanceof Error ? err.message : 'Unknown error'}`,
-        });
+        const code = (err as { code?: string }).code;
+        if (code === "ENOENT") {
+          return NextResponse.json({ error: "Log file not found" }, { status: 404 });
+        }
+        throw err;
       }
-    },
-  });
 
-  return new NextResponse(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-      'X-Accel-Buffering': 'no',
-    },
-  });
+      if (summaryOnly) {
+        const summary = parseJsonlSummary(content);
+        return NextResponse.json({ agentId, logName, summary });
+      }
+
+      const entries = extractJsonlEntries(content);
+      return NextResponse.json({
+        agentId,
+        logName,
+        entries,
+        count: entries.length,
+      });
+    }
+
+    // 返回日志文件列表
+    return NextResponse.json({
+      agentId,
+      logsDir,
+      logFiles,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

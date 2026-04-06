@@ -1,39 +1,70 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getOpenClawClient } from '@/lib/openclaw/pool';
+/**
+ * POST /api/gateway/exec-approvals/resolve
+ * 解析审批决策
+ *
+ * Body: { id: string, decision: "allow-once" | "allow-always" | "deny", kind?: "exec" | "plugin" }
+ * 默认 kind: "exec"
+ */
 
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export async function POST(req: NextRequest) {
+import { NextRequest, NextResponse } from "next/server";
+import { getOpenClawClient } from "@/lib/openclaw/index";
+
+export async function POST(req: NextRequest): Promise<NextResponse> {
+  let body: { id?: string; decision?: string; kind?: string };
   try {
-    const body = await req.json().catch(() => null);
-    if (!body) return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    body = (await req.json()) as { id?: string; decision?: string; kind?: string };
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
 
-    const id: string = body.id?.trim();
-    const decision: string = body.decision;
-    const kind: string = body.kind ?? 'exec';
+  const { id, decision, kind = "exec" } = body;
 
-    if (!id || !decision) {
-      return NextResponse.json({ error: 'id and decision required' }, { status: 400 });
-    }
+  if (!id || typeof id !== "string") {
+    return NextResponse.json({ error: "Missing or invalid 'id'" }, { status: 400 });
+  }
 
-    const validDecisions = ['allow-once', 'allow-always', 'deny'];
-    if (!validDecisions.includes(decision)) {
-      return NextResponse.json({ error: 'Invalid decision' }, { status: 400 });
-    }
+  if (
+    decision !== "allow-once" &&
+    decision !== "allow-always" &&
+    decision !== "deny"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Invalid decision. Must be one of: allow-once, allow-always, deny",
+      },
+      { status: 400 }
+    );
+  }
 
+  if (kind !== "exec" && kind !== "plugin") {
+    return NextResponse.json(
+      { error: "Invalid kind. Must be 'exec' or 'plugin'" },
+      { status: 400 }
+    );
+  }
+
+  try {
     const client = await getOpenClawClient();
 
-    if (kind === 'plugin') {
-      await client.pluginApprovalResolve({ id, decision });
+    if (kind === "exec") {
+      await client.execApprovalResolve(
+        id,
+        decision as "allow-once" | "allow-always" | "deny"
+      );
     } else {
-      await client.execApprovalResolve({ id, decision });
+      await client.pluginApprovalResolve(
+        id,
+        decision as "allow-once" | "allow-always" | "deny"
+      );
     }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Unknown error' },
-      { status: 500 }
-    );
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

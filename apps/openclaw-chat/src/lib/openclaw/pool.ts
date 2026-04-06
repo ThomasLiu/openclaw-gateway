@@ -1,84 +1,114 @@
 /**
- * OpenClawClient singleton pool.
- *
- * Uses globalThis to persist the singleton across Next.js HMR requests
- * within the same Node.js process.
+ * Connection pool for OpenClawClient.
+ * Uses globalThis singleton to maintain a single connection across requests.
  */
-import type { OpenClawClient } from './client';
-import { getGatewayConfig } from './config';
+
+import { getGatewayConfig } from "./config";
+import { OpenClawClient } from "./client";
+import {
+  shouldReplaceOpenClawClientSingleton,
+  type OpenClawClientMethods,
+} from "./singleton-guard";
+
+const DEFAULT_POOL_CONNECT_TIMEOUT_MS = 28_000;
 
 declare global {
-  var __openclaw_client__: OpenClawClient | undefined;
+  var __openclawClientSingleton: OpenClawClient | undefined;
+  var __openclawClientConnecting: Promise<void> | undefined;
 }
 
-const POOL_TIMEOUT_MS = Number(process.env.OPENCLAW_POOL_CONNECT_TIMEOUT_MS ?? '28000');
-
 /**
- * Returns a singleton OpenClawClient, connecting if necessary.
- * Subsequent calls within the same process return the same instance.
+ * Get or create the singleton OpenClawClient instance.
+ * Ensures only one connection exists at a time.
  */
 export async function getOpenClawClient(): Promise<OpenClawClient> {
-  if (globalThis.__openclaw_client__?.connected) {
-    return globalThis.__openclaw_client__;
+  // Check if existing client is still valid
+  if (
+    globalThis.__openclawClientSingleton &&
+    globalThis.__openclawClientSingleton.connected
+  ) {
+    const client = globalThis.__openclawClientSingleton;
+    if (!shouldReplaceOpenClawClientSingleton(client as unknown as OpenClawClientMethods)) {
+      return client;
+    }
+    // Client is outdated - disconnect and replace
+    console.warn(
+      "[openclaw-pool] Existing client is outdated. Replacing singleton."
+    );
+    client.disconnect();
+    globalThis.__openclawClientSingleton = undefined;
   }
 
+  // If a connection is already in progress, wait for it
+  if (globalThis.__openclawClientConnecting) {
+    await globalThis.__openclawClientConnecting;
+    if (globalThis.__openclawClientSingleton?.connected) {
+      return globalThis.__openclawClientSingleton;
+    }
+  }
+
+  // Create new connection
   const config = getGatewayConfig();
-  const client = new (await import('./client')).OpenClawClient(config);
+  const client = new OpenClawClient(config);
 
-  globalThis.__openclaw_client__ = client;
-
-  client.on('disconnected', () => {
-    globalThis.__openclaw_client__ = undefined;
+  // Set up disconnected handler to clear singleton
+  client.on("disconnected", () => {
+    if (globalThis.__openclawClientSingleton === client) {
+      globalThis.__openclawClientSingleton = undefined;
+    }
+    globalThis.__openclawClientConnecting = undefined;
   });
 
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
+  // Connect with timeout
+  const connectTimeoutMs =
+    parseInt(process.env.OPENCLAW_POOL_CONNECT_TIMEOUT_MS ?? "", 10) ||
+    DEFAULT_POOL_CONNECT_TIMEOUT_MS;
+
+  globalThis.__openclawClientConnecting = (async () => {
+    try {
+      await client.connect();
+    } catch (err) {
       client.disconnect();
-      globalThis.__openclaw_client__ = undefined;
-      reject(new Error(`Connection to OpenClaw gateway timed out after ${POOL_TIMEOUT_MS}ms`));
-    }, POOL_TIMEOUT_MS);
+      globalThis.__openclawClientSingleton = undefined;
+      globalThis.__openclawClientConnecting = undefined;
+      throw err;
+    }
+    globalThis.__openclawClientConnecting = undefined;
+  })();
 
-    client
-      .connect()
-      .then(() => {
-        clearTimeout(timeout);
-
-        // Version guard: if the client is missing expected methods, discard and throw
-        if (!shouldReplaceOpenClawClientSingleton(client)) {
-          resolve(client);
-          return;
-        }
-        client.disconnect();
-        globalThis.__openclaw_client__ = undefined;
-        reject(
-          new Error(
-            'OpenClawClient version mismatch — restart the server process to pick up the updated client.'
-          )
-        );
-      })
-      .catch((err) => {
-        clearTimeout(timeout);
-        globalThis.__openclaw_client__ = undefined;
-        reject(err);
-      });
+  // Apply connect timeout
+  const connectPromise = globalThis.__openclawClientConnecting;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => {
+      reject(
+        new Error(
+          `Connection to gateway timed out after ${connectTimeoutMs}ms. ` +
+            "Make sure OpenClaw gateway is running on the configured port."
+        )
+      );
+    }, connectTimeoutMs);
   });
+
+  try {
+    await Promise.race([connectPromise, timeoutPromise]);
+  } catch (err) {
+    client.disconnect();
+    globalThis.__openclawClientSingleton = undefined;
+    throw err;
+  }
+
+  globalThis.__openclawClientSingleton = client;
+  return client;
 }
 
 /**
- * Checks if the client has all expected methods.
- * If a method is missing, the singleton should be replaced.
+ * Force disconnect and clear the singleton.
+ * Useful for reconnecting after a gateway restart.
  */
-export function shouldReplaceOpenClawClientSingleton(client: OpenClawClient): boolean {
-  const requiredMethods = [
-    'configGet',
-    'modelsList',
-    'execApprovalResolve',
-    'pluginApprovalResolve',
-  ];
-  for (const method of requiredMethods) {
-    if (typeof (client as unknown as Record<string, unknown>)[method] !== 'function') {
-      return true;
-    }
+export function clearOpenClawClient(): void {
+  if (globalThis.__openclawClientSingleton) {
+    globalThis.__openclawClientSingleton.disconnect();
+    globalThis.__openclawClientSingleton = undefined;
   }
-  return false;
+  globalThis.__openclawClientConnecting = undefined;
 }

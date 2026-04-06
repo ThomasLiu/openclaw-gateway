@@ -1,0 +1,1 @@
+/Users/thomas/Projects/openclaw-gateway/.claude/skills/gstack/autoplan/SKILL.md

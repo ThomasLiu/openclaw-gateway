@@ -1,38 +1,97 @@
-import { NextResponse } from 'next/server';
-import { getGatewayConfig } from '@/lib/openclaw/config';
-import { OpenClawClient } from '@/lib/openclaw/client';
+/**
+ * GET /api/gateway/status
+ *
+ * 探测网关连接状态
+ *
+ * 特点：
+ * - 每次 new OpenClawClient，不复用连接池
+ * - 超时 PROBE_MS = 12000
+ * - 失败后尝试 CLI 探测
+ *
+ * dynamic = "force-dynamic"
+ * runtime = "nodejs"
+ */
 
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-const PROBE_MS = 12_000;
+import { NextResponse } from "next/server";
+import { OpenClawClient } from "@/lib/openclaw/client";
+import { getGatewayConfig } from "@/lib/openclaw/config";
+import { tryGatewayStatusViaCli } from "@/lib/openclaw/cli-status";
 
-async function tryProbe(config: {
-  gatewayUrl: string;
-  token?: string;
-  password?: string;
-}): Promise<{ ok: boolean; connected: boolean; source: string }> {
-  const client = new OpenClawClient(config);
-  try {
-    await Promise.race([
-      client.connect(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), PROBE_MS)),
-    ]);
-    client.disconnect();
-    return { ok: true, connected: true, source: 'ws' };
-  } catch {
-    // fall through to CLI probe
-    return { ok: true, connected: false, source: 'cli' };
+const PROBE_MS = 5_000;
+
+type GatewayStatusResult =
+  | { ok: true; connected: true; source: "ws"; latencyMs?: number }
+  | { ok: true; connected: true; source: "cli"; message: string }
+  | { ok: false; connected: false; error: string };
+
+export async function GET(): Promise<NextResponse> {
+  const result = await probeGateway();
+
+  if (result.ok) {
+    return NextResponse.json(result);
+  } else {
+    return NextResponse.json(result, { status: 503 });
   }
 }
 
-export async function GET() {
+async function probeGateway(): Promise<GatewayStatusResult> {
+  const config = getGatewayConfig();
+
+  // WebSocket 探测
+  const wsResult = await probeViaWebSocket(config);
+  if (wsResult.connected) {
+    return { ok: true, connected: true, source: "ws", latencyMs: wsResult.latencyMs };
+  }
+
+  // CLI 降级探测
   try {
-    const config = getGatewayConfig();
-    const result = await tryProbe(config);
-    return NextResponse.json(result);
+    const cliResult = await tryGatewayStatusViaCli();
+    if (cliResult.running) {
+      return {
+        ok: true,
+        connected: true,
+        source: "cli",
+        message: cliResult.message ?? "Gateway is running (detected via CLI)",
+      };
+    }
+  } catch {
+    // CLI 探测也失败
+  }
+
+  return {
+    ok: false,
+    connected: false,
+    error: wsResult.error ?? "Unable to connect to gateway",
+  };
+}
+
+async function probeViaWebSocket(
+  config: { gatewayUrl: string; token?: string; password?: string }
+): Promise<{ connected: boolean; latencyMs?: number; error?: string }> {
+  const start = Date.now();
+  const client = new OpenClawClient({
+    gatewayUrl: config.gatewayUrl,
+    token: config.token,
+    password: config.password,
+  });
+
+  try {
+    await Promise.race([
+      client.connect(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Probe timeout")), PROBE_MS)
+      ),
+    ]);
+
+    const latencyMs = Date.now() - start;
+    return { connected: true, latencyMs };
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ ok: false, connected: false, error: msg }, { status: 200 });
+    const error = err instanceof Error ? err.message : String(err);
+    return { connected: false, error };
+  } finally {
+    client.disconnect();
   }
 }

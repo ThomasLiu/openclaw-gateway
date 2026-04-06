@@ -1,67 +1,82 @@
-import { NextResponse } from 'next/server';
-import { getOpenClawClient } from '@/lib/openclaw/pool';
-import { subscribeExecApprovalBridge } from '@/lib/openclaw/exec-approval-bridge';
+/**
+ * GET /api/gateway/exec-approvals/stream
+ * SSE 流式审批事件端点
+ *
+ * 行为：
+ * - 连接前 await getOpenClawClient() 确保 WS 已建立
+ * - 首包发送 hello
+ * - 周期性 ping 保持连接
+ * - 网关事件以 { type: 'gateway', event, payload } 写入 data:
+ * - 503 当网关不可用
+ */
 
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export async function GET() {
-  // Ensure the WS pool is connected
-  let client;
+import { NextResponse } from "next/server";
+import { getOpenClawClient, setApprovalBridgeBroadcaster } from "@/lib/openclaw/index";
+import { subscribeExecApprovalBridge } from "@/lib/openclaw/exec-approval-bridge";
+
+const ENCODER = new TextEncoder();
+
+export async function GET(): Promise<Response> {
+  // 确保 WS 连接已建立
   try {
-    client = await getOpenClawClient();
+    await getOpenClawClient();
   } catch {
-    return NextResponse.json({ error: 'Gateway unavailable' }, { status: 503 });
+    return NextResponse.json(
+      { error: "Gateway unavailable" },
+      { status: 503 }
+    );
   }
 
-  const encoder = new TextEncoder();
+  // 注册广播器（将审批事件写入 SSE）
   let unsubscribe: (() => void) | null = null;
 
   const stream = new ReadableStream({
     start(controller) {
-      // Send hello
-      controller.enqueue(encoder.encode('data: hello\n\n'));
+      // 发送 hello
+      controller.enqueue(ENCODER.encode("data: {\"type\":\"hello\"}\n\n"));
 
-      // Ping every 30s
-      const pingInterval = setInterval(() => {
+      // 注册广播器
+      const broadcaster = (event: { event: string; payload: Record<string, unknown> }) => {
         try {
-          controller.enqueue(encoder.encode('data: ping\n\n'));
+          const sseData = JSON.stringify({ type: "gateway", ...event });
+          controller.enqueue(ENCODER.encode(`data: ${sseData}\n\n`));
         } catch {
-          clearInterval(pingInterval);
+          // 流已关闭
         }
-      }, 30_000);
+      };
 
-      // Subscribe to bridge events
-      unsubscribe = subscribeExecApprovalBridge(({ event, payload }) => {
-        try {
-          const frame = encoder.encode(
-            `data: ${JSON.stringify({ type: 'gateway', event, payload })}\n\n`
-          );
-          controller.enqueue(frame);
-        } catch {
-          // stream closed
-        }
-      });
+      setApprovalBridgeBroadcaster(broadcaster as Parameters<typeof setApprovalBridgeBroadcaster>[0]);
 
-      client.on('disconnected', () => {
-        clearInterval(pingInterval);
-        unsubscribe?.();
+      // 订阅审批桥接
+      unsubscribe = subscribeExecApprovalBridge((approvalEvent) => {
         try {
-          controller.close();
+          const { event, payload } = approvalEvent;
+          const sseData = JSON.stringify({ type: "gateway", event, payload });
+          controller.enqueue(ENCODER.encode(`data: ${sseData}\n\n`));
         } catch {
-          // already closed
+          // 流已关闭
         }
       });
     },
+
     cancel() {
+      // 清理
       unsubscribe?.();
+      setApprovalBridgeBroadcaster(() => {
+        /* no-op */
+      });
     },
   });
 
-  return new NextResponse(stream, {
+  return new Response(stream, {
     headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
     },
   });
 }

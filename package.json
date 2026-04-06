@@ -1,6 +1,6 @@
 {
-  "name": "openclaw-gateway-root",
-  "version": "0.0.0",
+  "name": "openclaw-gateway",
+  "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@10.22.0",
   "scripts": {
@@ -13,9 +13,15 @@
     "test:e2e": "pnpm --filter openclaw-chat test:e2e",
     "pull:ai-reference-sources": "node scripts/pull-ai-reference-sources.mjs",
     "generate:ai-reference-manifest": "node scripts/generate-ai-reference-sources-manifest.mjs",
-    "openclaw:drift": "node scripts/openclaw-drift.mjs"
+    "openclaw:drift": "node scripts/openclaw-drift.mjs",
+    "format": "pnpm --filter openclaw-chat format"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=10.0.0"
   }
 }
