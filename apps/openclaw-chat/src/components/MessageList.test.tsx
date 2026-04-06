@@ -50,7 +50,7 @@ describe("MessageList", () => {
         streamingDelta={undefined}
       />
     );
-    const userMessages = container.querySelectorAll(".message-user");
+    const userMessages = container.querySelectorAll(".chat-group.user");
     expect(userMessages.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -62,7 +62,7 @@ describe("MessageList", () => {
         streamingDelta={undefined}
       />
     );
-    const assistantMessages = container.querySelectorAll(".message-assistant");
+    const assistantMessages = container.querySelectorAll(".chat-group.assistant");
     expect(assistantMessages.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -90,27 +90,28 @@ describe("MessageList", () => {
     expect(container.querySelectorAll(".message-assistant")).toHaveLength(0);
   });
 
-  it("流式消息应该只显示 streamingDelta 内容", () => {
+  it("流式消息应显示 streaming 样式", () => {
     const streamingMessage: MessageItem = {
       id: "assistant-streaming",
       role: "assistant",
-      content: "旧内容",
+      content: "正在生成的内容",
       timestamp: new Date(),
       streaming: true,
     };
 
-    render(
+    const { container } = render(
       <MessageList
         messages={[streamingMessage]}
         streamingMessageId="assistant-streaming"
-        streamingDelta="这是流式追加的新内容"
+        streamingDelta="追加内容"
       />
     );
 
-    // 流式时 displayContent 使用 streamingDelta 而非 message.content
-    expect(screen.getByText("这是流式追加的新内容")).toBeInTheDocument();
-    // 旧内容不应出现
-    expect(screen.queryByText("旧内容")).not.toBeInTheDocument();
+    // 流式消息应显示消息自身的 content
+    expect(screen.getByText("正在生成的内容")).toBeInTheDocument();
+    // 流式消息应有 streaming CSS class
+    const streamingBubble = container.querySelector(".chat-bubble.streaming");
+    expect(streamingBubble).toBeInTheDocument();
   });
 
   it("应该包含 Markdown 代码块渲染", () => {

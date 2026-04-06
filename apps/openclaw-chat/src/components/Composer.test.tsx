@@ -161,7 +161,7 @@ describe("Composer", () => {
       />
     );
 
-    const stopButton = screen.getByTitle("中止生成");
+    const stopButton = screen.getByTitle("停止生成");
     expect(stopButton).toBeInTheDocument();
   });
 
@@ -175,7 +175,7 @@ describe("Composer", () => {
       />
     );
 
-    const stopButton = screen.getByTitle("中止生成");
+    const stopButton = screen.getByTitle("停止生成");
     fireEvent.click(stopButton);
 
     expect(mockOnAbort).toHaveBeenCalledTimes(1);

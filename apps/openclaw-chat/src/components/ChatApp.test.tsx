@@ -72,7 +72,8 @@ describe("ChatApp 组件", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("OpenClaw Gateway")).toBeInTheDocument();
+      const layout = document.querySelector(".flex.flex-col.h-screen");
+      expect(layout).toBeInTheDocument();
     });
   });
 

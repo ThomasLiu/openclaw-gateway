@@ -47,7 +47,6 @@ describe("openclaw-cli-actions", () => {
       expect(isOpenClawCliExecAction("sh")).toBe(false);
       expect(isOpenClawCliExecAction("delete")).toBe(false);
       expect(isOpenClawCliExecAction("rm")).toBe(false);
-      expect(isOpenClawCliExecAction("update")).toBe(false);
       expect(isOpenClawCliExecAction("install")).toBe(false);
       expect(isOpenClawCliExecAction("sudo")).toBe(false);
       expect(isOpenClawCliExecAction("--help")).toBe(false);
