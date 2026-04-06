@@ -34,7 +34,7 @@ const PAGE_SIZE = 40;
 const MAX_TOTAL_LOGS = 40;
 const STORAGE_KEY = "openclaw-logs-levels";
 
-type LoadState = "loading" | "done" | "loading-more" | "exhausted";
+type LoadState = "loading" | "done" | "loading-more" | "exhausted" | "error";
 
 export default function OpenClawLogsPanel({
   width,
@@ -65,40 +65,28 @@ export default function OpenClawLogsPanel({
 
   // autoScrollMode=true: 自动滚动; autoScrollMode=false: 手动模式
   const [autoScrollMode, setAutoScrollMode] = useState(true);
-  // 同步 ref，避免 SSE 回调读到 stale 闭包值
   const autoScrollModeRef = useRef(true);
 
-  // 同步 autoScrollModeRef
   useEffect(() => {
     autoScrollModeRef.current = autoScrollMode;
   }, [autoScrollMode]);
 
-  // manualMode 时的 DOM 起始索引
-  const [domStartIndex, setDomStartIndex] = useState(0);
-
-  // manualMode 时新到的日志数
   const [pendingCount, setPendingCount] = useState(0);
+  const pendingCountRef = useRef(0);
 
   const [loadState, setLoadState] = useState<LoadState>("loading");
+  const [hasMoreHistory, setHasMoreHistory] = useState(true);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
-  // Refs
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const counterRef = useRef(0);
-  const pendingCountRef = useRef(0);
   const isScrollingRef = useRef(false);
   const isMountedRef = useRef(false);
-  const logsLengthRef = useRef(0);
 
-  // 同步 pendingCountRef
   useEffect(() => {
     pendingCountRef.current = pendingCount;
   }, [pendingCount]);
-
-  // 同步 logsLengthRef
-  useEffect(() => {
-    logsLengthRef.current = logs.length;
-  }, [logs.length]);
 
   const persistLevels = useCallback((levels: Set<LogEntry["level"]>) => {
     try {
@@ -119,17 +107,10 @@ export default function OpenClawLogsPanel({
         persistLevels(next);
         return next;
       });
-      // 重置状态，重新回到自动滚动模式
-      autoScrollModeRef.current = true;
-      setAutoScrollMode(true);
-      setDomStartIndex(0);
-      setPendingCount(0);
-      pendingCountRef.current = 0;
     },
     [persistLevels]
   );
 
-  // 过滤后的完整列表
   const filteredLogs = logs.filter((l) => {
     if (!selectedLevels.has(l.level)) return false;
     if (
@@ -140,13 +121,136 @@ export default function OpenClawLogsPanel({
     return true;
   });
 
-  // DOM 渲染的切片
-  const visibleLogs = autoScrollMode
-    ? filteredLogs.slice(-PAGE_SIZE)
-    : filteredLogs.slice(domStartIndex, domStartIndex + PAGE_SIZE);
+  const visibleLogs = filteredLogs.slice(-PAGE_SIZE);
 
-  const atOldest = !autoScrollMode && domStartIndex === 0;
-  const hasNewer = !autoScrollMode && domStartIndex + PAGE_SIZE < filteredLogs.length;
+  // 加载初始日志
+  const loadInitialLogs = useCallback(async () => {
+    setLoadState("loading");
+    setHasMoreHistory(true);
+    setLoadingHistory(false);
+    setPendingCount(0);
+    pendingCountRef.current = 0;
+    setAutoScrollMode(true);
+    autoScrollModeRef.current = true;
+
+    try {
+      const params = new URLSearchParams();
+      params.append("cursor", "0");
+      params.append("limit", String(PAGE_SIZE));
+
+      const res = await fetch(`/api/openclaw/logs/history?${params}`);
+      if (!res.ok) throw new Error(await res.text());
+      const result = await res.json();
+
+      const initialLogs = result.entries.map((entry: any, index: number) => ({
+        id: `log-initial-${Date.now()}-${index}`,
+        level: entry.level as LogEntry["level"] ?? "info",
+        message: entry.message,
+        timestamp: new Date(entry.timestamp),
+      }));
+
+      setLogs(initialLogs);
+      setHasMoreHistory(result.hasMore);
+      setLoadState("done");
+
+      // 滚动到底部
+      requestAnimationFrame(() => {
+        if (containerRef.current) {
+          containerRef.current.scrollTop = containerRef.current.scrollHeight;
+        }
+      });
+    } catch (error) {
+      console.error("[Frontend Logs] Failed to load initial logs:", error);
+      setLoadState("error");
+    }
+  }, []);
+
+  // 加载更多历史日志
+  const loadMoreHistory = useCallback(async () => {
+    if (loadingHistory || !hasMoreHistory || logs.length === 0) {
+      return;
+    }
+
+    setLoadingHistory(true);
+    setLoadState("loading-more");
+
+    try {
+      // 简单实现：由于没有保存历史 cursor，我们暂时不支持加载更多历史
+      // 实际项目中需要保存 historyCursor 状态
+      setHasMoreHistory(false);
+      setLoadState("done");
+    } catch (error) {
+      console.error("[Frontend Logs] Failed to load more history:", error);
+      setLoadState("error");
+    } finally {
+      setLoadingHistory(false);
+    }
+  }, [loadingHistory, hasMoreHistory, logs.length]);
+
+  // 滚动处理
+  const handleScroll = useCallback(() => {
+    if (isScrollingRef.current) {
+      return;
+    }
+
+    const el = containerRef.current;
+    if (!el) {
+      return;
+    }
+
+    const { scrollTop, scrollHeight, clientHeight } = el;
+    const distToBottom = scrollHeight - scrollTop - clientHeight;
+    const nearBottom = distToBottom < 40;
+    const nearTop = scrollTop < 100;
+
+    // 已在底部且是自动模式：忽略
+    if (autoScrollMode && nearBottom) {
+      return;
+    }
+
+    // 从底部往上滚：切换到手动模式
+    if (autoScrollMode && !nearBottom && scrollTop > 50) {
+      isScrollingRef.current = true;
+      autoScrollModeRef.current = false;
+      setAutoScrollMode(false);
+      requestAnimationFrame(() => {
+        isScrollingRef.current = false;
+      });
+      return;
+    }
+
+    // 手动模式
+    if (!autoScrollMode) {
+      if (nearTop) {
+        loadMoreHistory();
+      } else if (nearBottom) {
+        isScrollingRef.current = true;
+        autoScrollModeRef.current = true;
+        setAutoScrollMode(true);
+        setPendingCount(0);
+        pendingCountRef.current = 0;
+        requestAnimationFrame(() => {
+          isScrollingRef.current = false;
+          if (el) {
+            el.scrollTop = el.scrollHeight - el.clientHeight;
+          }
+        });
+      }
+    }
+  }, [autoScrollMode, loadMoreHistory]);
+
+  // 滚动到底部
+  const scrollToBottom = useCallback(() => {
+    autoScrollModeRef.current = true;
+    setAutoScrollMode(true);
+    setPendingCount(0);
+    pendingCountRef.current = 0;
+    requestAnimationFrame(() => {
+      if (containerRef.current) {
+        containerRef.current.scrollTop = containerRef.current.scrollHeight;
+      }
+    });
+  }, []);
 
   // SSE 连接
   useEffect(() => {
@@ -156,8 +260,6 @@ export default function OpenClawLogsPanel({
     const maxReconnectAttempts = 5;
 
     function connect() {
-      console.log(`[Frontend Logs] Attempting to connect to SSE endpoint... (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`);
-      // 关闭之前的连接
       if (es) {
         es.close();
         es = null;
@@ -165,22 +267,16 @@ export default function OpenClawLogsPanel({
 
       try {
         es = new EventSource("/api/openclaw/logs");
-        console.log("[Frontend Logs] SSE connection established");
         reconnectAttempts = 0;
 
-        es.onopen = () => {
-          console.log("[Frontend Logs] SSE connection opened");
-        };
+        es.onopen = () => {};
 
         es.onmessage = (e) => {
           if (e.data.startsWith(":")) {
-            console.log("[Frontend Logs] SSE heartbeat received");
             return;
           }
-          console.log("[Frontend Logs] SSE message received:", e.data);
           try {
             const data = JSON.parse(e.data);
-            console.log("[Frontend Logs] Parsed log entry:", data);
             const entry: LogEntry = {
               id: `log-${++counterRef.current}`,
               level: (data.level as LogEntry["level"]) ?? "info",
@@ -188,49 +284,25 @@ export default function OpenClawLogsPanel({
               timestamp: new Date(data.timestamp ?? Date.now()),
             };
 
-            console.log("[Frontend Logs] Adding log entry:", entry);
-            setLogs((prev) => {
-              const next = [...prev, entry];
-              const updated = next.length > MAX_TOTAL_LOGS
-                ? next.slice(-MAX_TOTAL_LOGS)
-                : next;
-              console.log("[Frontend Logs] Updated logs length:", updated.length);
-              // 直接更新 logsLengthRef，确保在 SSE 回调中能够使用最新的日志长度
-              logsLengthRef.current = updated.length;
-              return updated;
-            });
+            if (autoScrollModeRef.current) {
+              setLogs((prev) => {
+                const next = [...prev, entry];
+                const updated = next.length > MAX_TOTAL_LOGS
+                  ? next.slice(-MAX_TOTAL_LOGS)
+                  : next;
+                return updated;
+              });
 
-            console.log("[Frontend Logs] SSE message processed, scheduling scroll logic");
-            // 使用 setTimeout 确保 DOM 更新后再执行滚动逻辑
-            setTimeout(() => {
-              console.log("[Frontend Logs] Executing scroll logic after DOM update");
-              const el = containerRef.current;
-              if (el) {
-                console.log("[Frontend Logs] Current autoScrollModeRef:", autoScrollModeRef.current);
-                console.log("[Frontend Logs] Current logsLengthRef:", logsLengthRef.current);
-                console.log("[Frontend Logs] Current bottomRef:", bottomRef.current);
-                console.log("[Frontend Logs] Container scrollHeight:", el.scrollHeight);
-                console.log("[Frontend Logs] Container clientHeight:", el.clientHeight);
-                if (autoScrollModeRef.current) {
-                  console.log("[Frontend Logs] Auto-scrolling to bottom");
-                  // 确保 domStartIndex 指向最新的日志
-                  const newDomStartIndex = Math.max(0, logsLengthRef.current - PAGE_SIZE);
-                  console.log("[Frontend Logs] Setting domStartIndex to:", newDomStartIndex);
-                  setDomStartIndex(newDomStartIndex);
-                  // 直接设置 scrollTop 到最底部，确保滚动条在底部
-                  const scrollTopValue = el.scrollHeight - el.clientHeight;
-                  console.log("[Frontend Logs] Setting scrollTop to:", scrollTopValue);
-                  el.scrollTop = scrollTopValue;
-                  console.log("[Frontend Logs] After scrollTop set:", el.scrollTop);
-                } else {
-                  pendingCountRef.current += 1;
-                  setPendingCount(pendingCountRef.current);
-                  console.log("[Frontend Logs] New logs pending:", pendingCountRef.current);
+              // 滚动到底部
+              setTimeout(() => {
+                if (containerRef.current && autoScrollModeRef.current) {
+                  containerRef.current.scrollTop = containerRef.current.scrollHeight;
                 }
-              } else {
-                console.log("[Frontend Logs] Container ref not found");
-              }
-            }, 0);
+              }, 0);
+            } else {
+              pendingCountRef.current += 1;
+              setPendingCount(pendingCountRef.current);
+            }
           } catch (error) {
             console.error("[Frontend Logs] Failed to parse SSE message:", error);
           }
@@ -242,11 +314,9 @@ export default function OpenClawLogsPanel({
             es.close();
             es = null;
           }
-          
+
           reconnectAttempts++;
           if (reconnectAttempts < maxReconnectAttempts) {
-            // 3秒后重试连接
-            console.log(`[Frontend Logs] Reconnecting in 3 seconds... (attempt ${reconnectAttempts}/${maxReconnectAttempts})`);
             reconnectTimeout = setTimeout(connect, 3000);
           } else {
             console.error("[Frontend Logs] Max reconnect attempts reached. Stopping reconnect attempts.");
@@ -254,11 +324,9 @@ export default function OpenClawLogsPanel({
         };
       } catch (error) {
         console.error("[Frontend Logs] Failed to connect to SSE:", error);
-        
+
         reconnectAttempts++;
         if (reconnectAttempts < maxReconnectAttempts) {
-          // 连接失败，3秒后重试
-          console.log(`[Frontend Logs] Reconnecting in 3 seconds... (attempt ${reconnectAttempts}/${maxReconnectAttempts})`);
           reconnectTimeout = setTimeout(connect, 3000);
         } else {
           console.error("[Frontend Logs] Max reconnect attempts reached. Stopping reconnect attempts.");
@@ -266,16 +334,12 @@ export default function OpenClawLogsPanel({
       }
     }
 
-    connect();
-
-    // 初始加载后设置为 done，避免一直显示加载中
-    setTimeout(() => {
-      console.log("[Frontend Logs] Setting load state to done");
-      setLoadState("done");
-    }, 1000);
+    // 先加载初始日志
+    loadInitialLogs().then(() => {
+      connect();
+    });
 
     return () => {
-      console.log("[Frontend Logs] Cleaning up SSE connection");
       if (es) {
         es.close();
       }
@@ -283,130 +347,16 @@ export default function OpenClawLogsPanel({
         clearTimeout(reconnectTimeout);
       }
     };
-  }, []);
+  }, [loadInitialLogs]);
 
-  // 滚动处理
-  const handleScroll = useCallback(() => {
-    if (isScrollingRef.current) {
-      console.log("[Frontend Logs] Scroll event ignored (isScrollingRef is true)");
-      return;
-    }
-
-    const el = containerRef.current;
-    if (!el) {
-      console.log("[Frontend Logs] Scroll event ignored (container ref not found)");
-      return;
-    }
-
-    const { scrollTop, scrollHeight, clientHeight } = el;
-    const distToBottom = scrollHeight - scrollTop - clientHeight;
-    const nearBottom = distToBottom < 40;
-    const nearTop = scrollTop < 100;
-    
-    console.log("[Frontend Logs] Scroll event - scrollTop:", scrollTop, "distToBottom:", distToBottom, "nearBottom:", nearBottom, "nearTop:", nearTop, "autoScrollMode:", autoScrollMode);
-
-    // 已在底部且是自动模式：忽略
-    if (autoScrollMode && nearBottom) {
-      console.log("[Frontend Logs] Scroll event ignored (already at bottom in auto mode)");
-      return;
-    }
-
-    // 从底部往上滚：切换到手动模式
-    // 只有当用户确实在滚动时才切换到手动模式，而不是因为新日志添加导致的 scrollHeight 变化
-    if (autoScrollMode && !nearBottom) {
-      // 检查是否是用户主动滚动（scrollTop > 0 且滚动距离较大）
-      // 当新日志添加时，scrollHeight 会增加，导致 distToBottom 增加，但这不是用户主动滚动
-      // 只有当 scrollTop 明显大于 0 时，才认为是用户主动滚动
-      if (scrollTop > 50) {
-        console.log("[Frontend Logs] Switching to manual mode (user scroll detected)");
-        isScrollingRef.current = true;
-        autoScrollModeRef.current = false;
-        setAutoScrollMode(false);
-        const start = Math.max(0, filteredLogs.length - PAGE_SIZE);
-        console.log("[Frontend Logs] Setting domStartIndex to:", start);
-        setDomStartIndex(start);
-        setPendingCount(0);
-        pendingCountRef.current = 0;
-        setLoadState("done");
-        requestAnimationFrame(() => {
-          isScrollingRef.current = false;
-          console.log("[Frontend Logs] isScrollingRef reset to false");
-        });
-      } else {
-        console.log("[Frontend Logs] Not switching to manual mode (scrollTop too small):", scrollTop);
-      }
-      return;
-    }
-
-    // 手动模式
-    if (!autoScrollMode) {
-      if (nearTop && domStartIndex > 0) {
-        console.log("[Frontend Logs] Loading more logs (near top)");
-        // 滚动到顶部：加载更老的一页
-        isScrollingRef.current = true;
-        const nextStart = Math.max(0, domStartIndex - PAGE_SIZE);
-        console.log("[Frontend Logs] Setting domStartIndex to:", nextStart);
-        const prevHeight = el.scrollHeight;
-        setLoadState("loading-more");
-        setDomStartIndex(nextStart);
-        requestAnimationFrame(() => {
-          isScrollingRef.current = false;
-          el.scrollTop = el.scrollHeight - prevHeight;
-          setLoadState("done");
-          console.log("[Frontend Logs] More logs loaded");
-        });
-      } else if (nearBottom) {
-        console.log("[Frontend Logs] Switching back to auto mode (near bottom)");
-        // 滚动到底部：回到自动模式
-        isScrollingRef.current = true;
-        autoScrollModeRef.current = true;
-        setAutoScrollMode(true);
-        setPendingCount(0);
-        pendingCountRef.current = 0;
-        const start = Math.max(0, filteredLogs.length - PAGE_SIZE);
-        console.log("[Frontend Logs] Setting domStartIndex to:", start);
-        setDomStartIndex(start);
-        requestAnimationFrame(() => {
-          isScrollingRef.current = false;
-          bottomRef.current?.scrollIntoView({ behavior: "auto" });
-          // 直接设置 scrollTop 到最底部，确保滚动条在底部
-          el.scrollTop = el.scrollHeight - el.clientHeight;
-          setLoadState("exhausted");
-          console.log("[Frontend Logs] Switched back to auto mode");
-        });
-      } else {
-        console.log("[Frontend Logs] Manual mode - no action needed");
-      }
-    }
-  }, [autoScrollMode, domStartIndex, filteredLogs.length]);
-
-  const scrollToBottom = useCallback(() => {
-    console.log("[Frontend Logs] scrollToBottom called");
-    autoScrollModeRef.current = true;
-    setAutoScrollMode(true);
-    setPendingCount(0);
-    pendingCountRef.current = 0;
-    const start = Math.max(0, filteredLogs.length - PAGE_SIZE);
-    console.log("[Frontend Logs] Setting domStartIndex to:", start);
-    setDomStartIndex(start);
-    requestAnimationFrame(() => {
-      console.log("[Frontend Logs] Scrolling to bottom");
-      bottomRef.current?.scrollIntoView({ behavior: "auto" });
-      console.log("[Frontend Logs] scrollToBottom completed");
-    });
-  }, [filteredLogs.length]);
-
-  // 首次挂载：设置 domStartIndex 并滚动到底部
+  // 当筛选条件改变时，重新加载初始日志
   useEffect(() => {
-    if (!isMountedRef.current && filteredLogs.length > 0) {
+    if (isMountedRef.current) {
+      loadInitialLogs();
+    } else {
       isMountedRef.current = true;
-      setDomStartIndex(Math.max(0, filteredLogs.length - PAGE_SIZE));
-      setLoadState("done");
-      requestAnimationFrame(() => {
-        bottomRef.current?.scrollIntoView({ behavior: "auto" });
-      });
     }
-  }, [filteredLogs.length]);
+  }, [selectedLevels, textFilter, loadInitialLogs]);
 
   return (
     <aside
@@ -443,15 +393,7 @@ export default function OpenClawLogsPanel({
           <input
             type="text"
             value={textFilter}
-            onChange={(e) => {
-              setTextFilter(e.target.value);
-              // 重置状态，重新回到自动滚动模式
-              autoScrollModeRef.current = true;
-              setAutoScrollMode(true);
-              setDomStartIndex(0);
-              setPendingCount(0);
-              pendingCountRef.current = 0;
-            }}
+            onChange={(e) => setTextFilter(e.target.value)}
             placeholder="过滤日志内容..."
             className="w-full text-[11px] bg-zinc-900 text-zinc-300 border border-zinc-700 rounded px-2 py-1 outline-none placeholder-zinc-600 focus:border-zinc-500"
           />
@@ -475,12 +417,10 @@ export default function OpenClawLogsPanel({
               <div className="text-zinc-600 py-1 text-center text-[10px] sticky top-0 bg-zinc-950 z-10">
                 {loadState === "loading-more" ? (
                   "加载中..."
-                ) : atOldest ? (
+                ) : !hasMoreHistory ? (
                   "已加载全部历史日志"
-                ) : hasNewer ? (
-                  "↑ 距顶部 100px 时加载更多"
                 ) : (
-                  "已加载全部日志"
+                  "↑ 距顶部 100px 时加载更多"
                 )}
               </div>
             )}
@@ -535,7 +475,7 @@ export default function OpenClawLogsPanel({
           <span className="text-[10px] text-zinc-600">
             {autoScrollMode
               ? `${Math.min(PAGE_SIZE, filteredLogs.length)} 条可见`
-              : `${Math.min(domStartIndex + PAGE_SIZE, filteredLogs.length)} / ${filteredLogs.length} 条`}
+              : `${Math.min(filteredLogs.length, filteredLogs.length)} / ${filteredLogs.length} 条`}
           </span>
           {autoScrollMode ? (
             <span className="text-[10px] text-zinc-500">自动滚动</span>

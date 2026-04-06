@@ -69,7 +69,9 @@ const SLASH_COMMANDS: SlashCommand[] = [
     acceptsArgs: true,
     detail: "Reset the current session, clearing all messages and context. Prompts for confirmation if session has significant content.",
     detailZh: "重置当前会话，清除所有消息和上下文。如果会话有重要内容会提示确认。",
-    args: [{ hint: "[confirm]", description: "Pass 'yes' to skip confirmation prompt", descriptionZh: "传入 'yes' 跳过确认提示" }],
+    args: [{ hint: "[confirm]", options: [
+      { value: "yes", description: "Skip confirmation and reset immediately", descriptionZh: "跳过确认并立即重置" },
+    ], description: "Pass 'yes' to skip confirmation prompt", descriptionZh: "传入 'yes' 跳过确认提示" }],
   },
   {
     name: "stop",
@@ -101,7 +103,10 @@ const SLASH_COMMANDS: SlashCommand[] = [
     acceptsArgs: true,
     detail: "Manage session settings including idle timeout and max age. Control how long sessions persist and when they auto-expire.",
     detailZh: "管理会话设置，包括空闲超时和最大年龄。控制会话保留时间及自动过期时机。",
-    args: [{ hint: "idle|max-age [value]", description: "Set idle timeout or max session age", descriptionZh: "设置空闲超时或最大会话年龄" }],
+    args: [{ hint: "idle|max-age [value]", options: [
+      { value: "idle", description: "Set idle timeout", descriptionZh: "设置空闲超时" },
+      { value: "max-age", description: "Set max session age", descriptionZh: "设置最大会话年龄" },
+    ], description: "Set idle timeout or max session age", descriptionZh: "设置空闲超时或最大会话年龄" }],
   },
 
   // 模型命令
@@ -282,7 +287,11 @@ const SLASH_COMMANDS: SlashCommand[] = [
     acceptsArgs: true,
     detail: "Configure default execution behavior for code blocks and terminal commands.",
     detailZh: "配置代码块和终端命令的默认执行行为。",
-    args: [{ hint: "[setting]", description: "Execution setting to configure", descriptionZh: "要配置的执行设置" }],
+    args: [{ hint: "[setting]", options: [
+      { value: "on", description: "Enable auto-execution", descriptionZh: "启用自动执行" },
+      { value: "off", description: "Disable auto-execution", descriptionZh: "禁用自动执行" },
+      { value: "status", description: "Show exec status", descriptionZh: "显示执行状态" },
+    ], description: "Execution setting to configure", descriptionZh: "要配置的执行设置" }],
   },
   {
     name: "queue",
@@ -292,7 +301,12 @@ const SLASH_COMMANDS: SlashCommand[] = [
     acceptsArgs: true,
     detail: "Configure queue behavior for handling multiple messages and concurrent requests.",
     detailZh: "配置队列行为以处理多条消息和并发请求。",
-    args: [{ hint: "[setting]", description: "Queue setting to configure", descriptionZh: "要配置的队列设置" }],
+    args: [{ hint: "[setting]", options: [
+      { value: "on", description: "Enable message queuing", descriptionZh: "启用消息排队" },
+      { value: "off", description: "Disable message queuing", descriptionZh: "禁用消息排队" },
+      { value: "clear", description: "Clear the message queue", descriptionZh: "清空消息队列" },
+      { value: "status", description: "Show queue status", descriptionZh: "显示队列状态" },
+    ], description: "Queue setting to configure", descriptionZh: "要配置的队列设置" }],
   },
 
   // 代理命令
@@ -440,7 +454,10 @@ const SLASH_COMMANDS: SlashCommand[] = [
     acceptsArgs: true,
     detail: "Explain how the current context is built, showing which messages and data contribute to the context window.",
     detailZh: "解释当前上下文是如何构建的，显示哪些消息和数据对上下文窗口有贡献。",
-    args: [{ hint: "[detail]", description: "Show detailed context breakdown", descriptionZh: "显示详细的上下文分解" }],
+    args: [{ hint: "[detail]", options: [
+      { value: "detail", description: "Show detailed context breakdown", descriptionZh: "显示详细的上下文分解" },
+      { value: "tokens", description: "Show token count per message", descriptionZh: "显示每条消息的 token 数" },
+    ], description: "Show detailed context breakdown", descriptionZh: "显示详细的上下文分解" }],
   },
   {
     name: "whoami",
@@ -516,7 +533,11 @@ const SLASH_COMMANDS: SlashCommand[] = [
     acceptsArgs: true,
     detail: "Manage the allowlist for controlling what operations are permitted without confirmation.",
     detailZh: "管理白名单以控制哪些操作无需确认即可执行。",
-    args: [{ hint: "add|remove|list [entry]", description: "Action and optional entry", descriptionZh: "操作和可选条目" }],
+    args: [{ hint: "add|remove|list [entry]", options: [
+      { value: "add", description: "Add an entry to the allowlist", descriptionZh: "添加条目到白名单" },
+      { value: "remove", description: "Remove an entry from the allowlist", descriptionZh: "从白名单移除条目" },
+      { value: "list", description: "List all allowlist entries", descriptionZh: "列出所有白名单条目" },
+    ], description: "Action and optional entry", descriptionZh: "操作和可选条目" }],
   },
   {
     name: "approve",
@@ -526,7 +547,10 @@ const SLASH_COMMANDS: SlashCommand[] = [
     acceptsArgs: true,
     detail: "Approve or deny pending exec requests from the AI.",
     detailZh: "批准或拒绝来自 AI 的待处理 exec 请求。",
-    args: [{ hint: "<request-id> <approve|deny>", description: "Request ID and decision", descriptionZh: "请求 ID 和决定" }],
+    args: [{ hint: "<request-id> <approve|deny>", options: [
+      { value: "approve", description: "Approve the pending exec request", descriptionZh: "批准待处理的 exec 请求" },
+      { value: "deny", description: "Deny the pending exec request", descriptionZh: "拒绝待处理的 exec 请求" },
+    ], description: "Request ID and decision", descriptionZh: "请求 ID 和决定" }],
   },
   {
     name: "acp",
@@ -536,7 +560,10 @@ const SLASH_COMMANDS: SlashCommand[] = [
     acceptsArgs: true,
     detail: "Manage ACP (Agent Communication Protocol) session settings and runtime options.",
     detailZh: "管理 ACP（代理通信协议）会话设置和运行时选项。",
-    args: [{ hint: "[setting]", description: "ACP setting to manage", descriptionZh: "要管理的 ACP 设置" }],
+    args: [{ hint: "[setting]", options: [
+      { value: "show", description: "Show current ACP settings", descriptionZh: "显示当前 ACP 设置" },
+      { value: "reset", description: "Reset ACP settings to defaults", descriptionZh: "重置 ACP 设置为默认值" },
+    ], description: "ACP setting to manage", descriptionZh: "要管理的 ACP 设置" }],
   },
   {
     name: "config",
@@ -561,7 +588,12 @@ const SLASH_COMMANDS: SlashCommand[] = [
     acceptsArgs: true,
     detail: "Manage MCP (Model Context Protocol) servers that provide additional tools and capabilities.",
     detailZh: "管理提供额外工具和功能的 MCP（模型上下文协议）服务器。",
-    args: [{ hint: "[action]", description: "MCP server action", descriptionZh: "MCP 服务器操作" }],
+    args: [{ hint: "[action]", options: [
+      { value: "list", description: "List all MCP servers", descriptionZh: "列出所有 MCP 服务器" },
+      { value: "show", description: "Show MCP server details", descriptionZh: "显示 MCP 服务器详情" },
+      { value: "add", description: "Add an MCP server", descriptionZh: "添加 MCP 服务器" },
+      { value: "remove", description: "Remove an MCP server", descriptionZh: "移除 MCP 服务器" },
+    ], description: "MCP server action", descriptionZh: "MCP 服务器操作" }],
   },
   {
     name: "plugins",
@@ -571,7 +603,12 @@ const SLASH_COMMANDS: SlashCommand[] = [
     acceptsArgs: true,
     detail: "Manage plugins including listing available plugins, showing plugin details, enabling or disabling them.",
     detailZh: "管理插件，包括列出可用插件、显示插件详情、启用或禁用插件。",
-    args: [{ hint: "list|show|enable|disable [plugin]", description: "Plugin action and optional plugin name", descriptionZh: "插件操作和可选插件名称" }],
+    args: [{ hint: "list|show|enable|disable [plugin]", options: [
+      { value: "list", description: "List all available plugins", descriptionZh: "列出所有可用插件" },
+      { value: "show", description: "Show plugin details", descriptionZh: "显示插件详情" },
+      { value: "enable", description: "Enable a plugin", descriptionZh: "启用插件" },
+      { value: "disable", description: "Disable a plugin", descriptionZh: "禁用插件" },
+    ], description: "Plugin action and optional plugin name", descriptionZh: "插件操作和可选插件名称" }],
   },
   {
     name: "plugin",
@@ -581,7 +618,12 @@ const SLASH_COMMANDS: SlashCommand[] = [
     acceptsArgs: true,
     detail: "Alias for /plugins command.",
     detailZh: "/plugins 命令的别名。",
-    args: [{ hint: "list|show|enable|disable [plugin]", description: "Plugin action and optional plugin name", descriptionZh: "插件操作和可选插件名称" }],
+    args: [{ hint: "list|show|enable|disable [plugin]", options: [
+      { value: "list", description: "List all available plugins", descriptionZh: "列出所有可用插件" },
+      { value: "show", description: "Show plugin details", descriptionZh: "显示插件详情" },
+      { value: "enable", description: "Enable a plugin", descriptionZh: "启用插件" },
+      { value: "disable", description: "Disable a plugin", descriptionZh: "禁用插件" },
+    ], description: "Plugin action and optional plugin name", descriptionZh: "插件操作和可选插件名称" }],
   },
   {
     name: "debug",
@@ -591,7 +633,10 @@ const SLASH_COMMANDS: SlashCommand[] = [
     acceptsArgs: true,
     detail: "Set runtime debug overrides to enable verbose logging or trace specific operations.",
     detailZh: "设置运行时调试覆盖以启用详细日志或跟踪特定操作。",
-    args: [{ hint: "<key> <value>", description: "Debug key and override value", descriptionZh: "调试键和覆盖值" }],
+    args: [{ hint: "<key> <value>", options: [
+      { value: "on", description: "Enable all debug flags", descriptionZh: "启用所有调试标志" },
+      { value: "off", description: "Disable all debug flags", descriptionZh: "禁用所有调试标志" },
+    ], description: "Debug key and override value", descriptionZh: "调试键和覆盖值" }],
   },
   {
     name: "activation",
@@ -630,7 +675,11 @@ const SLASH_COMMANDS: SlashCommand[] = [
     acceptsArgs: true,
     detail: "Control text-to-speech settings and playback for AI responses.",
     detailZh: "控制 AI 响应的文本转语音设置和播放。",
-    args: [{ hint: "[setting]", description: "TTS setting to adjust", descriptionZh: "要调整的 TTS 设置" }],
+    args: [{ hint: "[setting]", options: [
+      { value: "on", description: "Enable text-to-speech", descriptionZh: "启用文本转语音" },
+      { value: "off", description: "Disable text-to-speech", descriptionZh: "禁用文本转语音" },
+      { value: "status", description: "Show TTS status", descriptionZh: "显示 TTS 状态" },
+    ], description: "TTS setting to adjust", descriptionZh: "要调整的 TTS 设置" }],
   },
 ];
 
@@ -1278,64 +1327,27 @@ function ArgSuggestionsDropdown({
   onSelect,
   onClose,
   suggestionLabel,
+  selectedIdx,
+  onSelectedIdxChange,
 }: {
   suggestions: ArgSuggestionItem[];
   loading: boolean;
   onSelect: (value: string) => void;
   onClose: () => void;
   suggestionLabel: string;
+  selectedIdx: number;
+  onSelectedIdxChange: (idx: number) => void;
 }) {
-  const [selectedIdx, setSelectedIdx] = useState(0);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
   // 重置选中索引当建议列表变化时
   useEffect(() => {
-    setSelectedIdx(0);
-  }, [suggestions]);
-
-  // 当组件挂载或建议列表变化时自动获得焦点
-  useEffect(() => {
-    if (dropdownRef.current) {
-      dropdownRef.current.focus();
-    }
-  }, [suggestions]);
-
-  // 键盘导航
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    console.log('ArgSuggestionsDropdown handleKeyDown', e.key);
-    if (suggestions.length === 0) return;
-
-    switch (e.key) {
-      case "ArrowDown":
-        e.preventDefault();
-        setSelectedIdx((i) => (i + 1) % suggestions.length);
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        setSelectedIdx((i) => (i - 1 + suggestions.length) % suggestions.length);
-        break;
-      case "Enter":
-      case "Tab":
-        e.preventDefault();
-        if (suggestions[selectedIdx]) {
-          onSelect(suggestions[selectedIdx].id);
-        }
-        break;
-      case "Escape":
-        e.preventDefault();
-        onClose();
-        break;
-    }
-  };
+    onSelectedIdxChange(0);
+  }, [suggestions, onSelectedIdxChange]);
 
   if (suggestions.length === 0 && !loading) return null;
 
   return (
     <div
-      ref={dropdownRef}
-      tabIndex={0}
-      className="border-t border-zinc-700 bg-zinc-800/95 max-h-48 overflow-y-auto focus:outline-none"
-      onKeyDown={handleKeyDown}
+      className="border-t border-zinc-700 bg-zinc-800/95 max-h-48 overflow-y-auto"
     >
       {/* 头部 */}
       <div className="px-3 py-1.5 text-xs text-zinc-500 bg-zinc-800/80 border-b border-zinc-700/50 flex items-center justify-between">
@@ -1361,7 +1373,7 @@ function ArgSuggestionsDropdown({
                 : "text-zinc-400 hover:bg-zinc-700/50 hover:text-zinc-200"
             }`}
             onClick={() => onSelect(item.id)}
-            onMouseEnter={() => setSelectedIdx(idx)}
+            onMouseEnter={() => onSelectedIdxChange(idx)}
           >
             <code className="px-1.5 py-0.5 bg-zinc-900 text-emerald-400 text-xs rounded font-mono whitespace-nowrap">
               {item.id}
@@ -1392,6 +1404,10 @@ function SlashMenu({
   inputValue,
   cursorPosition,
   onArgSelect,
+  justSelectedCommandRef,
+  argSelectedIdx,
+  onArgSelectedIdxChange,
+  currentArgSuggestionsRef,
 }: {
   commands: SlashCommand[];
   selectedIndex: number;
@@ -1400,6 +1416,10 @@ function SlashMenu({
   inputValue: string;
   cursorPosition: number;
   onArgSelect: (argValue: string) => void;
+  justSelectedCommandRef?: React.RefObject<SlashCommand | null>;
+  argSelectedIdx: number;
+  onArgSelectedIdxChange: (idx: number) => void;
+  currentArgSuggestionsRef?: React.MutableRefObject<ArgSuggestionItem[]>;
 }) {
   // 列表容器的 ref
   const listContainerRef = useRef<HTMLDivElement>(null);
@@ -1440,19 +1460,41 @@ function SlashMenu({
 
   let globalIndex = 0;
 
-  // 当有参数建议时，只显示参数建议下拉，隐藏命令列表和详情面板
-  const showArgSuggestions = argSuggestions.length > 0 || argLoading;
+  // 刚选中了带参命令时，cursorPosition 还未更新（setTimeout 中），
+  // useArgSuggestions 无法正确解析，需要直接从 justSelectedCommandRef 获取建议
+  const justSelected = justSelectedCommandRef?.current;
+  const forceArgSuggestions: ArgSuggestionItem[] = useMemo(() => {
+    if (!justSelected?.args?.[0]?.options) return [];
+    return justSelected.args[0].options.map((opt) => ({
+      id: opt.value,
+      label: opt.descriptionZh || opt.description,
+    }));
+  }, [justSelected]);
+
+  // 当有参数建议 或 刚选中带参命令时，只显示参数建议下拉
+  const showArgSuggestions = argSuggestions.length > 0 || argLoading || forceArgSuggestions.length > 0;
 
   if (showArgSuggestions) {
+    const suggestionsToShow = forceArgSuggestions.length > 0 ? forceArgSuggestions : argSuggestions;
+    const loadingToShow = forceArgSuggestions.length > 0 ? false : argLoading;
+    const labelToShow = forceArgSuggestions.length > 0 ? "可选值" : suggestionLabel;
+
+    // 同步当前建议列表到父级 ref，供 handleKeyDown 读取
+    if (currentArgSuggestionsRef) {
+      currentArgSuggestionsRef.current = suggestionsToShow;
+    }
+
     return (
       <div className="absolute left-0 right-0 bottom-full mb-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl overflow-hidden z-50 flex flex-col">
         {/* 参数建议下拉 - 全宽显示 */}
         <ArgSuggestionsDropdown
-          suggestions={argSuggestions}
-          loading={argLoading}
-          suggestionLabel={suggestionLabel}
+          suggestions={suggestionsToShow}
+          loading={loadingToShow}
+          suggestionLabel={labelToShow}
           onSelect={onArgSelect}
           onClose={() => {}}
+          selectedIdx={argSelectedIdx}
+          onSelectedIdxChange={onArgSelectedIdxChange}
         />
       </div>
     );
@@ -1715,6 +1757,8 @@ export default function Composer({
 }: ComposerProps) {
   const [draft, setDraft] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const justSelectedCommandRef = useRef<SlashCommand | null>(null);
+  const currentArgSuggestionsRef = useRef<ArgSuggestionItem[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Slash 菜单状态
@@ -1722,6 +1766,7 @@ export default function Composer({
   const [slashMenuFilter, setSlashMenuFilter] = useState("");
   const [slashCommands, setSlashCommands] = useState<SlashCommand[]>([]);
   const [slashMenuIndex, setSlashMenuIndex] = useState(0);
+  const [argSelectedIdx, setArgSelectedIdx] = useState(0);
 
   // 输入历史状态
   const [inputHistory, setInputHistory] = useState<string[]>([]);
@@ -1753,8 +1798,6 @@ export default function Composer({
   const handleInput = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     const cursorPos = e.target.selectionStart ?? 0;
-    console.log('handleInput', { value, cursorPos, draft: draft });
-    
     setDraft(value);
     adjustHeight();
 
@@ -1807,6 +1850,44 @@ export default function Composer({
     setSlashMenuFilter("");
   }, [adjustHeight]);
 
+  // 选择参数建议值（定义在 handleKeyDown 之前，因为 handleKeyDown 引用它）
+  const handleArgSelect = useCallback((argValue: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const cursorPos = textarea.selectionStart ?? 0;
+    const textBeforeCursor = draft.slice(0, cursorPos);
+    const lastSlashIndex = textBeforeCursor.lastIndexOf("/");
+
+    if (lastSlashIndex === -1) return;
+
+    // 找到命令名称和参数部分的边界
+    const afterSlash = textBeforeCursor.slice(lastSlashIndex + 1);
+    const spaceIndex = afterSlash.indexOf(" ");
+
+    if (spaceIndex === -1) return;
+
+    // 找到参数部分（从命令后的空格开始到光标位置）
+    const argsStart = lastSlashIndex + 1 + spaceIndex + 1; // 跳过 "/command "
+    const textBeforeArg = draft.slice(0, argsStart);
+    const textAfterCursor = draft.slice(cursorPos);
+
+    // 构建新文本："/command value " + 剩余内容
+    const newText = textBeforeArg + argValue + " " + textAfterCursor;
+    setDraft(newText);
+    setSlashMenuOpen(false);
+    setSlashMenuFilter("");
+
+    // 设置光标位置到参数值后面
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const newPos = textBeforeArg.length + argValue.length + 1;
+        textareaRef.current.setSelectionRange(newPos, newPos);
+        textareaRef.current.focus();
+      }
+    }, 0);
+  }, [draft]);
+
   // 处理键盘事件
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // 检测是否正在输入参数（draft 包含空格说明在输入参数而非选择命令）
@@ -1840,17 +1921,39 @@ export default function Composer({
 
     // 参数建议键盘导航 - 当 slash 菜单打开且正在输入参数时
     if (slashMenuOpen && draft.includes(" ")) {
-      // 只拦截 Escape 键，让 ArrowUp/Down/Enter/Tab 事件传递给 ArgSuggestionsDropdown 组件
-      if (e.key === "Escape") {
-        e.preventDefault();
-        // 找到 /command 的位置，清除到 / 为止
-        const lastSlashIndex = draft.lastIndexOf("/");
-        if (lastSlashIndex > -1) {
-          setDraft(draft.slice(0, lastSlashIndex));
-        }
-        setSlashMenuOpen(false);
-        setSlashMenuFilter("");
-        return;
+      const suggestions = currentArgSuggestionsRef.current;
+      switch (e.key) {
+        case "ArrowDown":
+          if (suggestions.length > 0) {
+            e.preventDefault();
+            setArgSelectedIdx((i) => (i + 1) % suggestions.length);
+          }
+          return;
+        case "ArrowUp":
+          if (suggestions.length > 0) {
+            e.preventDefault();
+            setArgSelectedIdx((i) => (i - 1 + suggestions.length) % suggestions.length);
+          }
+          return;
+        case "Enter":
+        case "Tab":
+          if (suggestions.length > 0 && suggestions[argSelectedIdx]) {
+            e.preventDefault();
+            handleArgSelect(suggestions[argSelectedIdx].id);
+          }
+          return;
+        case "Escape":
+          e.preventDefault();
+          const lastSlashIndex = draft.lastIndexOf("/");
+          if (lastSlashIndex > -1) {
+            setDraft(draft.slice(0, lastSlashIndex));
+          }
+          setSlashMenuOpen(false);
+          setSlashMenuFilter("");
+          return;
+        default:
+          // 其他按键（Backspace/Delete/字母等）不拦截，让 textarea 正常处理
+          break;
       }
     }
 
@@ -1917,7 +2020,7 @@ export default function Composer({
         }
       }
     }
-  }, [draft, disabled, streaming, onSend, slashMenuOpen, slashCommands, slashMenuIndex, inputHistory, historyIndex, adjustHeight]);
+  }, [draft, disabled, streaming, onSend, slashMenuOpen, slashCommands, slashMenuIndex, inputHistory, historyIndex, adjustHeight, handleArgSelect, argSelectedIdx]);
 
   // 选择 slash 命令
   const selectSlashCommand = useCallback((cmd: SlashCommand) => {
@@ -1932,8 +2035,19 @@ export default function Composer({
     const newText =
       draft.slice(0, lastSlashIndex) + "/" + cmd.name + " " + draft.slice(cursorPos);
     setDraft(newText);
-    setSlashMenuOpen(false);
     setSlashMenuFilter("");
+
+    // 如果命令没有参数，关闭菜单
+    if (!cmd.args || cmd.args.length === 0) {
+      setSlashMenuOpen(false);
+      justSelectedCommandRef.current = null;
+    } else {
+      // 标记刚选中了带参命令，让 SlashMenu 强制显示可选值面板
+      justSelectedCommandRef.current = cmd;
+      setSlashCommands([cmd]);
+      setSlashMenuIndex(0);
+      setArgSelectedIdx(0);
+    }
 
     // 设置光标位置到命令后面
     setTimeout(() => {
@@ -1941,44 +2055,8 @@ export default function Composer({
         const newPos = lastSlashIndex + cmd.name.length + 2;
         textareaRef.current.setSelectionRange(newPos, newPos);
         textareaRef.current.focus();
-      }
-    }, 0);
-  }, [draft]);
-
-  // 选择参数建议值
-  const handleArgSelect = useCallback((argValue: string) => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const cursorPos = textarea.selectionStart ?? 0;
-    const textBeforeCursor = draft.slice(0, cursorPos);
-    const lastSlashIndex = textBeforeCursor.lastIndexOf("/");
-
-    if (lastSlashIndex === -1) return;
-
-    // 找到命令名称和参数部分的边界
-    const afterSlash = textBeforeCursor.slice(lastSlashIndex + 1);
-    const spaceIndex = afterSlash.indexOf(" ");
-
-    if (spaceIndex === -1) return;
-
-    // 找到参数部分（从命令后的空格开始到光标位置）
-    const argsStart = lastSlashIndex + 1 + spaceIndex + 1; // 跳过 "/command "
-    const textBeforeArg = draft.slice(0, argsStart);
-    const textAfterCursor = draft.slice(cursorPos);
-
-    // 构建新文本："/command value " + 剩余内容
-    const newText = textBeforeArg + argValue + " " + textAfterCursor;
-    setDraft(newText);
-    setSlashMenuOpen(false);
-    setSlashMenuFilter("");
-
-    // 设置光标位置到参数值后面
-    setTimeout(() => {
-      if (textareaRef.current) {
-        const newPos = textBeforeArg.length + argValue.length + 1;
-        textareaRef.current.setSelectionRange(newPos, newPos);
-        textareaRef.current.focus();
+        // 光标就位后清除标记，下次渲染由 useArgSuggestions 正常驱动
+        justSelectedCommandRef.current = null;
       }
     }, 0);
   }, [draft]);
@@ -2128,6 +2206,10 @@ export default function Composer({
           inputValue={draft}
           cursorPosition={textareaRef.current?.selectionStart ?? 0}
           onArgSelect={handleArgSelect}
+          justSelectedCommandRef={justSelectedCommandRef}
+          argSelectedIdx={argSelectedIdx}
+          onArgSelectedIdxChange={setArgSelectedIdx}
+          currentArgSuggestionsRef={currentArgSuggestionsRef}
         />
       )}
 

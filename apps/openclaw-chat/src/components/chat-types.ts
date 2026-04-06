@@ -72,6 +72,7 @@ export type MessageItem = {
   id: string;
   role: "user" | "assistant" | "system" | "tool";
   content: string;
+  rawContent?: unknown;
   timestamp: Date;
   /** 流式追加时的 delta 内容（仅 assistant 角色） */
   delta?: string;

@@ -512,14 +512,34 @@ export default function ChatApp() {
         const data = await resp.json();
         const msgs: MessageItem[] = (data.messages ?? []).map(
           (
-            m: { id?: string; role: string; content?: string; timestamp?: string; meta?: { model?: string; durationMs?: number } },
+            m: {
+              id?: string;
+              role: string;
+              content?: string;
+              timestamp?: number | string;
+              meta?: { model?: string; durationMs?: number };
+              toolCalls?: Array<{ id: string; name: string; input: Record<string, unknown> }>;
+              toolResults?: Array<{ tool_use_id: string; content: string }>;
+              thinking?: string;
+              usage?: { input?: number; output?: number; cacheRead?: number; cacheWrite?: number };
+              cost?: { total?: number };
+              contextPercent?: number;
+            },
             idx: number
           ) => ({
             id: m.id ?? `msg-${idx}`,
-            role: m.role as "user" | "assistant" | "system",
+            role: m.role as "user" | "assistant" | "system" | "tool",
             content: m.content ?? "",
-            timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
+            timestamp: m.timestamp 
+              ? (typeof m.timestamp === "number" ? new Date(m.timestamp) : new Date(m.timestamp)) 
+              : new Date(),
             meta: m.meta,
+            toolCalls: m.toolCalls,
+            toolResults: m.toolResults,
+            thinking: m.thinking,
+            usage: m.usage,
+            cost: m.cost,
+            contextPercent: m.contextPercent,
           })
         );
         setMessages(msgs);

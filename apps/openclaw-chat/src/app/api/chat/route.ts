@@ -86,19 +86,83 @@ function extractToolResults(
   return results.length > 0 ? results : undefined;
 }
 
-function gatewayHistoryToUiMessages(messages: GatewayMessage[]) {
+function gatewayHistoryToUiMessages(messages: unknown[]) {
   return messages.map((msg) => {
-    const content =
-      typeof msg.content === "string"
-        ? msg.content
-        : extractText(msg.content);
+    const m = msg as Record<string, unknown>;
+    const contentText =
+      typeof m.content === "string"
+        ? m.content
+        : extractText(m.content as GatewayMessageContent | GatewayMessageContent[]);
+    
+    // Extract thinking content
+    let thinking: string | undefined;
+    if (Array.isArray(m.content)) {
+      const thinkingBlocks = m.content.filter(
+        (block): block is { type: "thinking"; thinking: string } =>
+          typeof block === "object" &&
+          block !== null &&
+          (block as { type?: string }).type === "thinking" &&
+          typeof (block as { thinking?: string }).thinking === "string"
+      );
+      if (thinkingBlocks.length > 0) {
+        thinking = thinkingBlocks.map((b) => b.thinking).join("\n");
+      }
+    }
+    
+    // Extract usage
+    let usage: { input?: number; output?: number; cacheRead?: number; cacheWrite?: number } | undefined;
+    if (m.usage && typeof m.usage === "object") {
+      const u = m.usage as Record<string, unknown>;
+      usage = {
+        input: typeof u.input === "number" ? u.input : undefined,
+        output: typeof u.output === "number" ? u.output : undefined,
+        cacheRead: typeof u.cacheRead === "number" ? u.cacheRead : undefined,
+        cacheWrite: typeof u.cacheWrite === "number" ? u.cacheWrite : undefined,
+      };
+    }
+    
+    // Extract cost
+    let cost: { total?: number } | undefined;
+    if (m.cost && typeof m.cost === "object") {
+      const c = m.cost as Record<string, unknown>;
+      cost = {
+        total: typeof c.total === "number" ? c.total : undefined,
+      };
+    }
+    
+    // Extract model
+    let model: string | undefined;
+    if (m.model && typeof m.model === "string") {
+      model = m.model;
+    } else if (m.meta && typeof m.meta === "object") {
+      const meta = m.meta as Record<string, unknown>;
+      if (meta.model && typeof meta.model === "string") {
+        model = meta.model;
+      }
+    }
+    
+    // Extract context percent
+    let contextPercent: number | undefined;
+    if (typeof m.contextPercent === "number") {
+      contextPercent = m.contextPercent;
+    }
+    
+    // Pass the full content array for tool card extraction
+    const fullContent = m.content;
+    
     return {
-      id: msg.id,
-      role: msg.role,
-      content,
-      timestamp: 0,
-      toolCalls: extractToolCalls(msg.content),
-      toolResults: extractToolResults(msg.content),
+      id: typeof m.id === "string" ? m.id : undefined,
+      role: m.role,
+      content: contentText,
+      rawContent: fullContent,
+      timestamp: typeof m.timestamp === "number" ? m.timestamp : Date.now(),
+      toolCalls: extractToolCalls(m.content as GatewayMessageContent | GatewayMessageContent[]),
+      toolResults: extractToolResults(m.content as GatewayMessageContent | GatewayMessageContent[]),
+      thinking,
+      usage,
+      cost,
+      meta: model ? { model } : undefined,
+      contextPercent,
     };
   });
 }
