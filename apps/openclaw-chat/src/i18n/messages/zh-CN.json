@@ -1,0 +1,211 @@
+{
+  "topbar": {
+    "title": "OpenClaw IDE",
+    "connected": "已连接",
+    "disconnected": "未连接",
+    "connecting": "连接中",
+    "reconnecting": "重连中",
+    "version": "版本",
+    "mobileMenu": "菜单",
+    "cliCommands": "CLI 命令",
+    "updateAvailable": "有可用更新",
+    "clickToReconnect": "点击重连"
+  },
+  "agent": {
+    "title": "智能体",
+    "sidebarLabel": "左侧栏",
+    "expandSidebar": "展开",
+    "collapseSidebar": "折叠",
+    "closeDrawer": "关闭",
+    "addAgent": "添加智能体"
+  },
+  "session": {
+    "title": "会话",
+    "newSession": "新建会话",
+    "searchPlaceholder": "搜索会话..."
+  },
+  "message": {
+    "user": "用户",
+    "assistant": "助手",
+    "tool": "工具调用",
+    "thinking": "思考中",
+    "copy": "复制",
+    "quote": "引用",
+    "delete": "删除",
+    "expand": "展开",
+    "speak": "朗读"
+  },
+  "input": {
+    "placeholder": "输入消息...",
+    "send": "发送",
+    "stop": "停止",
+    "model": "模型",
+    "language": "语言",
+    "defaultModel": "默认模型",
+    "modelNotAvailable": "当前模型不可用"
+  },
+  "language": {
+    "auto": "自动检测",
+    "zh-CN": "简体中文",
+    "zh-TW": "繁体中文",
+    "en": "English",
+    "ja": "日本語",
+    "ko": "한국어"
+  },
+  "chat": {
+    "emptyTitle": "开始对话",
+    "emptyState": "选择一个会话开始聊天，或创建新会话",
+    "newChat": "新建对话",
+    "startNewChatDesc": "开始一个新的 AI 对话",
+    "recentSession": "最近会话",
+    "openRecentSessionDesc": "继续之前的对话",
+    "browseExamples": "浏览示例",
+    "browseExamplesDesc": "查看使用示例",
+    "viewDocs": "查看文档",
+    "viewDocsDesc": "阅读 OpenClaw 文档"
+  },
+  "tabs": {
+    "config": "配置编辑器",
+    "mcp": "MCP 服务器",
+    "skill": "技能管理",
+    "subagent": "子代理",
+    "model": "模型管理",
+    "memory": "记忆管理",
+    "workspace": "工作空间",
+    "cron": "定时任务",
+    "channel": "通道管理",
+    "log": "日志面板",
+    "history": "LLM 历史"
+  },
+  "detailPanel": {
+    "tabs": {
+      "config": "配置",
+      "history": "历史",
+      "skill": "技能",
+      "mcp": "MCP",
+      "subagent": "子代理",
+      "model": "模型",
+      "memory": "记忆",
+      "workspace": "工作区",
+      "cron": "定时",
+      "channel": "通道",
+      "log": "日志",
+      "sidebarLabel": "详情面板"
+    },
+    "configEditor": {
+      "title": "配置编辑器",
+      "globalConfig": "全局配置",
+      "agentConfig": "智能体配置",
+      "save": "保存",
+      "reset": "重置",
+      "saved": "已保存",
+      "saveError": "保存失败",
+      "editMode": "编辑",
+      "diffViewer": "差异对比视图",
+      "markdownView": "Markdown 预览"
+    },
+    "skillManager": {
+      "title": "技能管理",
+      "categories": {
+        "bundled": "内置",
+        "global": "全局",
+        "workspace": "工作区"
+      },
+      "empty": "暂无技能",
+      "install": "安装",
+      "enable": "启用",
+      "disable": "禁用"
+    },
+    "mcpManager": {
+      "title": "MCP 服务器",
+      "empty": "暂无 MCP 服务器",
+      "add": "添加",
+      "connected": "已连接",
+      "disconnected": "未连接"
+    },
+    "subagentManager": {
+      "title": "子代理",
+      "empty": "暂无子代理",
+      "add": "添加",
+      "globalConfig": "全局配置",
+      "agentConfig": "智能体配置"
+    },
+    "modelManager": {
+      "title": "模型管理",
+      "empty": "暂无模型",
+      "add": "添加",
+      "default": "默认"
+    },
+    "memoryManager": {
+      "title": "记忆管理",
+      "empty": "暂无记忆数据",
+      "clear": "清空",
+      "memoryMd": "MEMORY.md",
+      "memoryFiles": "记忆文件",
+      "indexStatus": "索引状态",
+      "notIndexed": "未索引"
+    },
+    "workspaceBrowser": {
+      "title": "工作空间",
+      "empty": "工作空间为空",
+      "upload": "上传",
+      "newFolder": "新建文件夹",
+      "newFile": "新建文件"
+    },
+    "cronManager": {
+      "title": "定时任务",
+      "empty": "暂无定时任务",
+      "add": "添加",
+      "run": "运行",
+      "enabled": "已启用",
+      "disabled": "已禁用"
+    },
+    "channelManager": {
+      "title": "通道管理",
+      "empty": "暂无通道",
+      "add": "添加"
+    },
+    "logPanel": {
+      "title": "实时日志",
+      "level": "级别",
+      "source": "来源",
+      "message": "消息",
+      "filter": "过滤",
+      "search": "搜索",
+      "searchPlaceholder": "搜索日志...",
+      "clear": "清空",
+      "clearFilters": "清除过滤",
+      "autoScroll": "自动滚动",
+      "paused": "已暂停",
+      "empty": "暂无日志",
+      "loading": "加载中...",
+      "newLogs": "条新日志",
+      "scrollToBottom": "回到底部"
+    },
+    "llmHistory": {
+      "title": "LLM 历史",
+      "empty": "暂无 LLM 调用记录",
+      "filters": {
+        "keyword": "搜索关键词..."
+      },
+      "scrollBehavior": {
+        "pause": "已暂停自动滚动",
+        "scrollToBottom": "回到底部"
+      }
+    },
+    "configHelp": {
+      "title": "配置说明",
+      "fieldCount": "{count} 个字段",
+      "loading": "加载中...",
+      "noSchema": "暂无配置 Schema",
+      "searchPlaceholder": "搜索字段...",
+      "fieldName": "字段名",
+      "fieldType": "类型",
+      "fieldDescription": "描述",
+      "fieldRequired": "必填",
+      "fieldOptional": "可选",
+      "fieldSensitive": "敏感",
+      "fieldExample": "示例"
+    }
+  }
+}

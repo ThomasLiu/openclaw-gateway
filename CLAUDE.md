@@ -121,7 +121,7 @@ openClaw Chat Gateway 采用**现代化聊天应用风格**,使用**紫色为主
 
 ```css
 /* 核心背景 - 蓝黑色系 (非纯黑!) */
---oc-bg: #0F172A;              /* 深蓝黑背景 */
+--oc-bg: #010302ff;              /* 深蓝黑背景 */
 --oc-surface: #1E293B;         /* 表面 */
 --oc-surface-2: #334155;       /* 次级表面 */
 --oc-surface-3: #475569;       /* 三级表面 */
@@ -193,17 +193,7 @@ openClaw Chat Gateway 采用**现代化聊天应用风格**,使用**紫色为主
 
 - **设计变量定义**: [globals.css](apps/openclaw-chat/src/app/globals.css)
 - **Theme Provider**: [theme.tsx](apps/openclaw-chat/src/lib/theme.tsx)
-- **工具栏(含切换按钮)**: [SessionToolbar.tsx](apps/openclaw-chat/src/components/SessionToolbar.tsx)
-- **设计预览页面**: [openclaw-design-preview.html](openclaw-design-preview.html)
 
-### 设计决策记录
-
-| 日期 | 决策 | 原因 |
-|------|------|------|
-| 2026-04-06 | 采用紫色主调 | 用户选择,类似 ChatGPT 品牌风格,现代感强 |
-| 2026-04-06 | 深色模式用蓝黑色 | 区别于纯黑,更护眼,有深度感 |
-| 2026-04-06 | CSS 变量双主题系统 | 支持未来扩展更多主题,易于维护 |
-| 2026-04-06 | 工具栏右侧添加切换按钮 | 符合用户习惯,易于发现和使用 |
 
 ### 违规检查清单 (QA Mode)
 

@@ -44,7 +44,7 @@ setTimeout(() => {
 
   const devProcess = spawn(
     "pnpm",
-    ["--filter", "openclaw-chat", "dev"],
+    ["--filter", "@openclaw/chat", "dev"],
     {
       cwd: ROOT_DIR,
       stdio: "inherit",
