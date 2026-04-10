@@ -10,7 +10,6 @@ import { useTranslations } from 'next-intl'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import UserMessage from './UserMessage'
 import AssistantMessage from './AssistantMessage'
-import ToolMessage from './ToolMessage'
 import type { SessionMessage } from '@/types'
 
 interface MessageListProps {

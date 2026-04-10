@@ -207,7 +207,7 @@ export function SchemaHelpPanel({
                               )}
                               {/* 敏感标记 */}
                               {isSensitive && (
-                                <Lock size={12} className="text-warning" title={t("fieldSensitive")} />
+                                <Lock size={12} className="text-warning" />
                               )}
                             </div>
 

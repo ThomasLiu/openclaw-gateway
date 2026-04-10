@@ -6,7 +6,7 @@
 
 "use client";
 
-import React, { useState, useCallback, useEffect, memo } from "react";
+import React, { useCallback, useEffect, memo } from "react";
 import { useTranslations } from "next-intl";
 import { useResponsive } from "@/hooks/use-responsive";
 import { useIDEStore } from "@/store";

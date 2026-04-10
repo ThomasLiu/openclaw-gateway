@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react'
+import React, { useCallback } from 'react'
 import { useIDEStore } from '@/store'
 import MessageList from '@/components/message/MessageList'
 import ChatInput from '@/components/input/ChatInput'
@@ -29,7 +29,7 @@ export default function MainContent({
   onQuote,
   onDelete,
 }: MainContentProps) {
-  const [slashPanelOpen, setSlashPanelOpen] = useState(false)
+
 
   const sessionId = useIDEStore((state) => state.selection.sessionId)
   const storeMessages = useIDEStore((state) => state.data.messages)
@@ -73,13 +73,7 @@ export default function MainContent({
     setPreferredLanguage(language)
   }
 
-  const handleInputChange = (value: string) => {
-    if (value.startsWith('/') || value === '/') {
-      setSlashPanelOpen(true)
-    } else {
-      setSlashPanelOpen(false)
-    }
-  }
+
 
   return (
     <main data-testid="main-content" className="flex-1 flex flex-col bg-bg-panel overflow-hidden">

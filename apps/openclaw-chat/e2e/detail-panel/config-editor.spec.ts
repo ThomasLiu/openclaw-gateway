@@ -215,7 +215,7 @@ test.describe('配置编辑器 - E2E 完整测试套件', () => {
       await page.route('**/api/config/**', (route) => {
         if (route.request().method() === 'PUT' || route.request().method() === 'POST') {
           apiCalled = true
-          savedContent = route.request.postDataJSON()?.content ?? ''
+          savedContent = route.request().postDataJSON()?.content ?? ''
           return route.fulfill({ status: 200, body: JSON.stringify({ success: true }) })
         }
         return route.continue()

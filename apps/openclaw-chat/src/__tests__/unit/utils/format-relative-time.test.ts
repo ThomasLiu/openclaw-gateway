@@ -3,7 +3,7 @@
 // TDD 红阶段：先写测试，验证测试框架能正常运行
 // ============================================================
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
   formatRelativeTime,
   formatDateTime,

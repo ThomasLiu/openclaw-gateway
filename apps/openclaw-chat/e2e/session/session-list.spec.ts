@@ -305,8 +305,8 @@ test.describe('会话列表 - E2E 完整测试套件', () => {
       await expect(sessionList).toBeVisible()
 
       // 列表应可滚动
-      const scrollHeight = await sessionList.evaluate(el => el.scrollHeight)
-      const clientHeight = await sessionList.evaluate(el => el.clientHeight)
+      const scrollHeight = await sessionList.evaluate((el: HTMLElement) => el.scrollHeight)
+      const clientHeight = await sessionList.evaluate((el: HTMLElement) => el.clientHeight)
       expect(scrollHeight).toBeGreaterThanOrEqual(clientHeight)
     })
 
@@ -319,7 +319,7 @@ test.describe('会话列表 - E2E 完整测试套件', () => {
         const userMsg = firstCard.locator('[data-testid="session-user-msg"]')
         
         // 验证文本截断 CSS 生效
-        const style = await userMsg.evaluate(el => window.getComputedStyle(el))
+        const style = await userMsg.evaluate((el: HTMLElement) => window.getComputedStyle(el))
         expect(['hidden', 'clip'].includes(style.overflow)).toBeTruthy()
       }
     })

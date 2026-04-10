@@ -5,7 +5,7 @@
 
 "use client";
 
-import { useRef, useState, useEffect, useCallback, memo } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 
 /**
  * 节流 Hook - 限制值更新频率
@@ -18,8 +18,13 @@ import { useRef, useState, useEffect, useCallback, memo } from "react";
  */
 export function useThrottledValue<T>(value: T, intervalMs = 300): T {
   const [throttledValue, setThrottledValue] = useState<T>(value);
-  const lastUpdated = useRef<number>(Date.now());
+  const lastUpdated = useRef<number>(0);
   const pendingValue = useRef<T>(value);
+
+  // 初始化 lastUpdated 为当前时间
+  useEffect(() => {
+    lastUpdated.current = Date.now();
+  }, []);
 
   useEffect(() => {
     pendingValue.current = value;
@@ -29,8 +34,12 @@ export function useThrottledValue<T>(value: T, intervalMs = 300): T {
 
     if (elapsed >= intervalMs) {
       // Enough time passed, update immediately
-      lastUpdated.current = now;
-      setThrottledValue(value);
+      const timer = setTimeout(() => {
+        lastUpdated.current = now;
+        setThrottledValue(value);
+      }, 0);
+
+      return () => clearTimeout(timer);
     } else {
       // Schedule update for remaining time
       const timer = setTimeout(() => {

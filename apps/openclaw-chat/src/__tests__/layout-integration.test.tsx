@@ -58,7 +58,7 @@ vi.mock('@/components/layout/MainContent', () => ({
 }))
 
 // Dynamic import of page component (it uses "use client")
-import Home from '@/app/page'
+import Home from '@/app/[locale]/page'
 
 describe('IDE Layout - Responsive Integration', () => {
   beforeEach(() => {

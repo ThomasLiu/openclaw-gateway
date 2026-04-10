@@ -115,40 +115,7 @@
 
 
 
-/* Scrollbar Styling */
-::-webkit-scrollbar {
-  width: 9px;
-  height: 9px;
-}
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: transparent;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-  border-radius: 999px;
-  transition: background 0.2s ease;
-}
-
-::-webkit-scrollbar-thumb:hover,
-.scrolling::-webkit-scrollbar-thumb {
-  background: rgba(136, 146, 160, 0.45);
-  background-clip: padding-box;
-}
-
-::-webkit-scrollbar-corner {
-  background: transparent;
-}
-
-/* Use overlay scrollbar to avoid layout shift */
-.overflow-y-auto,
-.overflow-x-auto,
-.overflow-auto {
-  overflow: overlay;
-}
 
 
 

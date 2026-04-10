@@ -352,7 +352,7 @@ export function LogPanelTab({
 
   // Refs
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const searchTimeoutRef = useRef<NodeJS.Timeout>();
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // ==================== 过滤后的日志 ====================
   

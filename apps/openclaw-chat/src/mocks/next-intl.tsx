@@ -11,7 +11,7 @@ import zhCN from '../../messages/zh-CN.json'
  * 返回一个函数，根据 key 获取翻译文本
  */
 export const mockUseTranslations = vi.fn((namespace: string) => {
-  const translations: Record<string, unknown> = (zhCN as Record<string, unknown>)[namespace] || {}
+  const translations = ((zhCN as Record<string, Record<string, unknown>>)[namespace] || {}) as Record<string, unknown>
   
   return (key: string): string => {
     const keys = key.split('.')

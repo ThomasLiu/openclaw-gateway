@@ -43,14 +43,14 @@ test.describe('IDE 布局', () => {
     const leftSidebar = page.locator('[data-testid="left-sidebar"]')
 
     // 初始状态：展开
-    let initialBox = await leftSidebar.boundingBox()
+    const initialBox = await leftSidebar.boundingBox()
     const initialWidth = initialBox?.width ?? 0
 
     // 点击折叠按钮
     await toggleButton.click()
 
     // 收起后的宽度应该变小
-    let collapsedBox = await leftSidebar.boundingBox()
+    const collapsedBox = await leftSidebar.boundingBox()
     const collapsedWidth = collapsedBox?.width ?? 0
     expect(collapsedWidth).toBeLessThan(initialWidth)
 
@@ -58,7 +58,7 @@ test.describe('IDE 布局', () => {
     await toggleButton.click()
 
     // 展开后恢复原始宽度
-    let restoredBox = await leftSidebar.boundingBox()
+    const restoredBox = await leftSidebar.boundingBox()
     const restoredWidth = restoredBox?.width ?? 0
     expect(restoredWidth).toBeGreaterThanOrEqual(initialWidth)
   })
@@ -93,12 +93,12 @@ test.describe('IDE 布局', () => {
 
     // 设置较小窗口
     await page.setViewportSize({ width: 1024, height: 768 })
-    let smallBox = await layout.boundingBox()
+    const smallBox = await layout.boundingBox()
     expect(smallBox?.width).toBe(1024)
 
     // 设置较大窗口
     await page.setViewportSize({ width: 1920, height: 1080 })
-    let largeBox = await layout.boundingBox()
+    const largeBox = await layout.boundingBox()
     expect(largeBox?.width).toBe(1920)
   })
 })

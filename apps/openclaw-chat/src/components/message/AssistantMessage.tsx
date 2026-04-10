@@ -50,7 +50,7 @@ export default function AssistantMessage({
   const [thinkingExpanded, setThinkingExpanded] = useState(false)
 
   // 获取文本内容
-  const getTextContent = (): string => {
+  const getTextContent = useCallback((): string => {
     if (typeof message.content === 'string') {
       return message.content
     }
@@ -62,7 +62,7 @@ export default function AssistantMessage({
       .join('\n')
     
     return textParts
-  }
+  }, [message.content])
 
   // 获取 thinking 内容
   const getThinkingContent = (): string | null => {
@@ -85,7 +85,7 @@ export default function AssistantMessage({
     } catch (error) {
       console.error('Failed to copy:', error)
     }
-  }, [])
+  }, [getTextContent])
 
   // 引用消息
   const handleQuote = useCallback(() => {
@@ -103,14 +103,14 @@ export default function AssistantMessage({
   const handleSpeak = useCallback(() => {
     if ('speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(getTextContent())
-      
+      utterance.lang = 'zh-CN'
+      utterance.rate = 1
       utterance.onstart = () => setIsSpeaking(true)
       utterance.onend = () => setIsSpeaking(false)
       utterance.onerror = () => setIsSpeaking(false)
-      
       window.speechSynthesis.speak(utterance)
     }
-  }, [])
+  }, [getTextContent])
 
   // 停止朗读
   const handleStopSpeak = useCallback(() => {

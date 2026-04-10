@@ -5,7 +5,7 @@
 // ============================================================
 
 import { vi } from 'vitest'
-import type { ConnectionState } from '@/types'
+import type { ConnectionState, IGatewayClient } from '@/types'
 
 /** Mock 响应配置 */
 interface MockResponseConfig<T = unknown> {
@@ -25,7 +25,7 @@ interface MockSubscriptionConfig<T = unknown> {
  * GatewayClient Mock 类
  * 模拟完整的 GatewayClient 接口
  */
-export class MockGatewayClient implements import('@/types').IGatewayClient {
+export class MockGatewayClient implements IGatewayClient {
   private _connectionState: ConnectionState = 'disconnected'
   private _url = ''
   private _lastError?: string

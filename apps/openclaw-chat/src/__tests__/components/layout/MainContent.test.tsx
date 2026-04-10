@@ -41,14 +41,14 @@ describe('MainContent', () => {
   })
 
   it('should contain ModelSelector component', () => {
-    render(<MainContent {...defaultProps} models={[]} selectedModel={undefined} onModelChange={vi.fn()} />)
+    render(<MainContent {...defaultProps} models={[]} />)
     
     // ModelSelector 应该被渲染
     expect(screen.getByTestId('model-selector')).toBeInTheDocument()
   })
 
   it('should contain LanguageSelector component', () => {
-    render(<MainContent {...defaultProps} currentLanguage="auto" onLanguageChange={vi.fn()} />)
+    render(<MainContent {...defaultProps} />)
     
     // LanguageSelector 应该被渲染
     expect(screen.getByTestId('language-selector')).toBeInTheDocument()
@@ -64,9 +64,7 @@ describe('MainContent', () => {
         {...defaultProps} 
         messages={mockMessages}
         isRunning={true}
-        currentLanguage="zh-CN"
-        models={[{ id: 'gpt-4', name: 'GPT-4' }]}
-        selectedModel="gpt-4"
+        models={[{ id: 'gpt-4', name: 'GPT-4', provider: 'openai' }]}
       />
     )
     

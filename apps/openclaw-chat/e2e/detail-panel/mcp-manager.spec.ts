@@ -52,7 +52,7 @@ test.describe('MCP 管理器 - E2E 完整测试套件', () => {
    * 通过 route interception 注入 MCP 服务器列表数据
    */
   async function mockMcpServers(page: any, servers: any[]) {
-    await page.route('**/api/gateway/mcps**', (route) => {
+    await page.route('**/api/gateway/mcps**', (route: any) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -251,7 +251,7 @@ test.describe('MCP 管理器 - E2E 完整测试套件', () => {
       
       // 验证 CSS truncation生效 (overflow hidden / ellipsis / truncate class)
       const nameElement = serverName.first()
-      const computedStyle = await nameElement.evaluate(el => window.getComputedStyle(el))
+      const computedStyle = await nameElement.evaluate((el: HTMLElement) => window.getComputedStyle(el))
       expect([
         computedStyle.overflow === 'hidden' || 
         computedStyle.textOverflow === 'ellipsis' ||
@@ -948,8 +948,8 @@ test.describe('MCP 管理器 - E2E 完整测试套件', () => {
       
       // 列表应可滚动
       const listContainer = mcpPanel.locator('[data-testid="mcp-server-list"], .overflow-y-auto').first()
-      const scrollHeight = await listContainer.evaluate(el => el.scrollHeight)
-      const clientHeight = await listContainer.evaluate(el => el.clientHeight)
+      const scrollHeight = await listContainer.evaluate((el: HTMLElement) => el.scrollHeight)
+      const clientHeight = await listContainer.evaluate((el: HTMLElement) => el.clientHeight)
       expect(scrollHeight).toBeGreaterThan(clientHeight) // 内容超出可视区
     })
 

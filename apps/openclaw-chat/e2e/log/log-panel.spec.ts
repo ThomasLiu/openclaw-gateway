@@ -43,7 +43,7 @@ test.describe('日志面板 - E2E 完整测试套件', () => {
    * Mock 日志数据注入
    */
   async function mockLogs(page: any, logs: any[]) {
-    await page.route('**/api/gateway/logs**', (route) => {
+    await page.route('**/api/gateway/logs**', (route: any) => {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -136,9 +136,9 @@ test.describe('日志面板 - E2E 完整测试套件', () => {
       const scrollContainer = logPanel.locator('[data-testid="log-scroll-container"]').first()
       if (await scrollContainer.isVisible()) {
         // 验证滚动位置接近底部
-        const scrollTop = await scrollContainer.evaluate(el => el.scrollTop)
-        const scrollHeight = await scrollContainer.evaluate(el => el.scrollHeight)
-        const clientHeight = await scrollContainer.evaluate(el => el.clientHeight)
+        const scrollTop = await scrollContainer.evaluate((el: HTMLElement) => el.scrollTop)
+        const scrollHeight = await scrollContainer.evaluate((el: HTMLElement) => el.scrollHeight)
+        const clientHeight = await scrollContainer.evaluate((el: HTMLElement) => el.clientHeight)
         
         // scrollTop + clientHeight 应约等于 scrollHeight（在底部）
         const atBottom = Math.abs((scrollTop + clientHeight) - scrollHeight) < 50
@@ -160,7 +160,7 @@ test.describe('日志面板 - E2E 完整测试套件', () => {
       const scrollContainer = logPanel.locator('[data-testid="log-scroll-container"]').first()
       if (await scrollContainer.isVisible()) {
         // 向上滚动
-        await scrollContainer.evaluate(el => el.scrollTop = 0)
+        await scrollContainer.evaluate((el: HTMLElement) => el.scrollTop = 0)
         await page.waitForTimeout(300)
 
         // 应出现"N 条新日志"浮动提示
@@ -177,7 +177,7 @@ test.describe('日志面板 - E2E 完整测试套件', () => {
       // 先向上滚动
       const scrollContainer = logPanel.locator('[data-testid="log-scroll-container"]').first()
       if (await scrollContainer.isVisible()) {
-        await scrollContainer.evaluate(el => el.scrollTop = 0)
+        await scrollContainer.evaluate((el: HTMLElement) => el.scrollTop = 0)
         await page.waitForTimeout(200)
 
         // 点击浮动条上的恢复按钮
@@ -187,9 +187,9 @@ test.describe('日志面板 - E2E 完整测试套件', () => {
           await page.waitForTimeout(300)
 
           // 应滚回底部
-          const scrollTop = await scrollContainer.evaluate(el => el.scrollTop)
-          const scrollHeight = await scrollContainer.evaluate(el => el.scrollHeight)
-          const clientHeight = await scrollContainer.evaluate(el => el.clientHeight)
+          const scrollTop = await scrollContainer.evaluate((el: HTMLElement) => el.scrollTop)
+          const scrollHeight = await scrollContainer.evaluate((el: HTMLElement) => el.scrollHeight)
+          const clientHeight = await scrollContainer.evaluate((el: HTMLElement) => el.clientHeight)
           const atBottom = Math.abs((scrollTop + clientHeight) - scrollHeight) < 50
           expect(atBottom).toBeTruthy()
         }
@@ -204,7 +204,7 @@ test.describe('日志面板 - E2E 完整测试套件', () => {
       // 向上滚动触发暂停
       const scrollContainer = logPanel.locator('[data-testid="log-scroll-container"]').first()
       if (await scrollContainer.isVisible()) {
-        await scrollContainer.evaluate(el => el.scrollTop = 0)
+        await scrollContainer.evaluate((el: HTMLElement) => el.scrollTop = 0)
         await page.waitForTimeout(300)
 
         // 模拟新日志
@@ -232,7 +232,7 @@ test.describe('日志面板 - E2E 完整测试套件', () => {
       // Mock 分页 API
       let pageOffset = 0
       await page.route('**/api/gateway/logs**', (route) => {
-        const url = new URL(route.request().url)
+        const url = new URL(route.request().url())
         const before = url.searchParams.get('before')
         
         if (before) {
@@ -260,7 +260,7 @@ test.describe('日志面板 - E2E 完整测试套件', () => {
       
       if (await scrollContainer.isVisible()) {
         // 滚动到顶部
-        await scrollContainer.evaluate(el => el.scrollTop = 0)
+        await scrollContainer.evaluate((el: HTMLElement) => el.scrollTop = 0)
         await page.waitForTimeout(500)
 
         // 应触发了历史日志加载（spinner 出现或日志数量增加）
@@ -273,7 +273,7 @@ test.describe('日志面板 - E2E 完整测试套件', () => {
       let requestCount = 0
       await page.route('**/api/gateway/logs**', (route) => {
         requestCount++
-        const url = new URL(route.request().url)
+        const url = new URL(route.request().url())
         const before = url.searchParams.get('before')
         
         if (requestCount <= 1) {
@@ -289,7 +289,7 @@ test.describe('日志面板 - E2E 完整测试套件', () => {
       
       if (await scrollContainer.isVisible()) {
         // 滚动到顶部触发加载
-        await scrollContainer.evaluate(el => el.scrollTop = 0)
+        await scrollContainer.evaluate((el: HTMLElement) => el.scrollTop = 0)
         await page.waitForTimeout(800)
 
         // 应不再显示加载 spinner
@@ -486,7 +486,7 @@ test.describe('日志面板 - E2E 完整测试套件', () => {
       if (await errorEntries.count() > 0) {
         const firstError = errorEntries.first()
         // error 日志行应有红色背景或文字
-        const style = await firstError.evaluate(el => window.getComputedStyle(el))
+        const style = await firstError.evaluate((el: HTMLElement) => window.getComputedStyle(el))
         // 验证某种红色指示
         expect(true).toBeTruthy() // 结构正确即可
       }
@@ -541,7 +541,7 @@ test.describe('日志面板 - E2E 完整测试套件', () => {
       const scrollContainer = logPanel.locator('[data-testid="log-scroll-container"]').first()
       if (await scrollContainer.isVisible()) {
         for (let i = 0; i < 5; i++) {
-          await scrollContainer.evaluate(el => el.scrollTop = el.scrollHeight * (i / 5))
+          await scrollContainer.evaluate((el: HTMLElement) => el.scrollTop = el.scrollHeight * (i / 5))
           await page.waitForTimeout(50)
         }
       }
@@ -569,8 +569,8 @@ test.describe('日志面板 - E2E 完整测试套件', () => {
         // 日志消息区域应有截断样式
         const msgEl = firstEntry.locator('[data-testid="log-message"]')
         if (await msgEl.count() > 0) {
-          const style = await msgEl.evaluate(el => window.getComputedStyle(el))
-          expect(style.overflow).toBeOneOf(['hidden', 'clip'])
+          const style = await msgEl.evaluate((el: HTMLElement) => window.getComputedStyle(el))
+          expect(['hidden', 'clip']).toContain(style.overflow)
         }
       }
     })

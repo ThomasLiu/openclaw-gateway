@@ -1,10 +1,6 @@
-// ============================================================
-// OpenClaw Chat - i18n 客户端配置
-// 提供客户端使用的 useTranslations hook
-// ============================================================
+// ============================================================// OpenClaw Chat - i18n 客户端配置// 提供客户端使用的 useTranslations hook// ============================================================
 
-import { createSharedPathnamesNavigation } from 'next-intl/navigation'
-import { routing } from './routing'
+import { redirect, usePathname, useRouter } from 'next/navigation'
+import Link from 'next/link'
 
-export const { Link, redirect, usePathname, useRouter } =
-  createSharedPathnamesNavigation(routing.locales)
+export { Link, redirect, usePathname, useRouter }

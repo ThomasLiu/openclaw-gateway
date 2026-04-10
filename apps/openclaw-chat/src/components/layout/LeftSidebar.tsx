@@ -63,7 +63,7 @@ function useSwipeGesture(
         }
       }
     },
-    [onSwipeLeft, onSwipeRight]
+    [onSwipeLeft, onSwipeRight, threshold]
   );
 
   return { handleTouchStart, handleTouchEnd };
@@ -203,7 +203,7 @@ const LeftSidebar = memo(function LeftSidebar({
         {!effectiveCollapsed && (
           <>
             {/* Agent List Section */}
-            <div className="flex-shrink-0 border-b border-border-primary overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
+            <div className="flex-shrink-0 border-b border-border-primary overflow-y-auto">
               <div className="px-4 pb-4 pt-5">
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">
@@ -271,7 +271,7 @@ const LeftSidebar = memo(function LeftSidebar({
             </div>
 
             {/* Session List Section */}
-            <div className="flex-1 overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
+            <div className="flex-1 overflow-y-auto">
               <div className="px-4 pb-4 pt-3">
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">

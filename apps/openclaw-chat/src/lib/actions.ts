@@ -66,7 +66,7 @@ export async function getWorkspaceFiles(agentId: string, relativePath?: string):
 export async function getAgentMdFile(agentId: string, filename: typeof AGENT_MD_FILES[number]): Promise<{ filename: string; content: string } | null> {
   try {
     const content = await readAgentMdFile(agentId, filename);
-    return { filename, content };
+    return content ? { filename, content } : null;
   } catch {
     return null;
   }

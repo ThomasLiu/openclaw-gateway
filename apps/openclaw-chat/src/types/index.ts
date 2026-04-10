@@ -4,6 +4,11 @@
 
 // ==================== Layer 1: 文件系统类型 ====================
 
+/** Model 配置 */
+export interface ModelConfig {
+  [key: string]: unknown;
+}
+
 /** OpenClaw 配置结构 */
 export interface OpenClawConfig {
   gateway?: GatewayConfig;
@@ -144,10 +149,10 @@ export interface CliOptions {
 }
 
 /** Streaming 回调 */
-export interface StreamCallbacks {
+export interface StreamCallbacks<T = string> {
   onStdout: (data: string) => void;
   onStderr: (data: string) => void;
-  onComplete: (result: CliResult) => void;
+  onComplete: (result: CliResult<T>) => void;
   onError: (error: Error) => void;
 }
 
@@ -401,7 +406,7 @@ export interface ResponseMeta {
 
 /** API 路由处理器上下文 */
 export interface ApiRouteContext {
-  request: NextRequest;
+  request: import('next/server').NextRequest;
   params?: Record<string, string>;
 }
 

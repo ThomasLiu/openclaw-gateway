@@ -359,8 +359,8 @@ describe('Persistence Utils', () => {
     it('should calculate correct total size including keys and values', () => {
       localStorage.clear()
       
-      setUIState('key1', 'value1')
-      setUIState('key2', 'value2')
+      setUIState('selectedAgentId', 'test-agent-1')
+      setUIState('leftSidebarVisible', true)
       
       const usage = getStorageUsage()
       

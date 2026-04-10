@@ -34,6 +34,7 @@ describe('SessionList', () => {
       agentId: 'agent-2',
       filePath: '/sessions/agent-2/session-3.json',
       startTime: Date.now() - 172800000,
+      endTime: Date.now() - 86400000,
       messageCount: 5,
       size: 1024,
     },
@@ -100,8 +101,11 @@ describe('SessionList', () => {
 
   describe('选中状态', () => {
     it('should pass selected prop to correct SessionCard', () => {
+      // 先在 store 中选择会话
+      useIDEStore.getState().selectSession('session-2')
+      
       const { container } = render(
-        <SessionList sessions={mockSessions} selectedId="session-2" />
+        <SessionList sessions={mockSessions} />
       )
       
       // 验证选中的 card 有 selected styles

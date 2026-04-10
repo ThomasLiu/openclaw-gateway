@@ -12,6 +12,8 @@ import {
   RefreshCw,
   Download,
   Menu,
+  PanelLeft,
+  PanelLeftClose,
 } from "lucide-react";
 import { useIDEStore } from "@/store";
 import type { ConnectionState } from "@/types";
@@ -29,6 +31,8 @@ interface TopBarProps {
   onCliClick?: () => void;
   onReconnect?: () => void;
   onMobileMenuToggle?: () => void;
+  onSidebarToggle?: () => void;
+  isSidebarOpen?: boolean;
 }
 
 function getStatusConfig(
@@ -71,8 +75,10 @@ const TopBar = memo(function TopBar({
   onCliClick,
   onReconnect,
   onMobileMenuToggle,
+  onSidebarToggle,
+  isSidebarOpen = true,
 }: TopBarProps) {
-  const t = useTranslations("topbar");
+  const t = useTranslations("topBar");
 
   const connectionStatus = useIDEStore((state) => state.gateway.status);
   const storeVersion = useIDEStore((state) => state.data.version);
@@ -82,11 +88,10 @@ const TopBar = memo(function TopBar({
 
   const responsive = useResponsive();
 
-  const { icon: StatusIcon, color, labelKey, isClickable } = getStatusConfig(
+  const { color, isClickable } = getStatusConfig(
     connectionStatus,
     t
   );
-  const label = t(labelKey);
 
   const handleStatusClick = () => {
     if (isClickable && onReconnect) {
@@ -106,6 +111,22 @@ const TopBar = memo(function TopBar({
     >
       {/* Left Section - Logo + Hamburger (mobile) + Connection Status */}
       <div className="flex items-center gap-3">
+        {!responsive.isMobile && onSidebarToggle && (
+          <button
+            onClick={onSidebarToggle}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
+            title={isSidebarOpen ? "隐藏侧边栏" : "显示侧边栏"}
+            aria-label={isSidebarOpen ? "隐藏侧边栏" : "显示侧边栏"}
+            data-testid="sidebar-toggle-btn"
+          >
+            {isSidebarOpen ? (
+              <PanelLeftClose size={18} />
+            ) : (
+              <PanelLeft size={18} />
+            )}
+          </button>
+        )}
+        
         {responsive.isMobile && onMobileMenuToggle && (
           <button
             onClick={onMobileMenuToggle}
@@ -140,18 +161,7 @@ const TopBar = memo(function TopBar({
             }
           }}
         >
-          <StatusIcon
-            size={13}
-            className={
-              connectionStatus === "connecting" ||
-              connectionStatus === "reconnecting"
-                ? "animate-spin"
-                : ""
-            }
-          />
-          <span className="hidden uppercase tracking-[0.12em] lg:inline">
-            {label}
-          </span>
+          <div className="w-2 h-2 rounded-full bg-status-success" />
         </div>
       </div>
 
@@ -180,8 +190,8 @@ const TopBar = memo(function TopBar({
         </button>
 
         <div className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-text-muted">
-          <Info size={12} className="hidden sm:block opacity-70" />
-          <span>v{effectiveVersion}</span>
+          <Info size={12} className="hidden sm:block opacity-70 text-status-warning" />
+          <span>v{effectiveVersion.replace(/^OpenClaw\s*|\s*\(.*\)$/g, '')}</span>
         </div>
       </div>
     </header>

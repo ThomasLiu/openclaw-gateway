@@ -3,7 +3,7 @@ import { routing } from './routing'
 import zhCNMessages from './messages/zh-CN.json'
 import enMessages from './messages/en.json'
 
-const messages: Record<string, any> = {
+const messages = {
   'zh-CN': zhCNMessages,
   'en': enMessages,
 }
@@ -17,6 +17,6 @@ export default getRequestConfig(async ({ requestLocale }) => {
 
   return {
     locale,
-    messages: messages[locale],
+    messages: messages[locale as keyof typeof messages],
   }
 })

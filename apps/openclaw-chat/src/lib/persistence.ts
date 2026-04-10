@@ -2,26 +2,42 @@
 // OpenClaw Chat - localStorage 持久化工具
 // ============================================================
 
+export type DefaultUIState = {
+  selectedAgentId: string | null;
+  selectedSessionId: string | null;
+  leftSidebarVisible: boolean;
+  leftSidebarWidth: number;
+  rightSidebarVisible: boolean;
+  rightSidebarWidth: number;
+  rightSidebarActiveTab: 'config' | 'history' | 'skill' | 'mcp' | 'subagent' | 'model' | 'memory' | 'workspace' | 'cron' | 'channel' | 'log';
+  logPanelExpanded: boolean;
+  logFilters: {
+    levels: string[];
+    sources: string[];
+    searchQuery: string;
+  };
+  inputModelOverride: Record<string, string>;
+  preferredLanguage: 'auto' | 'zh-CN' | 'zh-TW' | 'en' | 'ja' | 'ko';
+};
+
 /** UI 状态默认值 */
-export const DEFAULT_UI_STATE = {
-  selectedAgentId: null as string | null,
-  selectedSessionId: null as string | null,
+export const DEFAULT_UI_STATE: DefaultUIState = {
+  selectedAgentId: null,
+  selectedSessionId: null,
   leftSidebarVisible: true,
   leftSidebarWidth: 280,
   rightSidebarVisible: true,
   rightSidebarWidth: 360,
-  rightSidebarActiveTab: 'config' as const,
+  rightSidebarActiveTab: 'config',
   logPanelExpanded: false,
   logFilters: {
-    levels: ['error', 'warn', 'info'] as string[],
-    sources: [] as string[],
+    levels: ['error', 'warn', 'info'],
+    sources: [],
     searchQuery: '',
   },
-  inputModelOverride: {} as Record<string, string>,
-  preferredLanguage: 'auto' as const,
-} as const;
-
-export type DefaultUIState = typeof DEFAULT_UI_STATE;
+  inputModelOverride: {},
+  preferredLanguage: 'auto',
+};
 
 /** localStorage 键名前缀 */
 const STORAGE_PREFIX = 'openclaw_ui_';

@@ -37,10 +37,13 @@ vi.mock('next/navigation', () => ({
  * Mock next/image
  * 返回一个简单的 img 标签（使用 React.createElement）
  */
-vi.mock('next/image', () => ({
-  default: ({ src, alt, ...props }: { src: string; alt: string; [key: string]: unknown }) =>
-    require('react').createElement('img', { src, alt, ...props }),
-}))
+vi.mock('next/image', async () => {
+  const React = await import('react');
+  return {
+    default: ({ src, alt, ...props }: { src: string; alt: string; [key: string]: unknown }) =>
+      React.createElement('img', { src, alt, ...props }),
+  };
+})
 
 // ==================== next-intl Mocks ====================
 
@@ -58,8 +61,7 @@ vi.mock('next-intl', async () => {
     // NextIntlClientProvider: 存储消息到 context 并渲染子组件
     NextIntlClientProvider: ({ 
       children, 
-      messages,
-      locale = 'zh-CN' 
+      messages
     }: { 
       children: React.ReactNode
       messages?: Record<string, unknown>
@@ -185,13 +187,7 @@ vi.mock('next-intl', async () => {
             clearFilters: "清除过滤",
             newLogs: "条新日志",
             scrollToBottom: "回到底部",
-            level: {
-              debug: "调试",
-              info: "信息",
-              warn: "警告",
-              error: "错误",
-              fatal: "致命"
-            },
+            level: "级别",
             source: "来源",
             collaborate: "协作排查",
             expand: "展开",
@@ -215,12 +211,7 @@ vi.mock('next-intl', async () => {
             empty: "暂无历史记录",
             loading: "加载中...",
             loadMore: "加载更多",
-            scrollBehavior: {
-              autoScroll: "自动滚动",
-              pause: "暂停",
-              scrollToBottom: "回到底部",
-              newMessages: "条新消息"
-            }
+            scrollBehavior: "滚动行为",
           },
           "detailPanel.skillManager": {
             title: "技能管理",
@@ -368,6 +359,15 @@ class MockWebSocket extends EventTarget {
     }
   }
 
+  // Add missing properties to match WebSocket interface
+  binaryType: string = 'blob'
+  bufferedAmount: number = 0
+  extensions: string = ''
+  onclose: ((event: CloseEvent) => void) | null = null
+  onerror: ((event: Event) => void) | null = null
+  onmessage: ((event: MessageEvent) => void) | null = null
+  onopen: ((event: Event) => void) | null = null
+
   close(code?: number, reason?: string): void {
     this.readyState = MockWebSocket.CLOSING
     setTimeout(() => {
@@ -377,7 +377,7 @@ class MockWebSocket extends EventTarget {
   }
 }
 
-global.WebSocket = MockWebSocket as any
+global.WebSocket = MockWebSocket as unknown as typeof WebSocket
 
 // ==================== Global localStorage Mock ====================
 
@@ -448,15 +448,16 @@ const mockSpeechSynthesis = {
 
 // 增强 speak mock：自动触发 utterance 的 onstart 回调
 // 这样组件内的 setIsSpeaking(true) 才会被调用，stop-speak-button 才会渲染
-const originalSpeak = mockSpeechSynthesisSpeak.mockImplementation((utterance: any) => {
+mockSpeechSynthesisSpeak.mockImplementation((utterance: { onstart?: () => void }) => {
   // 模拟浏览器行为：speak 调用后触发 onstart
   if (utterance && typeof utterance.onstart === 'function') {
     utterance.onstart()
   }
 })
 
-global.SpeechSynthesisUtterance = mockSpeechSynthesisUtterance as any
-global.SpeechSynthesis = mockSpeechSynthesis as any
+global.SpeechSynthesisUtterance = mockSpeechSynthesisUtterance as unknown as typeof SpeechSynthesisUtterance
+// @ts-expect-error - SpeechSynthesis is a singleton object in browser, not a constructor
+global.SpeechSynthesis = mockSpeechSynthesis
 
 // 同时设置到 window 对象（happy-dom 中组件通过 window.speechSynthesis 访问）
 Object.defineProperty(window, 'speechSynthesis', {

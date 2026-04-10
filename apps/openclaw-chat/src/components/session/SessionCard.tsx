@@ -7,7 +7,7 @@
 
 import React from "react";
 import { useTranslations } from 'next-intl'
-import { MessageSquare, Trash2, MoreHorizontal } from "lucide-react";
+import { MessageSquare, Trash2 } from "lucide-react";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import type { SessionMetadata } from "@/types";
 

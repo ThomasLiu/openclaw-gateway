@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 
 // ==================== 断点常量 ====================
 
@@ -96,7 +96,10 @@ export function useResponsive(): ResponsiveState {
   const [state, setState] = useState<ResponsiveState>(initialState);
 
   useEffect(() => {
-    setState(computeState());
+    // 初始化状态，使用 setTimeout 避免在 effect 中同步调用 setState
+    const timer = setTimeout(() => {
+      setState(computeState());
+    }, 0);
 
     let rafId: number;
     const handleResize = () => {
@@ -111,6 +114,7 @@ export function useResponsive(): ResponsiveState {
     window.addEventListener("orientationchange", handleResize, { passive: true });
 
     return () => {
+      clearTimeout(timer);
       cancelAnimationFrame(rafId);
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("orientationchange", handleResize);
