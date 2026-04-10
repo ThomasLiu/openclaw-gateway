@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect, memo } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import {
   Bot,
   MessageSquare,
@@ -84,6 +84,7 @@ const LeftSidebar = memo(function LeftSidebar({
   const t = useTranslations("agent");
   const tSession = useTranslations("session");
   const sidebarRef = useRef<HTMLElement>(null);
+  const locale = useLocale();
 
   const responsive = useResponsive();
 
@@ -121,7 +122,7 @@ const LeftSidebar = memo(function LeftSidebar({
   const isTablet = responsive.breakpoint === "tablet";
 
   const effectiveCollapsed =
-    isCollapsed || isTablet || (isMobile && !isDrawerOpen);
+    isCollapsed;
 
   const { handleTouchStart, handleTouchEnd } = useSwipeGesture(
     sidebarRef,
@@ -166,7 +167,7 @@ const LeftSidebar = memo(function LeftSidebar({
       {/* Mobile Drawer Overlay Backdrop */}
       {isMobile && isDrawerOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-20"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-20"
           onClick={handleOverlayClick}
           data-testid="drawer-overlay"
           aria-hidden="true"
@@ -183,35 +184,13 @@ const LeftSidebar = memo(function LeftSidebar({
         onTouchEnd={handleTouchEnd}
         data-testid="left-sidebar"
       >
-        {/* Collapse Toggle Button (desktop/tablet only) */}
-        {!isMobile && (
-          <button
-            onClick={onToggle}
-            className={`absolute top-3 z-10 w-6 h-6 flex items-center justify-center bg-bg-tertiary border border-border-primary rounded-full hover:bg-bg-active transition-colors ${
-              effectiveCollapsed
-                ? "-right-3"
-                : "-right-3"
-            }`}
-            title={
-              effectiveCollapsed
-                ? t("expandSidebar", { defaultValue: "Expand" })
-                : t("collapseSidebar", { defaultValue: "Collapse" })
-            }
-            data-testid="left-sidebar-toggle"
-          >
-            {effectiveCollapsed ? (
-              <ChevronRight size={12} />
-            ) : (
-              <ChevronLeft size={12} />
-            )}
-          </button>
-        )}
+
 
         {/* Mobile Drawer Close Button */}
         {isMobile && isDrawerOpen && (
           <button
             onClick={onCloseDrawer}
-            className="absolute top-3 right-3 z-10 w-7 h-7 flex items-center justify-center hover:bg-bg-hover rounded transition-colors"
+            className="absolute top-4 right-4 z-10 flex h-9 w-9 items-center justify-center rounded-xl border border-border-primary bg-bg-tertiary/90 text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
             title={t("closeDrawer", { defaultValue: "Close" })}
             aria-label={t("closeDrawer", { defaultValue: "Close" })}
             data-testid="drawer-close-btn"
@@ -224,14 +203,14 @@ const LeftSidebar = memo(function LeftSidebar({
         {!effectiveCollapsed && (
           <>
             {/* Agent List Section */}
-            <div className="flex-shrink-0 border-b border-border-primary">
-              <div className="p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+            <div className="flex-shrink-0 border-b border-border-primary overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
+              <div className="px-4 pb-4 pt-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">
                     {t("title", { defaultValue: "Agents" })}
                   </h3>
                   <button
-                    className="p-1 hover:bg-bg-hover rounded transition-colors"
+                    className="flex h-8 w-8 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-bg-hover hover:text-text-primary"
                     title={t("addAgent", { defaultValue: "Add Agent" })}
                   >
                     <Plus size={14} className="text-text-muted" />
@@ -243,7 +222,7 @@ const LeftSidebar = memo(function LeftSidebar({
                     <Loader2 size={16} className="animate-spin text-text-muted" />
                   </div>
                 ) : agents.length > 0 ? (
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     {agents.map((agent) => {
                       const isSelected = agent.id === selectedAgentId;
                       const status = agent.config?.status ?? 'idle';
@@ -252,19 +231,19 @@ const LeftSidebar = memo(function LeftSidebar({
                         <div
                           key={agent.id}
                           onClick={() => handleAgentClick(agent.id)}
-                          className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
+                          className={`flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-3 transition-colors ${
                             isSelected
-                              ? 'bg-accent-primary/10 border border-accent-primary/30'
-                              : 'hover:bg-bg-hover'
+                              ? 'bg-bg-hover text-text-primary'
+                              : 'text-text-secondary hover:bg-bg-hover/80'
                           }`}
                         >
-                          <Bot size={16} className={`flex-shrink-0 ${isSelected ? 'text-accent-primary' : 'text-text-accent'}`} />
+                          <Bot size={15} className={`flex-shrink-0 ${isSelected ? 'text-text-primary' : 'text-text-muted'}`} />
                           <div className="flex-1 min-w-0">
-                            <div className={`text-xs truncate ${isSelected ? 'text-text-primary font-medium' : 'text-text-primary'}`}>
+                            <div className={`truncate text-sm leading-5 ${isSelected ? 'font-medium text-text-primary' : 'text-text-secondary'}`}>
                               {name}
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className={`text-xs capitalize ${
+                            <div className="mt-1 flex items-center gap-2">
+                              <span className={`text-[11px] capitalize ${
                                 status === 'running' ? 'text-status-success' :
                                 status === 'error' ? 'text-status-error' :
                                 status === 'disabled' ? 'text-text-muted' :
@@ -273,7 +252,7 @@ const LeftSidebar = memo(function LeftSidebar({
                                 {status}
                               </span>
                               {agent.sessionCount > 0 && (
-                                <span className="text-xs text-text-muted">
+                                <span className="text-[11px] text-text-muted">
                                   {agent.sessionCount} sessions
                                 </span>
                               )}
@@ -292,74 +271,76 @@ const LeftSidebar = memo(function LeftSidebar({
             </div>
 
             {/* Session List Section */}
-            <div className="flex-1 overflow-y-auto p-3">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                  {tSession("title", { defaultValue: "Sessions" })}
-                </h3>
-                <button
-                  className="p-1 hover:bg-bg-hover rounded transition-colors"
-                  title={tSession("newSession", { defaultValue: "New Session" })}
-                >
-                  <Plus size={14} className="text-text-muted" />
-                </button>
-              </div>
-
-              {/* Search placeholder */}
-              <div className="mb-2 relative">
-                <Search
-                  size={14}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted"
-                />
-                <input
-                  type="text"
-                  placeholder={tSession("searchPlaceholder", { defaultValue: "Search sessions..." })}
-                  className="w-full pl-7 pr-2 py-1.5 text-xs bg-bg-input border border-border-primary rounded focus:border-accent-primary outline-none"
-                />
-              </div>
-
-              {sessionsLoading ? (
-                <div className="flex items-center justify-center py-4">
-                  <Loader2 size={16} className="animate-spin text-text-muted" />
+            <div className="flex-1 overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
+              <div className="px-4 pb-4 pt-3">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">
+                    {tSession("title", { defaultValue: "Sessions" })}
+                  </h3>
+                  <button
+                    className="flex h-8 w-8 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-bg-hover hover:text-text-primary"
+                    title={tSession("newSession", { defaultValue: "New Session" })}
+                  >
+                    <Plus size={14} className="text-text-muted" />
+                  </button>
                 </div>
-              ) : sessions.length > 0 ? (
-                <div className="space-y-1">
-                  {sessions.map((session) => {
-                    const isSelected = session.id === selectedSessionId;
-                    return (
-                      <div
-                        key={session.id}
-                        onClick={() => handleSessionClick(session)}
-                        className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
-                          isSelected
-                            ? 'bg-accent-primary/10 border border-accent-primary/30'
-                            : 'hover:bg-bg-hover'
-                        }`}
-                      >
-                        <MessageSquare
-                          size={16}
-                          className={`flex-shrink-0 ${isSelected ? 'text-accent-primary' : 'text-text-secondary'}`}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className={`text-xs truncate ${isSelected ? 'font-medium' : ''}`}>
-                            {session.id.substring(0, 8)}...
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-text-muted">
-                            <span>{session.messageCount} msgs</span>
-                            {session.startTime > 0 && (
-                              <span>{new Date(session.startTime).toLocaleDateString()}</span>
-                            )}
+
+                {/* Search placeholder */}
+                <div className="relative mb-4">
+                  <Search
+                    size={13}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
+                  />
+                  <input
+                    type="text"
+                    placeholder={tSession("searchPlaceholder", { defaultValue: "Search sessions..." })}
+                    className="w-full rounded-lg border border-border-primary bg-bg-input pl-9 pr-3 py-2.5 text-sm focus:border-accent-primary"
+                  />
+                </div>
+
+                {sessionsLoading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 size={16} className="animate-spin text-text-muted" />
+                  </div>
+                ) : sessions.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {sessions.map((session) => {
+                      const isSelected = session.id === selectedSessionId;
+                      return (
+                        <div
+                          key={session.id}
+                          onClick={() => handleSessionClick(session)}
+                          className={`flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-3 transition-colors ${
+                            isSelected
+                              ? 'bg-bg-hover text-text-primary'
+                              : 'text-text-secondary hover:bg-bg-hover/80'
+                          }`}
+                        >
+                          <MessageSquare
+                            size={15}
+                            className={`flex-shrink-0 ${isSelected ? 'text-text-primary' : 'text-text-muted'}`}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className={`truncate text-sm leading-5 ${isSelected ? 'font-medium text-text-primary' : 'text-text-secondary'}`}>
+                              {session.id.substring(0, 8)}...
+                            </div>
+                            <div className="mt-1 flex items-center gap-2 text-[11px] text-text-muted">
+                              <span>{session.messageCount} msgs</span>
+                              {session.startTime > 0 && (
+                                <span>{new Date(session.startTime).toLocaleDateString(locale)}</span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="py-4 text-center text-xs text-text-muted">
-                  {selectedAgentId ? 'No sessions yet' : 'Select an agent to view sessions'}
-                </div>
-              )}
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="py-4 text-center text-xs text-text-muted">
+                    {selectedAgentId ? 'No sessions yet' : 'Select an agent to view sessions'}
+                  </div>
+                )}
+              </div>
             </div>
           </>
         )}
@@ -368,13 +349,13 @@ const LeftSidebar = memo(function LeftSidebar({
         {effectiveCollapsed && !isMobile && (
           <div className="flex flex-col items-center py-4 gap-4">
             <button
-              className="p-2 hover:bg-bg-hover rounded transition-colors"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
               title={t("title", { defaultValue: "Agents" })}
             >
               <Bot size={20} className="text-text-accent" />
             </button>
             <button
-              className="p-2 hover:bg-bg-hover rounded transition-colors"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
               title={tSession("title", { defaultValue: "Sessions" })}
             >
               <MessageSquare size={20} className="text-text-secondary" />

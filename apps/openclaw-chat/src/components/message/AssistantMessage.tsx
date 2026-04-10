@@ -143,12 +143,12 @@ export default function AssistantMessage({
         <button
           data-testid="code-copy-button"
           onClick={() => navigator.clipboard.writeText(codeString)}
-          className="absolute top-2 right-2 p-1.5 bg-bg-secondary hover:bg-bg-hover rounded opacity-0 group-hover/code:opacity-100 transition-opacity"
+          className="absolute right-3 top-3 rounded-md bg-bg-secondary p-2 opacity-0 transition-opacity group-hover/code:opacity-100 hover:bg-bg-hover"
           title={t('copy')}
         >
           <Copy size={14} />
         </button>
-        <pre className="bg-bg-tertiary p-4 rounded-lg overflow-x-auto">
+        <pre className="overflow-x-auto rounded-lg bg-[#0d1117] p-4">
           <code className={className}>{children}</code>
         </pre>
       </div>
@@ -164,16 +164,16 @@ export default function AssistantMessage({
       className="flex justify-start group/message mb-4"
       role="article"
     >
-      <div className="max-w-[80%] relative">
+      <div className="relative w-full max-w-[760px]">
         {/* 消息气泡 */}
-        <div className="bg-bg-secondary text-text-primary rounded-2xl px-4 py-3 shadow-sm">
+        <div className="px-1 py-1 text-text-primary">
           {/* Thinking 块 */}
           {thinkingContent && (
-            <div data-testid="thinking-block" className="mb-3 border border-border-primary rounded-lg overflow-hidden">
+            <div data-testid="thinking-block" className="mb-4 overflow-hidden rounded-lg bg-bg-secondary">
               <button
                 data-testid="thinking-toggle"
                 onClick={() => setThinkingExpanded(!thinkingExpanded)}
-                className="w-full flex items-center gap-2 px-3 py-2 bg-bg-tertiary hover:bg-bg-hover transition-colors text-left text-sm"
+                className="flex w-full items-center gap-2 bg-bg-secondary px-4 py-3 text-left text-sm transition-colors hover:bg-bg-hover"
               >
                 <span className="text-text-muted">{t('thinking')}</span>
                 <span className="text-xs text-text-muted">
@@ -181,7 +181,7 @@ export default function AssistantMessage({
                 </span>
               </button>
               {thinkingExpanded && (
-                <div className="px-3 py-2 text-sm text-text-muted italic bg-bg-secondary">
+                <div className="bg-bg-secondary px-4 pb-3 text-sm italic text-text-muted">
                   {thinkingContent}
                 </div>
               )}
@@ -204,11 +204,11 @@ export default function AssistantMessage({
           {message.toolCalls && message.toolCalls.length > 0 && (
             <div className="mt-3 space-y-2">
               {message.toolCalls.map((toolCall) => (
-                <div key={toolCall.id} data-testid="tool-call-block" className="border border-border-primary rounded-lg overflow-hidden">
+                <div key={toolCall.id} data-testid="tool-call-block" className="overflow-hidden rounded-lg bg-bg-secondary">
                   <button
                     data-testid="tool-call-toggle"
                     onClick={() => toggleToolCall(toolCall.id)}
-                    className="w-full flex items-center gap-2 px-3 py-2 bg-bg-tertiary hover:bg-bg-hover transition-colors text-left text-sm"
+                    className="flex w-full items-center gap-2 bg-bg-secondary px-4 py-3 text-left text-sm transition-colors hover:bg-bg-hover"
                   >
                     <span className="font-medium">{t('toolCall')}:</span>
                     <span className="text-accent-primary">{toolCall.function.name}</span>
@@ -218,10 +218,10 @@ export default function AssistantMessage({
                   </button>
                   
                   {toolCallExpanded[toolCall.id] && (
-                    <div className="p-3 space-y-2 bg-bg-secondary text-xs">
+                    <div className="space-y-2 bg-bg-secondary p-4 text-xs">
                       <div>
                         <div className="font-medium text-text-secondary mb-1">{t('inputParams')}:</div>
-                        <pre className="bg-bg-tertiary p-2 rounded overflow-x-auto">
+                        <pre className="overflow-x-auto rounded-lg bg-[#0d1117] p-3">
                           {toolCall.function.arguments}
                         </pre>
                       </div>
@@ -246,7 +246,7 @@ export default function AssistantMessage({
           {message.timestamp && (
             <div
               data-testid="message-timestamp"
-              className="text-xs text-text-muted mt-2"
+              className="mt-3 text-[11px] text-text-muted"
             >
               {formatRelativeTime(message.timestamp)}
             </div>
@@ -256,13 +256,13 @@ export default function AssistantMessage({
         {/* 操作工具栏 */}
         <div
           data-testid="message-toolbar"
-          className="absolute -top-10 left-0 flex items-center gap-1 bg-bg-secondary border border-border-primary rounded-lg px-2 py-1 shadow-md opacity-0 group-hover/message:opacity-100 transition-opacity"
+          className="absolute -top-10 left-0 flex items-center gap-1 rounded-lg bg-bg-secondary px-1.5 py-1 opacity-0 transition-opacity group-hover/message:opacity-100"
         >
           {/* 复制按钮 */}
           <button
             onClick={handleCopy}
             title={t('copy')}
-            className="p-1.5 hover:bg-bg-hover rounded transition-colors text-text-secondary hover:text-text-primary"
+            className="rounded-md p-2 text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
             aria-label={t('copy')}
           >
             <Copy size={14} />
@@ -273,7 +273,7 @@ export default function AssistantMessage({
             <button
               onClick={handleQuote}
               title={t('quote')}
-              className="p-1.5 hover:bg-bg-hover rounded transition-colors text-text-secondary hover:text-text-primary"
+              className="rounded-md p-2 text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
               aria-label={t('quote')}
             >
               <Quote size={14} />
@@ -286,7 +286,7 @@ export default function AssistantMessage({
               data-testid="speak-button"
               onClick={handleSpeak}
               title={t('speak')}
-              className="p-1.5 hover:bg-bg-hover rounded transition-colors text-text-secondary hover:text-text-primary"
+              className="rounded-md p-2 text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
               aria-label={t('speak')}
             >
               <Volume2 size={14} />
@@ -296,7 +296,7 @@ export default function AssistantMessage({
               data-testid="stop-speak-button"
               onClick={handleStopSpeak}
               title={t('stopSpeaking')}
-              className="p-1.5 hover:bg-bg-hover rounded transition-colors text-accent-primary"
+              className="rounded-md p-2 text-accent-primary transition-colors hover:bg-bg-hover"
               aria-label={t('stopSpeaking')}
             >
               <VolumeX size={14} />
@@ -308,7 +308,7 @@ export default function AssistantMessage({
             <button
               onClick={handleDelete}
               title={t('delete')}
-              className="p-1.5 hover:bg-bg-hover rounded transition-colors text-error hover:text-error-dark"
+              className="rounded-md p-2 text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-error"
               aria-label={t('delete')}
             >
               <Trash2 size={14} />
@@ -318,7 +318,7 @@ export default function AssistantMessage({
 
         {/* 已复制提示 */}
         {copied && (
-          <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-accent-primary text-white text-xs px-2 py-1 rounded shadow-md">
+          <div className="absolute left-1/2 top-[-2.5rem] -translate-x-1/2 rounded-md bg-accent-primary px-2.5 py-1 text-xs text-white shadow-md">
             {t('copied')}
           </div>
         )}

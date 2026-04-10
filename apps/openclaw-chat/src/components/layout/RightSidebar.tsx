@@ -157,7 +157,7 @@ const RightSidebar = memo(function RightSidebar({
       {/* Drawer Overlay Backdrop */}
       {isDrawerMode && (
         <div
-          className="fixed inset-0 bg-black/50 z-30"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30"
           onClick={handleOverlayClick}
           data-testid="drawer-overlay"
           aria-hidden="true"
@@ -187,13 +187,13 @@ const RightSidebar = memo(function RightSidebar({
                       role="tab"
                       aria-selected={isActive}
                       title={t(tab.labelKey)}
-                      className={`flex items-center gap-1.5 px-2 py-2 text-xs font-medium whitespace-nowrap border-b-2 transition-colors ${
+                      className={`flex items-center gap-1.5 whitespace-nowrap rounded-none border-b-2 px-3 py-3.5 text-[11px] font-medium uppercase tracking-[0.1em] transition-colors ${
                         isActive
-                          ? "border-accent-primary text-text-primary bg-bg-hover"
-                          : "border-transparent text-text-muted hover:text-text-secondary hover:bg-bg-hover"
+                          ? "border-accent-primary text-text-primary"
+                          : "border-transparent text-text-muted hover:text-text-secondary hover:bg-bg-hover/60"
                       }`}
                     >
-                      <Icon size={12} />
+                      <Icon size={13} />
                       <span>{t(tab.labelKey)}</span>
                     </button>
                   );
@@ -204,7 +204,7 @@ const RightSidebar = memo(function RightSidebar({
               {isDrawerMode && onCloseDrawer && (
                 <button
                   onClick={onCloseDrawer}
-                  className="p-2 hover:bg-bg-hover border-l border-border-primary transition-colors shrink-0"
+                  className="border-l border-border-primary px-3 py-3.5 text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary shrink-0"
                   title={t("closeDrawer", { defaultValue: "Close" })}
                   aria-label={t("closeDrawer", { defaultValue: "Close" })}
                   data-testid="drawer-close-btn"
@@ -217,7 +217,7 @@ const RightSidebar = memo(function RightSidebar({
               {!isMobile && !isTablet && onToggle && (
                 <button
                   onClick={onToggle}
-                  className="p-2 hover:bg-bg-hover border-l border-border-primary transition-colors shrink-0"
+                  className="border-l border-border-primary px-3 py-3.5 text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary shrink-0"
                   title={t("collapseSidebar", { defaultValue: "Collapse" })}
                 >
                   <ChevronLeft size={16} className="text-text-muted" />
@@ -236,7 +236,7 @@ const RightSidebar = memo(function RightSidebar({
         {effectivelyHidden && !isMobile && !isTablet && onToggle && (
           <button
             onClick={onToggle}
-            className="absolute top-3 -left-6 p-1.5 bg-bg-secondary border border-border-primary rounded-l hover:bg-bg-hover transition-colors"
+            className="absolute top-4 -left-8 flex h-8 w-8 items-center justify-center rounded-md bg-bg-secondary text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
             title={t("expandSidebar", { defaultValue: "Expand" })}
             data-testid="right-sidebar-expand-btn"
           >

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import ScrollbarEffect from "./ScrollbarEffect";
 
 export const metadata: Metadata = {
   title: "OpenClaw IDE",
@@ -14,6 +15,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" className="h-full antialiased">
       <body className="h-full">
+        <ScrollbarEffect />
         {children}
       </body>
     </html>

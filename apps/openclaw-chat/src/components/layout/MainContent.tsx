@@ -93,9 +93,9 @@ export default function MainContent({
         />
       </div>
 
-      <div className="flex-shrink-0 border-t border-border-primary p-4 bg-bg-secondary">
-        <div className="max-w-3xl mx-auto space-y-3">
-          <div className="flex items-center justify-between gap-3">
+      <div className="flex-shrink-0 border-t border-border-primary bg-bg-secondary px-6 py-5">
+        <div className="mx-auto max-w-[820px] space-y-4">
+          <div className="flex items-center justify-between gap-4 px-1">
             <ModelSelector
               models={effectiveModels}
               selectedModel={selectedModel}
@@ -117,7 +117,7 @@ export default function MainContent({
             />
           </div>
 
-          <div className="flex items-center justify-between text-xs text-text-muted px-1">
+          <div className="flex items-center justify-between px-1 pt-0.5 text-[11px] text-text-muted">
             <span>Press Enter to send</span>
             <span>Powered by OpenClaw</span>
           </div>

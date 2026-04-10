@@ -69,12 +69,12 @@ export default function ToolMessage({
   }, [])
 
   return (
-    <div className="border border-border-primary rounded-lg overflow-hidden bg-bg-secondary my-2">
+    <div className="relative my-3 overflow-hidden rounded-lg bg-bg-secondary">
       {/* 标题栏 */}
       <button
         data-testid="tool-message-toggle"
         onClick={toggleExpand}
-        className="w-full flex items-center gap-2 px-3 py-2 bg-bg-tertiary hover:bg-bg-hover transition-colors text-left"
+        className="flex w-full items-center gap-2 bg-bg-secondary px-4 py-3 text-left transition-colors hover:bg-bg-hover"
       >
         {/* 展开/折叠图标 */}
         {isExpanded ? (
@@ -84,7 +84,7 @@ export default function ToolMessage({
         )}
 
         {/* 工具名称 */}
-        <span className="font-medium text-sm text-accent-primary">{toolName}</span>
+        <span className="text-sm font-medium text-accent-primary">{toolName}</span>
 
         {/* 错误标识 */}
         {isError && (
@@ -94,7 +94,7 @@ export default function ToolMessage({
 
       {/* 内容区域 */}
       {isExpanded && (
-        <div data-testid="tool-content" className="p-3 space-y-3">
+        <div data-testid="tool-content" className="space-y-3 p-4">
           {/* 输入参数 */}
           <div>
             <div className="text-xs font-medium text-text-secondary mb-1.5">
@@ -102,7 +102,7 @@ export default function ToolMessage({
             </div>
             <pre
               data-testid="tool-input-params"
-              className="bg-bg-tertiary p-2.5 rounded text-xs overflow-x-auto font-mono text-text-primary max-h-48 overflow-y-auto"
+              className="max-h-48 overflow-x-auto overflow-y-auto rounded-lg bg-[#0d1117] p-3 font-mono text-xs text-text-primary"
             >
               {formatJson(inputParams)}
             </pre>
@@ -119,7 +119,7 @@ export default function ToolMessage({
               <button
                 data-testid="tool-copy-button"
                 onClick={handleCopy}
-                className="p-1 hover:bg-bg-hover rounded transition-colors text-text-muted hover:text-text-primary"
+                className="rounded-md p-2 text-text-muted transition-colors hover:bg-bg-hover hover:text-text-primary"
                 title={t('copy')}
               >
                 <Copy size={12} />
@@ -129,14 +129,14 @@ export default function ToolMessage({
             {isError ? (
               <div
                 data-testid="tool-error"
-                className="bg-error/10 border border-error/20 p-2.5 rounded text-xs text-error font-mono max-h-48 overflow-y-auto"
+                className="max-h-48 overflow-y-auto rounded-lg bg-status-error/10 p-3 font-mono text-xs text-status-error"
               >
                 {typeof outputResult === 'string' ? outputResult : formatJson(outputResult)}
               </div>
             ) : (
               <pre
                 data-testid="tool-output-result"
-                className="bg-bg-tertiary p-2.5 rounded text-xs overflow-x-auto font-mono text-text-primary max-h-48 overflow-y-auto"
+                className="max-h-48 overflow-x-auto overflow-y-auto rounded-lg bg-[#0d1117] p-3 font-mono text-xs text-text-primary"
               >
                 {formatJson(outputResult)}
               </pre>
@@ -147,7 +147,7 @@ export default function ToolMessage({
 
       {/* 已复制提示 */}
       {copied && (
-        <div className="absolute top-2 right-8 bg-accent-primary text-white text-xs px-2 py-1 rounded shadow-md z-10">
+        <div className="absolute right-8 top-2 z-10 rounded-md bg-accent-primary px-2.5 py-1 text-xs text-white shadow-md">
           {t('copied')}
         </div>
       )}

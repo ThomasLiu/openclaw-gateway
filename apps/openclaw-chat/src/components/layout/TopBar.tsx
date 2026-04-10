@@ -99,7 +99,7 @@ const TopBar = memo(function TopBar({
 
   return (
     <header
-      className="flex items-center justify-between h-[var(--topbar-height)] px-3 bg-bg-secondary border-b border-border-primary select-none shrink-0"
+      className="flex items-center justify-between h-[var(--topbar-height)] p-6 bg-bg-secondary border-b border-border-primary select-none shrink-0"
       style={{ height: "var(--topbar-height)" }}
       role="banner"
       data-testid="topbar"
@@ -109,7 +109,7 @@ const TopBar = memo(function TopBar({
         {responsive.isMobile && onMobileMenuToggle && (
           <button
             onClick={onMobileMenuToggle}
-            className="p-1 hover:bg-bg-hover rounded transition-colors mr-1"
+            className="mr-1 flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
             title={t("mobileMenu", { defaultValue: "Menu" })}
             aria-label={t("mobileMenu", { defaultValue: "Menu" })}
             data-testid="hamburger-btn"
@@ -118,17 +118,17 @@ const TopBar = memo(function TopBar({
           </button>
         )}
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <span className="text-sm font-semibold text-text-primary">
             OpenClaw
           </span>
-          <span className="text-xs text-text-muted hidden sm:inline">
+          <span className="hidden text-[11px] uppercase tracking-[0.14em] text-text-muted sm:inline">
             IDE
           </span>
         </div>
 
         <div
-          className={`hidden md:flex items-center gap-1.5 ${color} ${isClickable ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}`}
+          className={`hidden md:flex items-center gap-1.5 text-[11px] ${color} ${isClickable ? "cursor-pointer transition-colors hover:text-text-primary" : ""}`}
           onClick={handleStatusClick}
           title={isClickable ? t("clickToReconnect") : undefined}
           role={isClickable ? "button" : undefined}
@@ -141,7 +141,7 @@ const TopBar = memo(function TopBar({
           }}
         >
           <StatusIcon
-            size={14}
+            size={13}
             className={
               connectionStatus === "connecting" ||
               connectionStatus === "reconnecting"
@@ -149,7 +149,9 @@ const TopBar = memo(function TopBar({
                 : ""
             }
           />
-          <span className="text-xs hidden lg:inline">{label}</span>
+          <span className="hidden uppercase tracking-[0.12em] lg:inline">
+            {label}
+          </span>
         </div>
       </div>
 
@@ -157,10 +159,10 @@ const TopBar = memo(function TopBar({
       <div className="flex-1" />
 
       {/* Right Section - Version & Actions */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         {hasUpdate && (
           <button
-            className="flex items-center gap-1 px-2 py-1 text-xs text-text-warning hover:text-text-primary hover:bg-bg-hover rounded transition-colors"
+            className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs text-text-warning transition-colors hover:bg-bg-hover hover:text-text-primary"
             title={t("updateAvailable")}
           >
             <Download size={12} />
@@ -169,7 +171,7 @@ const TopBar = memo(function TopBar({
         )}
 
         <button
-          className="hidden sm:flex items-center gap-1.5 px-2 py-1 text-xs text-text-secondary hover:text-text-primary hover:bg-bg-hover rounded transition-colors"
+          className="hidden sm:flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
           title={t("cliCommands")}
           onClick={onCliClick}
         >
@@ -177,8 +179,8 @@ const TopBar = memo(function TopBar({
           <span className="hidden md:inline">CLI</span>
         </button>
 
-        <div className="flex items-center gap-1.5 px-2 py-1 text-xs text-text-muted">
-          <Info size={12} className="hidden sm:block" />
+        <div className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-text-muted">
+          <Info size={12} className="hidden sm:block opacity-70" />
           <span>v{effectiveVersion}</span>
         </div>
       </div>

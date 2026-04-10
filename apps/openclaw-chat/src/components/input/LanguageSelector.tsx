@@ -81,7 +81,7 @@ export default function LanguageSelector({
       <button
         data-testid="language-selector-trigger"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 bg-bg-secondary border border-border-primary rounded-lg hover:border-accent-primary transition-colors text-sm min-w-[120px]"
+        className="flex min-w-[136px] items-center gap-2 rounded-md px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
@@ -98,14 +98,14 @@ export default function LanguageSelector({
       {isOpen && (
         <ul
           role="listbox"
-          className="absolute bottom-full left-0 mb-1 w-full bg-bg-secondary border border-border-primary rounded-lg shadow-lg max-h-64 overflow-y-auto z-50"
+          className="absolute bottom-full left-0 z-50 mb-2.5 max-h-64 w-full overflow-y-auto rounded-lg border border-border-primary bg-bg-secondary p-1.5 shadow-lg"
         >
           {LANGUAGE_OPTIONS.map((option) => (
             <li key={option.code} role="option" aria-selected={currentLanguage === option.code}>
               <button
                 onClick={() => handleSelect(option.code)}
-                className={`w-full px-3 py-2 text-left hover:bg-bg-hover transition-colors text-sm ${
-                  currentLanguage === option.code ? 'bg-bg-hover text-accent-primary font-medium' : ''
+                className={`w-full rounded-md px-3 py-2.5 text-left text-sm transition-colors hover:bg-bg-hover ${
+                  currentLanguage === option.code ? 'bg-[var(--accent-soft)] font-medium text-accent-primary' : 'text-text-secondary'
                 }`}
               >
                 {t(option.labelKey)}

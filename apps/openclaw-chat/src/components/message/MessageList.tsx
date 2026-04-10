@@ -70,10 +70,20 @@ export default function MessageList({
     shouldAutoScrollRef.current = scrollHeight - scrollTop - clientHeight < threshold
   }, [])
 
-  // 当新消息到达时自动滚动
+  // 当新消息到达或流式输出状态变化时自动滚动
   useEffect(() => {
     scrollToBottom()
-  }, [messages.length, scrollToBottom])
+  }, [messages.length, isStreaming, scrollToBottom])
+
+  // 当消息内容变化时（例如从流式输出变为完整内容），也需要滚动
+  useEffect(() => {
+    // 使用 setTimeout 确保 DOM 已经更新
+    const timer = setTimeout(() => {
+      scrollToBottom()
+    }, 100)
+
+    return () => clearTimeout(timer)
+  }, [messages, isStreaming, scrollToBottom])
 
   // 渲染单个消息
   const renderMessage = (message: SessionMessage, index: number) => {
@@ -107,16 +117,16 @@ export default function MessageList({
   // 空状态渲染
   const renderEmptyState = () => (
     <div data-testid="empty-state" className="flex-1 flex items-center justify-center">
-      <div className="text-center max-w-md mx-auto p-8">
-        <h2 className="text-2xl font-bold text-text-primary mb-3">
+      <div className="mx-auto max-w-[760px] px-6 py-12 text-center">
+        <h2 className="mb-3 text-3xl font-semibold tracking-tight text-text-primary">
           {t('emptyTitle')}
         </h2>
-        <p className="text-text-secondary text-sm mb-8">
+        <p className="mx-auto mb-8 max-w-xl text-sm leading-7 text-text-secondary">
           {t('emptyState')}
         </p>
 
         {/* 快捷操作卡片 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {[
             { title: t('newChat'), desc: t('startNewChatDesc') },
             { title: t('recentSession'), desc: t('openRecentSessionDesc') },
@@ -125,12 +135,12 @@ export default function MessageList({
           ].map((action, idx) => (
             <button
               key={idx}
-              className="p-4 text-left bg-bg-secondary border border-border-primary rounded-lg hover:border-accent-primary hover:bg-bg-hover transition-all group"
+              className="group rounded-lg bg-bg-secondary p-4 text-left transition-all hover:bg-bg-hover"
             >
-              <div className="text-sm font-medium text-text-primary group-hover:text-accent-primary mb-1">
+              <div className="mb-1 text-sm font-medium text-text-primary group-hover:text-accent-primary">
                 {action.title}
               </div>
-              <div className="text-xs text-text-secondary">
+              <div className="text-xs leading-6 text-text-secondary">
                 {action.desc}
               </div>
             </button>
@@ -176,7 +186,7 @@ export default function MessageList({
 
     // 普通列表渲染
     return (
-      <div className="space-y-4 p-4">
+      <div className="mx-auto max-w-[760px] space-y-7 px-6 py-7">
         {messages.map((message, index) => renderMessage(message, index))}
       </div>
     )
@@ -217,6 +227,13 @@ function VirtualizedMessageList({
   })
 
   const virtualItems = virtualizer.getVirtualItems()
+
+  // 当新消息到达时自动滚动到底部
+  useEffect(() => {
+    if (parentRef.current) {
+      parentRef.current.scrollTop = parentRef.current.scrollHeight
+    }
+  }, [messages.length])
 
   return (
     <div

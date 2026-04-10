@@ -72,11 +72,11 @@ export default function UserMessage({ message, onQuote, onDelete }: UserMessageP
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="max-w-[80%] relative">
+      <div className="relative max-w-[760px]">
         {/* 消息气泡 */}
         <div
           data-testid="user-message-bubble"
-          className="bg-bg-tertiary text-text-primary rounded-2xl px-4 py-3 shadow-sm"
+          className="rounded-lg bg-bg-secondary px-4 py-3 text-text-primary"
         >
           {/* Markdown 内容渲染 */}
           <div className="prose prose-sm max-w-none dark:prose-invert">
@@ -89,7 +89,7 @@ export default function UserMessage({ message, onQuote, onDelete }: UserMessageP
           {message.timestamp && (
             <div
               data-testid="message-timestamp"
-              className="text-xs text-text-muted mt-2 text-right"
+              className="mt-2 text-right text-[11px] text-text-muted"
             >
               {formatRelativeTime(message.timestamp)}
             </div>
@@ -99,14 +99,14 @@ export default function UserMessage({ message, onQuote, onDelete }: UserMessageP
         {/* 操作工具栏 - Hover 时显示 */}
         {isHovered && (
           <div
-            className="absolute -top-10 right-0 flex items-center gap-1 bg-bg-secondary border border-border-primary rounded-lg px-2 py-1 shadow-md opacity-0 group-hover/message:opacity-100 transition-opacity"
+            className="absolute -top-10 right-0 flex items-center gap-1 rounded-lg bg-bg-secondary px-1.5 py-1 opacity-0 transition-opacity group-hover/message:opacity-100"
             style={{ opacity: isHovered ? 1 : 0 }}
           >
             {/* 复制按钮 */}
             <button
               onClick={handleCopy}
               title={t('copy')}
-              className="p-1.5 hover:bg-bg-hover rounded transition-colors text-text-secondary hover:text-text-primary"
+              className="rounded-md p-2 text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
               aria-label={t('copy')}
             >
               <Copy size={14} />
@@ -117,7 +117,7 @@ export default function UserMessage({ message, onQuote, onDelete }: UserMessageP
               <button
                 onClick={handleQuote}
                 title={t('quote')}
-                className="p-1.5 hover:bg-bg-hover rounded transition-colors text-text-secondary hover:text-text-primary"
+                className="rounded-md p-2 text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
                 aria-label={t('quote')}
               >
                 <Quote size={14} />
@@ -129,7 +129,7 @@ export default function UserMessage({ message, onQuote, onDelete }: UserMessageP
               <button
                 onClick={handleDelete}
                 title={t('delete')}
-                className="p-1.5 hover:bg-bg-hover rounded transition-colors text-error hover:text-error-dark"
+                className="rounded-md p-2 text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-error"
                 aria-label={t('delete')}
               >
                 <Trash2 size={14} />
@@ -140,7 +140,7 @@ export default function UserMessage({ message, onQuote, onDelete }: UserMessageP
 
         {/* 已复制提示 */}
         {copied && (
-          <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-accent-primary text-white text-xs px-2 py-1 rounded shadow-md">
+          <div className="absolute left-1/2 top-[-2.5rem] -translate-x-1/2 rounded-md bg-accent-primary px-2.5 py-1 text-xs text-white shadow-md">
             {t('copied')}
           </div>
         )}

@@ -136,7 +136,7 @@ export default function ChatInput({
   )
 
   return (
-    <div className="relative flex items-end gap-2 bg-bg-input border border-border-primary rounded-lg focus-within:border-accent-primary transition-colors p-2">
+    <div className="relative flex items-end gap-2.5 rounded-xl border border-border-primary bg-bg-input px-3 py-2.5 shadow-sm transition-colors focus-within:border-accent-primary focus-within:shadow-[0_0_0_4px_rgba(120,166,255,0.12)]">
       {/* 文本输入区域 */}
       <textarea
         ref={textareaRef}
@@ -145,20 +145,20 @@ export default function ChatInput({
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         placeholder={placeholder || t('placeholder')}
-        className="flex-1 bg-transparent resize-none outline-none text-sm text-text-primary placeholder:text-text-muted py-2 px-3 min-h-[44px] max-h-[200px]"
+        className="min-h-[52px] max-h-[200px] flex-1 resize-none bg-transparent px-3 py-3 text-[14px] leading-6 text-text-primary outline-none placeholder:text-text-muted"
         rows={1}
         disabled={isRunning}
       />
 
       {/* 按钮 */}
-      <div className="flex items-center gap-1 pb-2 pr-1">
+      <div className="flex items-center gap-1.5 pr-1">
         {isRunning ? (
           /* 停止按钮 */
           <button
             data-testid="stop-button"
             onClick={onStop}
             title={t('stop')}
-            className="p-2 m-1 bg-error hover:bg-error-dark text-white rounded-md transition-colors"
+            className="m-0.5 flex h-9 w-9 items-center justify-center rounded-lg bg-bg-hover text-text-primary transition-colors hover:bg-bg-active"
             aria-label={t('stop')}
           >
             <Square size={16} fill="currentColor" />
@@ -170,7 +170,7 @@ export default function ChatInput({
             onClick={handleSend}
             disabled={!value.trim()}
             title={t('send')}
-            className="p-2 m-1 bg-accent-primary hover:bg-accent-hover text-white rounded-md transition-colors disabled:opacity-50 disabled:hover:bg-accent-primary"
+            className="m-0.5 flex h-9 w-9 items-center justify-center rounded-lg bg-accent-primary text-white transition-colors hover:bg-accent-hover disabled:opacity-40 disabled:hover:bg-accent-primary"
             aria-label={t('send')}
           >
             <Send size={16} />

@@ -77,7 +77,7 @@ export default function ModelSelector({
       <button
         data-testid="model-selector-trigger"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 bg-bg-secondary border border-border-primary rounded-lg hover:border-accent-primary transition-colors text-sm min-w-[140px]"
+        className="flex min-w-[152px] items-center gap-2 rounded-md px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
@@ -93,7 +93,7 @@ export default function ModelSelector({
 
       {/* 降级提示 */}
       {!isModelAvailable && (
-        <div className="absolute top-full left-0 right-0 mt-1 p-2 bg-warning/10 border border-warning/20 rounded text-xs text-warning flex items-center gap-1">
+        <div className="absolute left-0 right-0 top-full mt-2.5 flex items-center gap-1.5 rounded-lg border border-[rgba(251,191,36,0.24)] bg-[rgba(251,191,36,0.1)] p-2.5 text-xs text-text-warning">
           <AlertTriangle size={12} />
           {t('modelNotAvailable')}
         </div>
@@ -103,14 +103,14 @@ export default function ModelSelector({
       {isOpen && (
         <ul
           role="listbox"
-          className="absolute top-full left-0 mt-1 w-full bg-bg-secondary border border-border-primary rounded-lg shadow-lg max-h-64 overflow-y-auto z-50"
+          className="absolute left-0 top-full z-50 mt-2.5 max-h-64 w-full overflow-y-auto rounded-lg border border-border-primary bg-bg-secondary p-1.5 shadow-lg"
         >
           {/* 默认选项 */}
           <li role="option" aria-selected={!selectedModel}>
             <button
               onClick={() => handleSelect(defaultModelId || '')}
-              className={`w-full px-3 py-2 text-left hover:bg-bg-hover transition-colors text-sm ${
-                !selectedModel ? 'bg-bg-hover text-accent-primary' : ''
+              className={`w-full rounded-md px-3 py-2.5 text-left text-sm transition-colors hover:bg-bg-hover ${
+                !selectedModel ? 'bg-[var(--accent-soft)] font-medium text-accent-primary' : 'text-text-secondary'
               }`}
             >
               {t('defaultModel')}
@@ -118,15 +118,15 @@ export default function ModelSelector({
           </li>
 
           {/* 分隔线 */}
-          <li className="border-t border-border-primary my-1" />
+          <li className="my-1 border-t border-border-primary" />
 
           {/* 模型列表 */}
           {models.map((model) => (
             <li key={model.id} role="option" aria-selected={selectedModel === model.id}>
               <button
                 onClick={() => handleSelect(model.id)}
-                className={`w-full px-3 py-2 text-left hover:bg-bg-hover transition-colors text-sm ${
-                  selectedModel === model.id ? 'bg-bg-hover text-accent-primary font-medium' : ''
+                className={`w-full rounded-md px-3 py-2.5 text-left text-sm transition-colors hover:bg-bg-hover ${
+                  selectedModel === model.id ? 'bg-[var(--accent-soft)] font-medium text-accent-primary' : 'text-text-secondary'
                 }`}
               >
                 <div className="flex items-center justify-between">
