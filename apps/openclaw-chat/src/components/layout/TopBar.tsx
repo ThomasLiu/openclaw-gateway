@@ -114,7 +114,7 @@ const TopBar = memo(function TopBar({
         {!responsive.isMobile && onSidebarToggle && (
           <button
             onClick={onSidebarToggle}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary ml-3"
             title={isSidebarOpen ? "隐藏侧边栏" : "显示侧边栏"}
             aria-label={isSidebarOpen ? "隐藏侧边栏" : "显示侧边栏"}
             data-testid="sidebar-toggle-btn"
