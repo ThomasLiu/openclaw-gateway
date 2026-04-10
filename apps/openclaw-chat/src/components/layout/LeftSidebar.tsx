@@ -153,7 +153,7 @@ const LeftSidebar = memo(function LeftSidebar({
     "flex flex-col bg-bg-sidebar border-r border-border-primary relative overflow-hidden transition-all duration-200 ease-in-out z-30";
 
   const widthStyle = effectiveCollapsed
-    ? { width: "var(--sidebar-collapsed-width)", minWidth: "var(--sidebar-collapsed-width)" }
+    ? { width: 0, minWidth: 0, overflow: "hidden" }
     : { width: "var(--sidebar-width)", minWidth: "var(--sidebar-width)" };
 
   const drawerClasses = isMobile
@@ -345,23 +345,7 @@ const LeftSidebar = memo(function LeftSidebar({
           </>
         )}
 
-        {/* Collapsed / Icon-only State */}
-        {effectiveCollapsed && !isMobile && (
-          <div className="flex flex-col items-center py-4 gap-4">
-            <button
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
-              title={t("title", { defaultValue: "Agents" })}
-            >
-              <Bot size={20} className="text-text-accent" />
-            </button>
-            <button
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-bg-hover hover:text-text-primary"
-              title={tSession("title", { defaultValue: "Sessions" })}
-            >
-              <MessageSquare size={20} className="text-text-secondary" />
-            </button>
-          </div>
-        )}
+
 
         {/* Mobile Drawer Content (same as full content but inside drawer) */}
         {isMobile && isDrawerOpen && effectiveCollapsed === false && (
