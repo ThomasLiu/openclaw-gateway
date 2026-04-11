@@ -1,0 +1,30 @@
+{
+  "name": "@openclaw/agent-adapter",
+  "version": "1.0.0",
+  "description": "Agent management adapter for OpenClaw Gateway",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "lint": "eslint src --ext ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^0.34.0"
+  },
+  "keywords": [
+    "openclaw",
+    "agent",
+    "adapter",
+    "gateway"
+  ],
+  "author": "OpenClaw Team",
+  "license": "MIT"
+}

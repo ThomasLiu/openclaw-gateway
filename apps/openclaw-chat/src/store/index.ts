@@ -681,11 +681,10 @@ export const useIDEStore = create<IDEState>()(
           try {
             get().setGatewayStatus('connecting');
             
-            // 初始化 agent 适配器服务
-            await agentAdapterService.initialize();
-            
+            // 直接调用 getHealth 检查网关状态，不需要初始化 agent 适配器服务
             const { getHealth } = await import('@/lib/actions');
             const data = await getHealth();
+            
             if (data.ok) {
               get().setGatewayStatus('connected');
               if (data.version) {
@@ -695,7 +694,6 @@ export const useIDEStore = create<IDEState>()(
               get().setGatewayStatus('disconnected', undefined, 'OpenClaw gateway is not accessible');
             }
           } catch (err) {
-            console.error('[Store] initGateway error:', err);
             get().setGatewayStatus('disconnected', undefined, err instanceof Error ? err.message : 'Unknown error');
           }
         },

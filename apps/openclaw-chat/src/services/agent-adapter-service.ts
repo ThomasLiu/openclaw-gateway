@@ -27,13 +27,25 @@ export class AgentAdapterService {
    * 初始化服务
    */
   public async initialize(): Promise<void> {
-    // 获取所有可用的适配器
-    const availableAdapters = await agentManager.getAvailableAdapters();
-    console.log('Available adapters:', availableAdapters);
+    try {
+      console.log('AgentAdapterService.initialize - start');
+      console.log('AgentAdapterService.initialize - agentManager:', agentManager);
+      
+      // 获取所有可用的适配器
+      console.log('AgentAdapterService.initialize - calling getAvailableAdapters');
+      const availableAdapters = await agentManager.getAvailableAdapters();
+      console.log('Available adapters:', availableAdapters);
 
-    // 创建默认适配器
-    this.activeAdapter = await agentManager.getDefaultAdapter();
-    console.log('Active adapter:', this.activeAdapter);
+      // 创建默认适配器
+      console.log('AgentAdapterService.initialize - calling getDefaultAdapter');
+      this.activeAdapter = await agentManager.getDefaultAdapter();
+      console.log('Active adapter:', this.activeAdapter);
+      
+      console.log('AgentAdapterService.initialize - end');
+    } catch (error) {
+      console.error('AgentAdapterService.initialize - error:', error);
+      throw error;
+    }
   }
 
   /**
