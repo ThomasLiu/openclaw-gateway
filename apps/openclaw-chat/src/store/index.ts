@@ -15,6 +15,7 @@ import type {
   SessionMessage,
   ModelInfo,
 } from '../types';
+import { agentAdapterService } from '../services/agent-adapter-service';
 import {
   DEFAULT_UI_STATE,
   getAllUIState,
@@ -679,6 +680,10 @@ export const useIDEStore = create<IDEState>()(
         initGateway: async () => {
           try {
             get().setGatewayStatus('connecting');
+            
+            // 初始化 agent 适配器服务
+            await agentAdapterService.initialize();
+            
             const { getHealth } = await import('@/lib/actions');
             const data = await getHealth();
             if (data.ok) {
@@ -687,7 +692,7 @@ export const useIDEStore = create<IDEState>()(
                 set((s) => ({ data: { ...s.data, version: data.version } }));
               }
             } else {
-              get().setGatewayStatus('disconnected', undefined, 'Health check failed');
+              get().setGatewayStatus('disconnected', undefined, 'OpenClaw gateway is not accessible');
             }
           } catch (err) {
             console.error('[Store] initGateway error:', err);
@@ -764,6 +769,30 @@ export const useIDEStore = create<IDEState>()(
 
         sendMessage: async (agentId: string, message: string, sessionId?: string) => {
           console.log('[Store] Send message to', agentId, message.substring(0, 50));
+          try {
+            // 使用 agent 适配器服务发送消息
+            const adapterMessages = await agentAdapterService.runConversation(message);
+            console.log('[Store] Received messages:', adapterMessages);
+            // 转换类型为 SessionMessage
+            const messages = adapterMessages.map(msg => ({
+              ...msg,
+              toolCalls: msg.toolCalls?.map(tc => ({
+                id: Math.random().toString(36).substr(2, 9),
+                type: 'function',
+                function: {
+                  name: tc.name,
+                  arguments: JSON.stringify(tc.arguments || {})
+                }
+              }))
+            } as any));
+            
+            
+            
+            // 更新消息状态
+            set((s) => ({ data: { ...s.data, messages } }));
+          } catch (err) {
+            console.error('[Store] sendMessage error:', err);
+          }
         },
 
         abortSession: async (sessionId: string) => {

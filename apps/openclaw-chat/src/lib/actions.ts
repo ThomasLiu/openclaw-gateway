@@ -18,10 +18,24 @@ import type { AgentMetadata, SessionMetadata, SessionMessage, SkillInfo, Workspa
 
 export async function getHealth() {
   try {
+    // 检查本地 openclaw gateway 的可访问性
+    // 尝试执行 openclaw 命令来检查服务状态
+    const { execFile } = require('child_process');
+    const { promisify } = require('util');
+    const execFileAsync = promisify(execFile);
+    
+    // 执行 openclaw status 命令来检查服务状态
+    const { stdout } = await execFileAsync('openclaw', ['status'], {
+      timeout: 5000,
+    });
+    
+    // 获取版本号
     const version = await getOpenClawVersion();
+    
     return { ok: true, status: "live" as const, version };
-  } catch {
-    return { ok: true, status: "live" as const, version: "unknown" };
+  } catch (error) {
+    console.error('Failed to check openclaw gateway status:', error);
+    return { ok: false, status: "down" as const, version: "unknown" };
   }
 }
 

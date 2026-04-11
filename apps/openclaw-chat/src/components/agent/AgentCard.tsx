@@ -99,7 +99,7 @@ export default function AgentCard({
       }}
     >
       {/* Icon */}
-      <div className="flex-shrink-0">
+      <div className="flex-shrink-0 ml-[-2px]">
         <Bot 
           size={16} 
           className={`text-text-accent transition-colors ${
