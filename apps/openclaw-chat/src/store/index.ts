@@ -94,6 +94,8 @@ interface DataState {
   sessionsLoading: boolean;
   messagesLoading: boolean;
   version: string;
+  hasUpdate?: boolean;
+  remoteVersion?: string;
 }
 
 /** 完整的 IDE 状态接口 */
@@ -206,6 +208,8 @@ const DEFAULT_DATA_STATE: DataState = {
   sessionsLoading: false,
   messagesLoading: false,
   version: '0.0.0',
+  hasUpdate: false,
+  remoteVersion: '0.0.0',
 };
 
 // ==================== Store 创建 ====================
@@ -689,6 +693,13 @@ export const useIDEStore = create<IDEState>()(
               get().setGatewayStatus('connected');
               if (data.version) {
                 set((s) => ({ data: { ...s.data, version: data.version } }));
+              }
+              // 检查版本更新
+              if (data.hasUpdate !== undefined) {
+                set((s) => ({ data: { ...s.data, hasUpdate: data.hasUpdate } }));
+              }
+              if (data.remoteVersion) {
+                set((s) => ({ data: { ...s.data, remoteVersion: data.remoteVersion } }));
               }
             } else {
               get().setGatewayStatus('disconnected', undefined, 'OpenClaw gateway is not accessible');

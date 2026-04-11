@@ -20,6 +20,8 @@ interface GatewayInfoProps {
   version: string;
   /** 是否有更新 */
   hasUpdate?: boolean;
+  /** 新版本号 */
+  remoteVersion?: string;
   /** 是否可点击 */
   isClickable?: boolean;
   /** 点击状态的回调 */
@@ -41,6 +43,7 @@ export function GatewayInfo({
   name,
   version,
   hasUpdate = false,
+  remoteVersion,
   isClickable = false,
   onStatusClick,
   onUpdateClick,
@@ -62,6 +65,7 @@ export function GatewayInfo({
       <GatewayVersion
         version={version}
         hasUpdate={hasUpdate}
+        remoteVersion={remoteVersion}
         onUpdateClick={onUpdateClick}
       />
 

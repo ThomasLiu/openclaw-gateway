@@ -17,6 +17,7 @@ interface TopBarProps {
   version?: string;
   hasUpdate?: boolean;
   onCliClick?: () => void;
+  onUpdateClick?: () => void;
   onReconnect?: () => void;
   onMobileMenuToggle?: () => void;
   onSidebarToggle?: () => void;
@@ -27,6 +28,7 @@ const TopBar = memo(function TopBar({
   version,
   hasUpdate = false,
   onCliClick,
+  onUpdateClick,
   onReconnect,
   onMobileMenuToggle,
   onSidebarToggle,
@@ -36,6 +38,8 @@ const TopBar = memo(function TopBar({
 
   const connectionStatus = useIDEStore((state) => state.gateway.status);
   const storeVersion = useIDEStore((state) => state.data.version);
+  const storeHasUpdate = useIDEStore((state) => state.data.hasUpdate);
+  const storeRemoteVersion = useIDEStore((state) => state.data.remoteVersion);
   const initGateway = useIDEStore((state) => state.initGateway);
 
   const effectiveVersion = version ?? storeVersion;
@@ -104,9 +108,11 @@ const TopBar = memo(function TopBar({
           status={connectionStatus}
           name="OpenClaw"
           version={effectiveVersion}
-          hasUpdate={hasUpdate}
+          hasUpdate={hasUpdate ?? storeHasUpdate}
+          remoteVersion={storeRemoteVersion}
           isClickable={isClickable}
           onStatusClick={handleStatusClick}
+          onUpdateClick={onUpdateClick}
           onCliClick={onCliClick}
           title={isClickable ? t("clickToReconnect") : undefined}
         />

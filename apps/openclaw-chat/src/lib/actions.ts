@@ -16,6 +16,40 @@ import {
 } from "@/lib/data/fs-reader";
 import type { AgentMetadata, SessionMetadata, SessionMessage, SkillInfo, WorkspaceFileInfo, CronJobConfig } from "@/types";
 
+import { compareVersions } from '@/lib/utils/version-utils';
+
+// 获取远程版本号（从npm注册表获取）
+export async function getRemoteVersion(): Promise<string> {
+  try {
+    // 从npm注册表获取最新版本
+    console.log('[Version Check] Checking for latest version from npm registry');
+    // 设置超时
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    
+    const response = await fetch('https://registry.npmjs.org/openclaw/latest', {
+      signal: controller.signal,
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    const data = await response.json();
+    const latestVersion = data.version as string;
+    console.log('[Version Check] Remote version from npm:', latestVersion);
+    return latestVersion;
+  } catch (error) {
+    console.error('[Version Check] Failed to get remote version:', error);
+    return '0.0.0';
+  }
+}
+
 export async function getHealth() {
   try {
     // 检查本地 openclaw gateway 的可访问性
@@ -54,11 +88,18 @@ export async function getHealth() {
       const version = await getOpenClawVersion();
       console.log('[Health Check] Version:', version);
       
+      // 检查版本更新
+      const remoteVersion = await getRemoteVersion();
+      console.log('[Version Check] Remote version:', remoteVersion);
+      
+      const hasUpdate = compareVersions(remoteVersion, version) > 0;
+      console.log('[Version Check] Has update:', hasUpdate);
+      
       console.log('[Health Check] Gateway health check completed successfully');
-      return { ok: true, status: "live" as const, version };
+      return { ok: true, status: "live" as const, version, hasUpdate, remoteVersion };
     } else {
       console.error('[Health Check] Gateway is not reachable');
-      return { ok: false, status: "down" as const, version: "unknown" };
+      return { ok: false, status: "down" as const, version: "unknown", hasUpdate: false, remoteVersion: "unknown" };
     }
   } catch (error) {
     console.error('[Health Check] Failed to check openclaw gateway status:', error);
@@ -69,7 +110,15 @@ export async function getHealth() {
     // 由于命令行执行openclaw gateway probe显示网关是正常的，我们暂时返回ok: true
     // 这是一个临时解决方案，需要进一步调查为什么在前端应用中执行命令失败
     console.log('[Health Check] Returning ok: true because command line execution shows gateway is reachable');
-    return { ok: true, status: "live" as const, version: "2026.4.2" };
+    
+    // 检查版本更新
+    const remoteVersion = await getRemoteVersion();
+    console.log('[Version Check] Remote version:', remoteVersion);
+    
+    const hasUpdate = compareVersions(remoteVersion, "2026.4.2") > 0;
+    console.log('[Version Check] Has update:', hasUpdate);
+    
+    return { ok: true, status: "live" as const, version: "2026.4.2", hasUpdate, remoteVersion };
   }
 }
 

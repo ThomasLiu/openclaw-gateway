@@ -14,6 +14,8 @@ interface GatewayVersionProps {
   version: string;
   /** 是否有更新 */
   hasUpdate?: boolean;
+  /** 新版本号 */
+  remoteVersion?: string;
   /** 点击更新按钮的回调 */
   onUpdateClick?: () => void;
 }
@@ -25,6 +27,7 @@ interface GatewayVersionProps {
 export function GatewayVersion({
   version,
   hasUpdate = false,
+  remoteVersion,
   onUpdateClick,
 }: GatewayVersionProps) {
   const t = useTranslations("topbar");
@@ -34,10 +37,12 @@ export function GatewayVersion({
 
   return (
     <div className="hidden md:flex items-center gap-2">
-      {/* 版本号 */}
-      <span className="text-text-muted text-[11px]">
-        v{cleanVersion}
-      </span>
+      {/* 版本号 - 只有当没有更新时显示 */}
+      {!hasUpdate && (
+        <span className="text-text-muted text-[11px]">
+          v{cleanVersion}
+        </span>
+      )}
 
       {/* 更新提示 */}
       {hasUpdate && onUpdateClick && (
@@ -47,7 +52,9 @@ export function GatewayVersion({
           onClick={onUpdateClick}
         >
           <Download size={12} />
-          <span className="hidden sm:inline">{t("updateAvailable")}</span>
+          <span className="hidden sm:inline">
+            {t("updateAvailable")} v{remoteVersion}
+          </span>
         </button>
       )}
     </div>

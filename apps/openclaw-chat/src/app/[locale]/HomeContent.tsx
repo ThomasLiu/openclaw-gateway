@@ -13,11 +13,17 @@ function HomeContent() {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
+  const handleUpdateClick = () => {
+    // 这里可以实现更新逻辑，例如打开更新对话框或执行更新命令
+    console.log('Update OpenClaw to latest version');
+  };
+
   return (
     <div className="h-full flex flex-col bg-bg-primary">
       <TopBar 
         onSidebarToggle={handleSidebarToggle} 
-        isSidebarOpen={isSidebarOpen} 
+        isSidebarOpen={isSidebarOpen}
+        onUpdateClick={handleUpdateClick}
       />
       <div className="flex-1 flex overflow-hidden relative">
         <LeftSidebar
