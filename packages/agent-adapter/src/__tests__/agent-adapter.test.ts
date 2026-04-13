@@ -141,6 +141,40 @@ describe('BaseAdapter', () => {
     const skills = await adapter.getSkills();
     expect(skills).toEqual([]);
   });
+
+  it('should generate session ID even if startTime is undefined', () => {
+    // 模拟startTime为undefined的情况
+    const testAdapter = new TestAdapter(config);
+    // 手动设置startTime为undefined
+    (testAdapter as any).startTime = undefined;
+    // 测试generateSessionId方法
+    const sessionId = (testAdapter as any).generateSessionId();
+    expect(sessionId).toBeDefined();
+    expect(typeof sessionId).toBe('string');
+  });
+
+  it('should handle getSessionInfo with undefined startTime', async () => {
+    const testAdapter = new TestAdapter(config);
+    // 手动设置startTime为undefined
+    (testAdapter as any).startTime = undefined;
+    // 测试getSessionInfo方法
+    const sessionInfo = await testAdapter.getSessionInfo();
+    expect(sessionInfo.startTime).toBeDefined();
+    expect(sessionInfo.startTime instanceof Date).toBe(true);
+  });
+
+  it('should handle toJSON method without startTime', () => {
+    const testAdapter = new TestAdapter(config);
+    // 手动设置startTime为undefined
+    (testAdapter as any).startTime = undefined;
+    // 测试toJSON方法
+    const json = testAdapter.toJSON();
+    expect(json).toBeDefined();
+    expect(json.config).toBeDefined();
+    expect(json.sessionId).toBeDefined();
+    expect(json.messages).toBeDefined();
+    expect(json.startTime).toBeUndefined();
+  });
 });
 
 describe('OpenclawAdapter', () => {

@@ -16,7 +16,7 @@ import {
 } from "@/lib/data/fs-reader";
 import type { AgentMetadata, SessionMetadata, SessionMessage, SkillInfo, WorkspaceFileInfo, CronJobConfig } from "@/types";
 
-import { compareVersions } from '@/lib/utils/version-utils';
+import { compareVersions, cleanVersion } from '@/lib/utils/version-utils';
 
 // 获取远程版本号（从npm注册表获取）
 export async function getRemoteVersion(): Promise<string> {
@@ -73,16 +73,27 @@ export async function getHealth() {
     console.log('[Health Check] which openclaw output:', whichOutput.trim());
     
     // 执行 openclaw gateway probe 命令来检查网关状态
-    console.log('[Health Check] Executing: openclaw gateway probe');
-    const { stdout: gatewayProbeOutput, stderr: gatewayProbeStderr } = await execFileAsync('openclaw', ['gateway', 'probe'], {
-      timeout: 5000,
+    console.log('[Health Check] Executing: openclaw gateway probe --json --timeout 10000');
+    const { stdout: gatewayProbeOutput, stderr: gatewayProbeStderr } = await execFileAsync('openclaw', ['gateway', 'probe', '--json', '--timeout', '10000'], {
+      timeout: 15000,
       env: process.env,
     });
-    console.log('[Health Check] Gateway probe stdout:', gatewayProbeOutput.substring(0, 500) + '...'); // 只显示前500个字符
+    console.log('[Health Check] Gateway probe stdout:', gatewayProbeOutput.substring(0, 500)); // 只显示前500个字符
     console.log('[Health Check] Gateway probe stderr:', gatewayProbeStderr);
     
-    // 检查输出中是否包含 "Reachable: yes"
-    if (gatewayProbeOutput.includes('Reachable: yes')) {
+    // 解析 JSON 输出检查网关是否可达
+    let probeResult;
+    try {
+      probeResult = JSON.parse(gatewayProbeOutput);
+    } catch {
+      // 如果 JSON 解析失败，回退到字符串检查
+      probeResult = null;
+    }
+    // JSON 格式中，ok 字段表示整体状态，targets 数组中的 connect.ok 表示连接状态
+    const isReachable = probeResult?.ok === true || 
+      (probeResult?.targets?.some((t: { connect?: { ok?: boolean } }) => t.connect?.ok === true)) ||
+      gatewayProbeOutput.includes('Reachable: yes');
+    if (isReachable) {
       // 获取版本号
       console.log('[Health Check] Executing: openclaw --version');
       const version = await getOpenClawVersion();
@@ -92,11 +103,13 @@ export async function getHealth() {
       const remoteVersion = await getRemoteVersion();
       console.log('[Version Check] Remote version:', remoteVersion);
       
-      const hasUpdate = compareVersions(remoteVersion, version) > 0;
+      // 清理版本字符串格式
+      const cleanedVersion = cleanVersion(version);
+      const hasUpdate = compareVersions(remoteVersion, cleanedVersion) > 0;
       console.log('[Version Check] Has update:', hasUpdate);
       
       console.log('[Health Check] Gateway health check completed successfully');
-      return { ok: true, status: "live" as const, version, hasUpdate, remoteVersion };
+      return { ok: true, status: "live" as const, version: cleanedVersion, hasUpdate, remoteVersion };
     } else {
       console.error('[Health Check] Gateway is not reachable');
       return { ok: false, status: "down" as const, version: "unknown", hasUpdate: false, remoteVersion: "unknown" };
@@ -107,18 +120,35 @@ export async function getHealth() {
       console.error('[Health Check] Error message:', error.message);
       console.error('[Health Check] Error stack:', error.stack);
     }
-    // 由于命令行执行openclaw gateway probe显示网关是正常的，我们暂时返回ok: true
-    // 这是一个临时解决方案，需要进一步调查为什么在前端应用中执行命令失败
-    console.log('[Health Check] Returning ok: true because command line execution shows gateway is reachable');
+    
+    // 尝试直接获取版本号，即使其他命令失败
+    let version = "unknown";
+    try {
+      console.log('[Health Check] Trying to get version directly: openclaw --version');
+      const { execFile } = require('child_process');
+      const { promisify } = require('util');
+      const execFileAsync = promisify(execFile);
+      const { stdout } = await execFileAsync('openclaw', ['--version'], {
+        timeout: 5000,
+      });
+      version = stdout.trim();
+      console.log('[Health Check] Direct version check successful:', version);
+    } catch (versionError) {
+      console.error('[Health Check] Failed to get version directly:', versionError);
+    }
     
     // 检查版本更新
     const remoteVersion = await getRemoteVersion();
     console.log('[Version Check] Remote version:', remoteVersion);
     
-    const hasUpdate = compareVersions(remoteVersion, "2026.4.2") > 0;
+    // 清理版本字符串格式
+    const cleanedVersion = cleanVersion(version);
+    const hasUpdate = compareVersions(remoteVersion, cleanedVersion) > 0;
     console.log('[Version Check] Has update:', hasUpdate);
     
-    return { ok: true, status: "live" as const, version: "2026.4.2", hasUpdate, remoteVersion };
+    // 由于命令执行失败，返回网关不可访问状态
+    console.log('[Health Check] Returning ok: false because gateway probe failed');
+    return { ok: false, status: "down" as const, version: cleanedVersion, hasUpdate, remoteVersion };
   }
 }
 

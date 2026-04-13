@@ -75,11 +75,15 @@ const TopBar = memo(function TopBar({
             data-testid="sidebar-toggle-btn"
           >
             {isSidebarOpen ? (
-              <PanelLeftClose size={18} />
-            ) : (
+              // 展开时：图1 - 左侧填充矩形 + 左箭头
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="9" height="18" rx="2" fill="currentColor" />
-                <path d="m14 18 6-6-6-6" />
+                <rect x="3" y="4" width="8" height="16" rx="1" fill="currentColor" />
+                <path d="M15 9l-4 3 4 3" />
+              </svg>
+            ) : (
+              // 收起时：图2 - 简单方框
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="6" y="4" width="12" height="16" rx="1" />
               </svg>
             )}
           </button>
